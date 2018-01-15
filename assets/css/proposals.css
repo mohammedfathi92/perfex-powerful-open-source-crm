@@ -1,0 +1,59 @@
+/* This is used for PDF */
+body table {
+  background-color: transparent;
+}
+caption {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  color: #777;
+  text-align: left;
+}
+th {
+  text-align: left;
+}
+.proposal table {
+  width:100% !important;
+}
+tr > th,
+tr > th,
+tfoot > tr > th,
+tr > td,
+tr > td,
+tr > td {
+  padding: 8px;
+  line-height: 1.42857143;
+  vertical-align: top;
+}
+tr > th {
+  vertical-align: bottom;
+  border-bottom: 2px solid #ddd;
+}
+caption + thead > tr:first-child > th,
+colgroup + thead > tr:first-child > th,
+thead:first-child > tr:first-child > th,
+caption + thead > tr:first-child > td,
+colgroup + thead > tr:first-child > td,
+thead:first-child > tr:first-child > td {
+  border-top: 0;
+}
+tbody + tbody {
+  border-top: 2px solid #ddd;
+}
+.table {
+  background-color: #fff;
+}
+.table-bordered {
+  border: 1px solid #ddd;
+}
+.table-bordered > thead > tr > th,
+.table-bordered > tbody > tr > th,
+.table-bordered > tfoot > tr > th,
+.table-bordered > thead > tr > td,
+.table-bordered > tbody > tr > td,
+.table-bordered > tfoot > tr > td {
+  border: 1px solid #ddd;
+}
+.table-bordered > thead > tr > th,
+.table-bordered > thead > tr > td {
+  border-bottom-width: 2px;
+}

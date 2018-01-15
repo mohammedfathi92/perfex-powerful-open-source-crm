@@ -1,0 +1,10 @@
+{
+    "require": {
+        "omnipay/paypal": "~2.0",
+        "omnipay/stripe": "~2.0",
+        "collizo4sky/omnipay-2checkout": "^1.4",
+        "omnipay/authorizenet": "~2.5",
+        "omnipay/mollie": "~3.0",
+        "omnipay/braintree": "~2.0@dev"
+    }
+}

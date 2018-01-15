@@ -1,0 +1,21 @@
+/* BEGIN Regular */
+@font-face {
+  font-family: Roboto;
+  src: url("./fonts/Regular/Roboto-Regular.woff2?v=1.1.0") format("woff2"), url("./fonts/Regular/Roboto-Regular.woff?v=1.1.0") format("woff"), url("./fonts/Regular/Roboto-Regular.ttf?v=1.1.0") format("truetype");
+  font-weight: 400;
+  font-style: normal; }
+@font-face {
+  font-family: Roboto;
+  src: url("./fonts/Regular/Roboto-Regular.woff2?v=1.1.0") format("woff2"), url("./fonts/Regular/Roboto-Regular.woff?v=1.1.0") format("woff"), url("./fonts/Regular/Roboto-Regular.ttf?v=1.1.0") format("truetype");
+  font-weight: normal;
+  font-style: normal; }
+/* END Regular */
+/* BEGIN Medium */
+@font-face {
+  font-family: Roboto;
+  src: url("./fonts/Medium/Roboto-Medium.woff2?v=1.1.0") format("woff2"), url("./fonts/Medium/Roboto-Medium.woff?v=1.1.0") format("woff"), url("./fonts/Medium/Roboto-Medium.ttf?v=1.1.0") format("truetype");
+  font-weight: 500;
+  font-style: normal; }
+/* END Medium */
+
+/*# sourceMappingURL=roboto.css.map */
