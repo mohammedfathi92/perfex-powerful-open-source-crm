@@ -18,7 +18,7 @@ if($current_selected_tabs != 'all') {
 ?>
 <div class="form-group">
 	<label for="visible_customer_profile_tabs" class="control-label"><?php echo _l('visible_tabs'); ?> (<?php echo _l('client_add_edit_profile'); ?>)</label>
-	<select name="settings[visible_customer_profile_tabs][]" id="visible_customer_profile_tabs" multiple class="form-control selectpicker" data-none-selected-text="<?php echo _l('all'); ?>">
+	<select name="settings[visible_customer_profile_tabs][]" id="visible_customer_profile_tabs" multiple class="form-control selectpicker" data-none-selected-text="<?php echo _l('all'); ?>" data-actions-box="true">
 		<option value="all"<?php if($current_selected_tabs == 'all'){echo ' selected';} ?>><?php echo _l('all'); ?></option>
 		<?php foreach($tabs as $tab){
 			if($tab['name'] == 'profile'){continue;} ?>

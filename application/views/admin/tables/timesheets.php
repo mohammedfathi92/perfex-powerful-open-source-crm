@@ -28,12 +28,12 @@ if(!has_permission('projects','','create')){
     array_push($where,'AND tbltaskstimers.staff_id='.get_staff_user_id());
 }
 
-$staff_ids = $this->_instance->projects_model->get_distinct_tasks_timesheets_staff($project_id);
+$staff_ids = $this->ci->projects_model->get_distinct_tasks_timesheets_staff($project_id);
 
 $_staff_ids = array();
 
 foreach($staff_ids as $s){
-    if($this->_instance->input->post('staff_id_'.$s['staff_id'])){
+    if($this->ci->input->post('staff_id_'.$s['staff_id'])){
         array_push($_staff_ids,$s['staff_id']);
     }
 }
@@ -119,7 +119,7 @@ foreach ($rResult as $aRow) {
 }
 $row[] = $_data;
 }
-$task_is_billed = $this->_instance->tasks_model->is_task_billed($aRow['task_id']);
+$task_is_billed = $this->ci->tasks_model->is_task_billed($aRow['task_id']);
 $options = '';
 if(($aRow['staff_id'] == get_staff_user_id() || has_permission('projects','','edit'))){
 

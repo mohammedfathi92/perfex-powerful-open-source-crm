@@ -1,6 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-class Migration extends CI_Controller
+
+class Migration extends CRM_Controller
 {
     public function __construct()
     {

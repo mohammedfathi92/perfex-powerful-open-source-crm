@@ -86,29 +86,35 @@
                         <table class="table items">
                             <thead>
                                 <tr>
-                                    <th>#</th>
-                                    <th class="description" width="50%"><?php echo _l('invoice_table_item_heading'); ?></th>
+                                    <th align="center">#</th>
+                                    <th class="description" width="50%" align="left"><?php echo _l('invoice_table_item_heading'); ?></th>
                                     <?php
-                                    $qty_heading = _l('invoice_table_quantity_heading');
-                                    if($invoice->show_quantity_as == 2){
-                                        $qty_heading = _l('invoice_table_hours_heading');
-                                    } else if($invoice->show_quantity_as == 3){
-                                        $qty_heading = _l('invoice_table_quantity_heading') .'/'._l('invoice_table_hours_heading');
-                                    }
+                                       $custom_fields = get_items_custom_fields_for_table_html($invoice->id,'invoice');
+                                       foreach($custom_fields as $cf){
+                                         echo '<th class="custom_field" align="left">' . $cf['name'] . '</th>';
+                                       }
                                     ?>
-                                    <th><?php echo $qty_heading; ?></th>
-                                    <th><?php echo _l('invoice_table_rate_heading'); ?></th>
+                                    <?php
+                                        $qty_heading = _l('invoice_table_quantity_heading');
+                                        if($invoice->show_quantity_as == 2){
+                                            $qty_heading = _l('invoice_table_hours_heading');
+                                        } else if($invoice->show_quantity_as == 3){
+                                            $qty_heading = _l('invoice_table_quantity_heading') .'/'._l('invoice_table_hours_heading');
+                                        }
+                                    ?>
+                                    <th align="right"><?php echo $qty_heading; ?></th>
+                                    <th align="right"><?php echo _l('invoice_table_rate_heading'); ?></th>
                                     <?php if(get_option('show_tax_per_item') == 1){ ?>
-                                    <th><?php echo _l('invoice_table_tax_heading'); ?></th>
+                                    <th align="right"><?php echo _l('invoice_table_tax_heading'); ?></th>
                                     <?php } ?>
-                                    <th><?php echo _l('invoice_table_amount_heading'); ?></th>
+                                    <th align="right"><?php echo _l('invoice_table_amount_heading'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
                                <?php
-                               $items_data = get_table_items_and_taxes($invoice->items,'invoice');
-                               $taxes = $items_data['taxes'];
-                               echo $items_data['html'];
+                                   $items_data = get_table_items_and_taxes($invoice->items,'invoice');
+                                   $taxes = $items_data['taxes'];
+                                   echo $items_data['html'];
                                ?>
                            </tbody>
                        </table>
@@ -124,28 +130,23 @@
                                 <?php echo format_money($invoice->subtotal,$invoice->symbol); ?>
                             </td>
                         </tr>
-                        <?php if($invoice->discount_percent != 0){ ?>
-                        <tr>
-                            <td>
-                                <span class="bold"><?php echo _l('invoice_discount'); ?> (<?php echo _format_number($invoice->discount_percent,true); ?>%)</span>
-                            </td>
-                            <td class="discount">
+                         <?php if(is_sale_discount_applied($invoice)){ ?>
+                         <tr>
+                               <td>
+                                <span class="bold"><?php echo _l('invoice_discount'); ?>
+                                 <?php if(is_sale_discount($invoice,'percent')){ ?>
+                                 (<?php echo _format_number($invoice->discount_percent,true); ?>%)
+                                 <?php } ?></span>
+                             </td>
+                             <td class="discount">
                                 <?php echo '-' . format_money($invoice->discount_total,$invoice->symbol); ?>
                             </td>
                         </tr>
                         <?php } ?>
                         <?php
                         foreach($taxes as $tax){
-                            $total = array_sum($tax['total']);
-                            if($invoice->discount_percent != 0 && $invoice->discount_type == 'before_tax'){
-                                $total_tax_calculated = ($total * $invoice->discount_percent) / 100;
-                                $total = ($total - $total_tax_calculated);
-                            }
-                            $_tax_name = explode('|',$tax['tax_name']);
-
-                            echo '<tr class="tax-area"><td class="bold">'.$_tax_name[0].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($total,$invoice->symbol).'</td></tr>';
+                            echo '<tr class="tax-area"><td class="bold">'.$tax['taxname'].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($tax['total_tax'], $invoice->symbol).'</td></tr>';
                         }
-
                         ?>
                         <?php if((int)$invoice->adjustment != 0){ ?>
                         <tr>

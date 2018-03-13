@@ -59,7 +59,7 @@ class Estimates extends Admin_controller
             ajax_access_denied();
         }
 
-        $this->perfex_base->get_table_data('estimates', array(
+        $this->app->get_table_data('estimates', array(
             'clientid' => $clientid,
         ));
     }
@@ -147,17 +147,16 @@ class Estimates extends Admin_controller
             'message' => '',
         );
         if (has_permission('estimates', '', 'edit')) {
-            if ($this->input->post('prefix')) {
-                $this->db->where('id', $id);
-                $this->db->update('tblestimates', array(
+            $this->db->where('id', $id);
+            $this->db->update('tblestimates', array(
                 'prefix' => $this->input->post('prefix'),
             ));
-                if ($this->db->affected_rows() > 0) {
-                    $response['success'] = true;
-                    $response['message'] = _l('updated_successfully', _l('estimate'));
-                }
+            if ($this->db->affected_rows() > 0) {
+                $response['success'] = true;
+                $response['message'] = _l('updated_successfully', _l('estimate'));
             }
         }
+
         echo json_encode($response);
         die;
     }
@@ -280,6 +279,11 @@ class Estimates extends Admin_controller
             }
 
             $data['estimates_years']       = $this->estimates_model->get_estimates_years();
+
+            if (count($data['estimates_years']) >= 1 && $data['estimates_years'][0]['year'] != date('Y')) {
+                array_unshift($data['estimates_years'], array('year'=>date('Y')));
+            }
+
             $data['_currency'] = $data['totals']['currencyid'];
             unset($data['totals']['currencyid']);
             $this->load->view('admin/estimates/estimates_total_template', $data);

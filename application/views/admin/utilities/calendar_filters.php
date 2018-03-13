@@ -58,14 +58,15 @@
             <label for="cf_expenses_reminders"><?php echo _l('calendar_expense_reminder'); ?></label>
         </div>
         <?php } ?>
-    </div>
-    <div class="col-md-3">
-        <?php if(get_option('show_lead_reminders_on_calendar') == 1){ ?>
+          <?php if(get_option('show_lead_reminders_on_calendar') == 1){ ?>
         <div class="checkbox">
             <input type="checkbox" value="1" name="lead_reminders" id="cf_leads_reminders"<?php if($this->input->post('lead_reminders')){echo ' checked';} ?>>
             <label for="cf_leads_reminders"><?php echo _l('show_lead_reminders_on_calendar'); ?></label>
         </div>
         <?php } ?>
+    </div>
+    <div class="col-md-3">
+
         <?php if(get_option('show_estimate_reminders_on_calendar') == 1){ ?>
         <div class="checkbox">
             <input type="checkbox" value="1" name="estimate_reminders" id="cf_estimates_reminders"<?php if($this->input->post('estimate_reminders')){echo ' checked';} ?>>
@@ -77,6 +78,12 @@
         <div class="checkbox">
             <input type="checkbox" value="1" name="invoice_reminders" id="cf_invoices_reminders"<?php if($this->input->post('invoice_reminders')){echo ' checked';} ?>>
             <label for="cf_invoices_reminders"><?php echo _l('show_invoice_reminders_on_calendar'); ?></label>
+        </div>
+        <?php } ?>
+        <?php if(get_option('show_credit_note_reminders_on_calendar') == 1){ ?>
+        <div class="checkbox">
+            <input type="checkbox" value="1" name="credit_note_reminders" id="cf_credit_note_reminders"<?php if($this->input->post('credit_note_reminders')){echo ' checked';} ?>>
+            <label for="cf_credit_note_reminders"><?php echo _l('show_credit_note_reminders_on_calendar'); ?></label>
         </div>
         <?php } ?>
         <?php if(get_option('show_proposal_reminders_on_calendar') == 1){ ?>

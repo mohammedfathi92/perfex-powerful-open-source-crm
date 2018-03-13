@@ -44,7 +44,7 @@ class Payu_money_gateway extends App_gateway
                 'name' => 'description_dashboard',
                 'label' => 'settings_paymentmethod_description',
                 'type'=>'textarea',
-                'default_value'=>'Payment for Invoice'
+                'default_value'=>'Payment for Invoice {invoice_number}',
             ),
             array(
                 'name' => 'currencies',

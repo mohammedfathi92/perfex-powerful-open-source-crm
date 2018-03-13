@@ -25,7 +25,7 @@
    </div>
    <?php } ?>
 </div>
-   <table class="table table-striped table-proposals-report scroll-responsive">
+   <table class="table table-proposals-report scroll-responsive">
       <thead>
          <tr>
             <th><?php echo _l('proposal'); ?> #</th>

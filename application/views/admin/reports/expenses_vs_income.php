@@ -5,10 +5,10 @@
             <div class="col-md-12">
                 <div class="panel_s">
                     <div class="panel-body">
-                        <?php if(count($years) > 1){ ?>
+                        <?php if(count($years) > 1 || (count($years) == 1 && $years[0] != date('Y'))){ ?>
                         <select class="selectpicker" name="expense_year" onchange="change_expense_report_year(this.value);" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                             <?php foreach($years as $year) { ?>
-                            <option value="<?php echo $year; ?>"<?php if($year == date('Y')){echo 'selected';} ?>>
+                            <option value="<?php echo $year; ?>"<?php if($year == $report_year){echo ' selected';} ?>>
                                 <?php echo $year; ?>
                             </option>
                             <?php } ?>

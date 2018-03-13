@@ -88,7 +88,7 @@
                            <?php echo _l('view_estimate_as_client'); ?>
                            </a>
                         </li>
-                        <?php if($estimate->expirydate != NULL && date('Y-m-d') < $estimate->expirydate && $estimate->status == 2){ ?>
+                        <?php if(!empty($estimate->expirydate) && date('Y-m-d') < $estimate->expirydate && ($estimate->status == 2 || $estimate->status == 5) && is_estimates_expiry_reminders_enabled()){ ?>
                         <li>
                            <a href="<?php echo admin_url('estimates/send_expiry_reminder/'.$estimate->id); ?>">
                            <?php echo _l('send_expiry_reminder'); ?>
@@ -253,8 +253,14 @@
                            <table class="table items estimate-items-preview">
                               <thead>
                                  <tr>
-                                    <th>#</th>
-                                    <th class="description" width="50%"><?php echo _l('estimate_table_item_heading'); ?></th>
+                                    <th align="left">#</th>
+                                    <th class="description" width="50%" align="left"><?php echo _l('estimate_table_item_heading'); ?></th>
+                                     <?php
+                                       $custom_fields = get_items_custom_fields_for_table_html($estimate->id,'estimate');
+                                       foreach($custom_fields as $cf){
+                                         echo '<th class="custom_field" align="left">' . $cf['name'] . '</th>';
+                                       }
+                                    ?>
                                     <?php
                                        $qty_heading = _l('estimate_table_quantity_heading');
                                        if($estimate->show_quantity_as == 2){
@@ -263,12 +269,12 @@
                                         $qty_heading = _l('estimate_table_quantity_heading') .'/'._l('estimate_table_hours_heading');
                                        }
                                        ?>
-                                    <th><?php echo $qty_heading; ?></th>
-                                    <th><?php echo _l('estimate_table_rate_heading'); ?></th>
+                                    <th align="right"><?php echo $qty_heading; ?></th>
+                                    <th align="right"><?php echo _l('estimate_table_rate_heading'); ?></th>
                                     <?php if(get_option('show_tax_per_item') == 1){ ?>
-                                    <th><?php echo _l('estimate_table_tax_heading'); ?></th>
+                                    <th align="right"><?php echo _l('estimate_table_tax_heading'); ?></th>
                                     <?php } ?>
-                                    <th><?php echo _l('estimate_table_amount_heading'); ?></th>
+                                    <th align="right"><?php echo _l('estimate_table_amount_heading'); ?></th>
                                  </tr>
                               </thead>
                               <tbody>
@@ -291,10 +297,13 @@
                                     <?php echo format_money($estimate->subtotal,$estimate->symbol); ?>
                                  </td>
                               </tr>
-                              <?php if($estimate->discount_percent != 0){ ?>
-                              <tr>
+                              <?php if(is_sale_discount_applied($estimate)){ ?>
+                               <tr>
                                  <td>
-                                    <span class="bold"><?php echo _l('estimate_discount'); ?> (<?php echo _format_number($estimate->discount_percent,true); ?>%)</span>
+                                    <span class="bold"><?php echo _l('estimate_discount'); ?>
+                                       <?php if(is_sale_discount($estimate,'percent')){ ?>
+                                       (<?php echo _format_number($estimate->discount_percent,true); ?>%)
+                                       <?php } ?></span>
                                  </td>
                                  <td class="discount">
                                     <?php echo '-' . format_money($estimate->discount_total,$estimate->symbol); ?>
@@ -302,16 +311,10 @@
                               </tr>
                               <?php } ?>
                               <?php
-                                 foreach($taxes as $tax){
-                                   $total = array_sum($tax['total']);
-                                   if($estimate->discount_percent != 0 && $estimate->discount_type == 'before_tax'){
-                                    $total_tax_calculated = ($total * $estimate->discount_percent) / 100;
-                                    $total = ($total - $total_tax_calculated);
-                                  }
-                                  $_tax_name = explode('|',$tax['tax_name']);
-                                  echo '<tr class="tax-area"><td class="bold">'.$_tax_name[0].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($total,$estimate->symbol).'</td></tr>';
-                                 }
-                                 ?>
+                              foreach($taxes as $tax){
+                                  echo '<tr class="tax-area"><td class="bold">'.$tax['taxname'].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($tax['total_tax'], $estimate->symbol).'</td></tr>';
+                              }
+                              ?>
                               <?php if((int)$estimate->adjustment != 0){ ?>
                               <tr>
                                  <td>

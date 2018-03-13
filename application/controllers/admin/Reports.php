@@ -2,7 +2,12 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Reports extends Admin_controller
 {
-    private $_instance;
+    /**
+     * Codeigniter Instance
+     * Expenses detailed report filters use $ci
+     * @var object
+     */
+    private $ci;
 
     public function __construct()
     {
@@ -10,7 +15,7 @@ class Reports extends Admin_controller
         if (!has_permission('reports', '', 'view')) {
             access_denied('reports');
         }
-        $this->_instance =& get_instance();
+        $this->ci = &get_instance();
         $this->load->model('reports_model');
     }
 
@@ -55,7 +60,6 @@ class Reports extends Admin_controller
     /* Sales reportts */
     public function sales()
     {
-
         $data['mysqlVersion'] = $this->db->query('SELECT VERSION() as version')->row();
         $data['sqlMode'] = $this->db->query('SELECT @@sql_mode as mode')->row();
 
@@ -296,6 +300,7 @@ class Reports extends Admin_controller
                  array_splice($select, 8, 0, '(
                     SELECT CASE
                     WHEN discount_percent != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * discount_percent/100)),'.get_decimal_places().')
+                    WHEN discount_total != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * (discount_total/subtotal*100) / 100)),'.get_decimal_places().')
                     ELSE ROUND(SUM(qty*rate/100*tblitemstax.taxrate),'.get_decimal_places().')
                     END
                     FROM tblitems_in
@@ -464,6 +469,7 @@ class Reports extends Admin_controller
                  array_splice($select, 9, 0, '(
                     SELECT CASE
                     WHEN discount_percent != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * discount_percent/100)),'.get_decimal_places().')
+                    WHEN discount_total != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * (discount_total/subtotal*100) / 100)),'.get_decimal_places().')
                     ELSE ROUND(SUM(qty*rate/100*tblitemstax.taxrate),'.get_decimal_places().')
                     END
                     FROM tblitems_in
@@ -627,12 +633,12 @@ class Reports extends Admin_controller
                 $custom_date_select = 'AND (' . $field . ' BETWEEN "' .
                 date('Y-m-d',strtotime(date('Y-01-01'))) .
                 '" AND "' .
-                date('Y-m-d',strtotime(date('Y-12-'.date('d',strtotime('last day of this year'))))) . '")';
+                date('Y-m-d',strtotime(date('Y-12-31'))) . '")';
             } elseif($months_report == 'last_year'){
              $custom_date_select = 'AND (' . $field . ' BETWEEN "' .
                 date('Y-m-d',strtotime(date(date('Y',strtotime('last year')).'-01-01'))) .
                 '" AND "' .
-                date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-'.date('d',strtotime('last day of last year'))))) . '")';
+                date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-31'))) . '")';
             } elseif ($months_report == 'custom') {
                 $from_date = to_sql_date($this->input->post('report_from'));
                 $to_date   = to_sql_date($this->input->post('report_to'));
@@ -765,6 +771,7 @@ class Reports extends Admin_controller
                  array_splice($select, 5, 0, '(
                     SELECT CASE
                     WHEN discount_percent != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * discount_percent/100)),'.get_decimal_places().')
+                    WHEN discount_total != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * (discount_total/subtotal*100) / 100)),'.get_decimal_places().')
                     ELSE ROUND(SUM(qty*rate/100*tblitemstax.taxrate),'.get_decimal_places().')
                     END
                     FROM tblitems_in
@@ -920,6 +927,7 @@ class Reports extends Admin_controller
                  array_splice($select, 8, 0, '(
                     SELECT CASE
                     WHEN discount_percent != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * discount_percent/100)),'.get_decimal_places().')
+                    WHEN discount_total != 0 AND discount_type = "before_tax" THEN ROUND(SUM((qty*rate/100*tblitemstax.taxrate) - (qty*rate/100*tblitemstax.taxrate * (discount_total/subtotal*100) / 100)),'.get_decimal_places().')
                     ELSE ROUND(SUM(qty*rate/100*tblitemstax.taxrate),'.get_decimal_places().')
                     END
                     FROM tblitems_in
@@ -1085,6 +1093,7 @@ class Reports extends Admin_controller
                 $aColumns = array(
                     'category',
                     'amount',
+                    'expense_name',
                     'tax',
                     'tax2',
                     '(SELECT taxrate FROM tbltaxes WHERE id=tblexpenses.tax)',
@@ -1151,22 +1160,24 @@ class Reports extends Admin_controller
                         }
                         if ($aColumns[$i] == 'category') {
                             $_data = '<a href="' . admin_url('expenses/list_expenses/' . $aRow['id']) . '" target="_blank">' . $aRow['category_name'] . '</a>';
-                        } elseif ($aColumns[$i] == 'amount' || $i == 5) {
+                        } else if($aColumns[$i] == 'expense_name') {
+                            $_data = '<a href="' . admin_url('expenses/list_expenses/' . $aRow['id']) . '" target="_blank">' . $aRow['expense_name'] . '</a>';
+                        } elseif ($aColumns[$i] == 'amount' || $i == 6) {
                             $total = $_data;
-                            if ($i != 5) {
+                            if ($i != 6) {
                                 $footer_data['amount'] += $total;
                             } else {
-                                if ($aRow['tax'] != 0 && $i == 5) {
+                                if ($aRow['tax'] != 0 && $i == 6) {
                                     $total += ($total / 100 * $_tax->taxrate);
                                 }
-                                if ($aRow['tax2'] != 0 && $i == 5) {
+                                if ($aRow['tax2'] != 0 && $i == 6) {
                                     $total += ($aRow['amount'] / 100 * $_tax2->taxrate);
                                 }
                                 $footer_data['amount_with_tax'] += $total;
                             }
 
                             $_data = format_money($total, $currency_symbol);
-                        } elseif ($i == 8) {
+                        } elseif ($i == 9) {
                             $_data = '<a href="' . admin_url('clients/client/' . $aRow['clientid']) . '">' . $aRow['company'] . '</a>';
                         } elseif ($aColumns[$i] == 'paymentmode') {
                             $_data = '';
@@ -1190,7 +1201,7 @@ class Reports extends Admin_controller
                             } else {
                                 $_data = '';
                             }
-                        } elseif ($i == 4) {
+                        } elseif ($i == 5) {
                             if ($aRow['tax'] != 0 || $aRow['tax2'] != 0) {
                                 if($aRow['tax'] != 0){
                                     $total = ($total / 100 * $_tax->taxrate);
@@ -1257,6 +1268,14 @@ class Reports extends Admin_controller
             ), $data['current_year']));
 
             $data['expense_years'] = $this->expenses_model->get_expenses_years();
+
+            if(count($data['expense_years']) > 0) {
+                // Perhaps no expenses in new year?
+                if(!in_array_multidimensional($data['expense_years'],'year',date('Y'))) {
+                    array_unshift($data['expense_years'], array('year'=>date('Y')));
+                }
+            }
+
             $data['categories']    = $this->expenses_model->get_category();
 
             $this->load->view('admin/reports/expenses', $data);
@@ -1270,13 +1289,23 @@ class Reports extends Admin_controller
         $this->load->model('expenses_model');
         $expenses_years = $this->expenses_model->get_expenses_years();
         $payments_years = $this->reports_model->get_distinct_payments_years();
+
         foreach ($expenses_years as $y) {
             array_push($_years, $y['year']);
         }
         foreach ($payments_years as $y) {
             array_push($_years, $y['year']);
         }
+
         $_years                                  = array_map("unserialize", array_unique(array_map("serialize", $_years)));
+
+        if(!in_array(date('Y'), $_years)) {
+            $_years[] = date('Y');
+        }
+
+        rsort($_years, SORT_NUMERIC);
+        $data['report_year'] = $year == '' ? date('Y') : $year;
+
         $data['years']                           = $_years;
         $data['chart_expenses_vs_income_values'] = json_encode($this->reports_model->get_expenses_vs_income_report($year));
         $data['title']                           = _l('als_expenses_vs_income');

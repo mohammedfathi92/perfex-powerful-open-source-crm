@@ -60,6 +60,9 @@
                 </div>
                 <div class="clearfix mbot15"></div>
                 <?php echo render_input('unit','unit'); ?>
+                <div id="custom_fields_items">
+                    <?php echo render_custom_fields('items'); ?>
+                </div>
                 <?php echo render_select('group_id',$items_groups,array('id','name'),'item_group'); ?>
             </div>
         </div>
@@ -84,6 +87,7 @@
 // Items add/edit
 function manage_invoice_items(form) {
     var data = $(form).serialize();
+
     var url = form.action;
     $.post(url, data).done(function (response) {
         response = JSON.parse(response);
@@ -118,6 +122,7 @@ function manage_invoice_items(form) {
                     $("body").find('.items-wrapper').append(clonedItemsAjaxSearchSelect);
                     init_ajax_search('items', '#item_select.ajax-search', undefined, admin_url + 'items/search');
                 }
+
                 add_item_to_preview(response.item.itemid);
             } else {
                 // Is general items view
@@ -152,7 +157,7 @@ function init_item_js() {
         $('input[name="itemid"]').val('');
         $itemModal.find('input').not('input[type="hidden"]').val('');
         $itemModal.find('textarea').val('');
-        $itemModal.find('select').selectpicker('val', '');
+        $itemModal.find('select').selectpicker('val', '').selectpicker('refresh');
         $('select[name="tax2"]').selectpicker('val', '').change();
         $('select[name="tax"]').selectpicker('val', '').change();
         $itemModal.find('.add-title').removeClass('hide');
@@ -178,8 +183,16 @@ function init_item_js() {
                         $itemModal.find('input[name="' + column + '"]').val(value);
                     }
                 });
+
+                $('#custom_fields_items').html(response.custom_fields_html);
+
+                init_selectpicker();
+                init_color_pickers();
+                init_datepicker();
+
                 $itemModal.find('.add-title').addClass('hide');
                 $itemModal.find('.edit-title').removeClass('hide');
+                validate_item_form();
             });
 
         }
@@ -189,6 +202,9 @@ function init_item_js() {
         $('#item_select').selectpicker('val', '');
     });
 
+   validate_item_form();
+}
+function validate_item_form(){
     // Set validation for invoice item form
     _validate_form($('#invoice_item_form'), {
         description: 'required',

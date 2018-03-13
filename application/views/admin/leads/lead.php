@@ -44,10 +44,10 @@
             </a>
          </li>
          <?php if(isset($lead)){ ?>
-         <?php if(count($mail_activity) > 0 || isset($show_email_activity)){ ?>
+         <?php if(count($mail_activity) > 0 || isset($show_email_activity) && $show_email_activity){ ?>
          <li role="presentation">
             <a href="#tab_email_activity" aria-controls="tab_email_activity" role="tab" data-toggle="tab">
-            <?php echo _l('lead_email_activity'); ?>
+                <?php echo do_action('lead_email_activity_subject',_l('lead_email_activity')); ?>
             </a>
          </li>
          <?php } ?>
@@ -104,17 +104,19 @@
          <?php $this->load->view('admin/leads/profile'); ?>
       </div>
       <?php if(isset($lead)){ ?>
-      <?php if(count($mail_activity) > 0 || isset($show_email_activity)){ ?>
+      <?php if(count($mail_activity) > 0 || isset($show_email_activity) && $show_email_activity){ ?>
       <div role="tabpanel" class="tab-pane" id="tab_email_activity">
+         <?php do_action('before_lead_email_activity',array('lead'=>$lead,'email_activity'=>$mail_activity)); ?>
          <?php foreach($mail_activity as $_mail_activity){ ?>
          <div class="lead-email-activity">
             <div class="media-left">
                <i class="fa fa-envelope"></i>
             </div>
             <div class="media-body">
-               <h4 class="bold no-margin lead-mail-activity-subject"><?php echo $_mail_activity['subject']; ?>
+               <h4 class="bold no-margin lead-mail-activity-subject">
+                  <?php echo $_mail_activity['subject']; ?>
                   <br />
-                  <small class="text-muted display-block mtop5"><?php echo _dt($_mail_activity['dateadded']); ?></small>
+                  <small class="text-muted display-block mtop5 font-medium-xs"><?php echo _dt($_mail_activity['dateadded']); ?></small>
                </h4>
                <div class="lead-mail-activity-body">
                   <hr />

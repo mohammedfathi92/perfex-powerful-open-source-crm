@@ -62,35 +62,35 @@
 						<?php echo render_custom_fields( 'contacts',get_contact_user_id(),array('show_on_client_portal'=>1)); ?>
 						<?php if(can_contact_view_email_notifications_options()){ ?>
 						<hr />
-						<p class="bold"><?php echo _l('email_notifications'); ?></p>
+						<p class="bold email-notifications-label"><?php echo _l('email_notifications'); ?></p>
 						<?php if(has_contact_permission('invoices')){ ?>
-							<div class="checkbox checkbox-info">
+							<div class="checkbox checkbox-info email-notifications-invoices">
 								<input type="checkbox" value="1" id="invoice_emails" name="invoice_emails"<?php if($contact->invoice_emails == 1){echo ' checked';} ?>>
 						       <label for="invoice_emails"><?php echo _l('invoice'); ?></label>
 							</div>
-							<div class="checkbox checkbox-info">
+							<div class="checkbox checkbox-info email-notifications-credit-notes">
 								<input type="checkbox" value="1" id="credit_note_emails" name="credit_note_emails"<?php if($contact->credit_note_emails == 1){echo ' checked';} ?>>
 						       <label for="credit_note_emails"><?php echo _l('credit_note'); ?></label>
 							</div>
 						<?php } ?>
 						<?php if(has_contact_permission('estimates')){ ?>
-							<div class="checkbox checkbox-info">
+							<div class="checkbox checkbox-info email-notifications-estimates">
 								<input type="checkbox" value="1" id="estimate_emails" name="estimate_emails"<?php if($contact->estimate_emails == 1){echo ' checked';} ?>>
 						       <label for="estimate_emails"><?php echo _l('estimate'); ?></label>
 							</div>
 						<?php } ?>
 						<?php if(has_contact_permission('contracts')){ ?>
-							<div class="checkbox checkbox-info">
+							<div class="checkbox checkbox-info email-notifications-contracts">
 								<input type="checkbox" value="1" id="contract_emails" name="contract_emails"<?php if($contact->contract_emails == 1){echo ' checked';} ?>>
 						       <label for="contract_emails"><?php echo _l('contract'); ?></label>
 							</div>
 						<?php } ?>
 						<?php if(has_contact_permission('projects')){ ?>
-							<div class="checkbox checkbox-info">
+							<div class="checkbox checkbox-info email-notifications-projects">
 								<input type="checkbox" value="1" id="project_emails" name="project_emails"<?php if($contact->project_emails == 1){echo ' checked';} ?>>
 						       <label for="project_emails"><?php echo _l('project'); ?></label>
 							</div>
-							<div class="checkbox checkbox-info">
+							<div class="checkbox checkbox-info email-notifications-tasks">
 								<input type="checkbox" value="1" id="task_emails" name="task_emails"<?php if($contact->task_emails == 1){echo ' checked';} ?>>
 						       <label for="task_emails"><?php echo _l('task'); ?></label>
 							</div>

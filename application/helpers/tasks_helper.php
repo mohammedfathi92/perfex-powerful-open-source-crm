@@ -282,6 +282,7 @@ function init_relation_tasks_table($table_attributes = array())
                 'class'=>'duedate',
                 ),
             ),
+         _l('tags'),
          array(
             'name'=>_l('task_assigned'),
             'th_attrs'=>array(
@@ -342,7 +343,7 @@ function init_relation_tasks_table($table_attributes = array())
         echo '<div class="clearfix"></div>';
         echo $CI->load->view('admin/tasks/_bulk_actions', array('table'=>'.table-rel-tasks'), true);
         echo $CI->load->view('admin/tasks/_summary', array('rel_id'=>$table_attributes['data-new-rel-id'], 'rel_type'=>'project', 'table'=>$table_name), true);
-        echo '<a href="#" data-toggle="modal" data-target="#tasks_bulk_actions" class="hide bulk-actions-btn" data-table=".table-rel-tasks">'._l('bulk_actions').'</a>';
+        echo '<a href="#" data-toggle="modal" data-target="#tasks_bulk_actions" class="hide bulk-actions-btn table-btn" data-table=".table-rel-tasks">'._l('bulk_actions').'</a>';
     } elseif ($table_attributes['data-new-rel-type'] == 'customer') {
         echo '<div class="clearfix"></div>';
         echo '<div id="tasks_related_filter">';

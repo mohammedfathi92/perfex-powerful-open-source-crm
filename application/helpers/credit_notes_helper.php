@@ -84,7 +84,7 @@ function is_last_credit_note($id)
 function format_credit_note_number($id)
 {
     $CI =& get_instance();
-    $CI->db->select('number,prefix')
+    $CI->db->select('date,number,prefix,number_format')
     ->from('tblcreditnotes')
     ->where('id', $id);
     $credit_note = $CI->db->get()->row();
@@ -95,9 +95,31 @@ function format_credit_note_number($id)
 
     $prefix = $credit_note->prefix;
     $number = $credit_note->number;
+    $format = $credit_note->number_format;
+    $date = $credit_note->date;
     $prefixPadding = get_option('number_padding_prefixes');
 
-    return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
+    if ($format == 1) {
+        // Number based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
+    } elseif ($format == 2) {
+        // Year based
+        return $prefix . date('Y', strtotime($date)) . '/' . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
+    } else if($format == 3) {
+        // Number-yy based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '-' . date('y', strtotime($date));
+    } else if($format == 4) {
+        // Number-mm-yyyy based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '/' . date('m', strtotime($date)) . '/' . date('Y', strtotime($date));
+    }
+
+    $hook_data['id'] = $id;
+    $hook_data['credit_note'] = $credit_note;
+    $hook_data['formatted_number'] = $number;
+    $hook_data = do_action('format_credit_note_number',$hook_data);
+    $number = $hook_data['formatted_number'];
+
+    return $number;
 }
 
 /**

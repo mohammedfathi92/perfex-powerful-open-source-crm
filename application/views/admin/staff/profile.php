@@ -10,12 +10,14 @@
                        </h4>
                        <hr class="hr-panel-heading" />
                        <?php echo form_open_multipart($this->uri->uri_string(),array('id'=>'staff_profile_table','autocomplete'=>'off')); ?>
+                       <?php if(total_rows('tblemailtemplates',array('slug'=>'two-factor-authentication','active'=>0)) == 0){ ?>
                        <div class="checkbox checkbox-primary">
                          <input type="checkbox" value="1" name="two_factor_auth_enabled" id="two_factor_auth_enabled"<?php if($current_user->two_factor_auth_enabled == 1){echo ' checked';} ?>>
                          <label for="two_factor_auth_enabled"><i class="fa fa-question-circle" data-placement="right" data-toggle="tooltip" data-title="<?php echo _l('two_factor_authentication_info'); ?>"></i>
                          <?php echo _l('enable_two_factor_authentication'); ?></label>
                      </div>
                      <hr />
+                     <?php } ?>
                      <?php if($current_user->profile_image == NULL){ ?>
                      <div class="form-group">
                         <label for="profile_image" class="profile-image"><?php echo _l('staff_edit_profile_image'); ?></label>
@@ -49,7 +51,7 @@
                     <?php $value = (isset($member) ? $member->phonenumber : ''); ?>
                     <?php echo render_input('phonenumber','staff_add_edit_phonenumber',$value); ?>
                     <?php if(get_option('disable_language') == 0){ ?>
-                    <div class="form-group">
+                    <div class="form-group select-placeholder">
                         <label for="default_language" class="control-label"><?php echo _l('localization_default_language'); ?></label>
                         <select name="default_language" data-live-search="true" id="default_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                             <option value=""><?php echo _l('system_default_string'); ?></option>
@@ -66,7 +68,7 @@
                           </select>
                       </div>
                       <?php } ?>
-                      <div class="form-group">
+                      <div class="form-group select-placeholder">
                         <label for="direction"><?php echo _l('document_direction'); ?></label>
                         <select class="selectpicker" data-none-selected-text="<?php echo _l('system_default_string'); ?>" data-width="100%" name="direction" id="direction">
                           <option value="" <?php if(isset($member) && empty($member->direction)){echo 'selected';} ?>></option>

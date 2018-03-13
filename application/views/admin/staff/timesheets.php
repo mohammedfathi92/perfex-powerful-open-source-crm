@@ -33,7 +33,8 @@
           <div class="clearfix"></div>
           <div class="row">
            <div class="col-md-3">
-            <select name="range" id="range" class="selectpicker" data-width="100%">
+           <div class="select-placeholder">
+              <select name="range" id="range" class="selectpicker" data-width="100%">
              <option value="today" selected><?php echo _l('today'); ?></option>
              <option value="this_month"><?php echo _l('staff_stats_this_month_total_logged_time'); ?></option>
              <option value="last_month"><?php echo _l('staff_stats_last_month_total_logged_time'); ?></option>
@@ -41,6 +42,7 @@
              <option value="last_week"><?php echo _l('staff_stats_last_week_total_logged_time'); ?></option>
              <option value="period"><?php echo _l('period_datepicker'); ?></option>
            </select>
+           </div>
            <div class="row mtop15">
              <div class="col-md-12 period hide">
               <?php echo render_date_input('period-from'); ?>
@@ -52,7 +54,8 @@
         </div>
         <?php if(isset($view_all)){ ?>
         <div class="col-md-3">
-         <select name="staff_id" id="staff_id" class="selectpicker" data-width="100%">
+       <div class="select-placeholder">
+           <select name="staff_id" id="staff_id" class="selectpicker" data-width="100%">
            <option value=""><?php echo _l('all_staff_members'); ?></option>
            <option value="<?php echo get_staff_user_id(); ?>"><?php echo get_staff_full_name(get_staff_user_id()); ?></option>
            <?php foreach($staff_members_with_timesheets as $staff){ ?>
@@ -60,10 +63,13 @@
            <?php } ?>
          </select>
        </div>
+       </div>
        <?php } ?>
        <div class="col-md-3">
-         <select data-empty-title="<?php echo _l('project'); ?>" name="project_id" id="project_id" class="projects ajax-search" data-live-search="true" data-width="100%">
+         <div class="select-placeholder">
+           <select data-empty-title="<?php echo _l('project'); ?>" name="project_id" id="project_id" class="projects ajax-search" data-live-search="true" data-width="100%">
          </select>
+         </div>
        </div>
        <div class="col-md-3">
          <a href="#" id="apply_filters_timesheets" class="btn btn-default p7"><?php echo _l('apply'); ?></a>

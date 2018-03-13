@@ -74,7 +74,7 @@
          </a>
       </p>
       <?php } ?>
-      <?php if(has_permission('tasks','','create')){ ?>
+      <?php if(has_permission('tasks','','create') && count($task->timesheets) > 0){ ?>
       <p class="no-margin pull-left mright5">
          <a href="#" class="btn btn-default mright5" data-toggle="tooltip" data-title="<?php echo _l('task_statistics'); ?>" onclick="task_tracking_stats(<?php echo $task->id; ?>); return false;">
             <i class="fa fa-bar-chart"></i>
@@ -173,11 +173,34 @@
                            ?>
                            <tr class="odd">
                               <td colspan="5">
+                                <div class="timesheet-start-end-time">
                                  <div class="col-md-6">
                                     <?php echo render_datetime_input('timesheet_start_time','task_log_time_start'); ?>
                                  </div>
                                  <div class="col-md-6">
                                     <?php echo render_datetime_input('timesheet_end_time','task_log_time_end'); ?>
+                                 </div>
+                                 </div>
+                                 <div class="timesheet-duration hide">
+                                   <div class="col-md-12">
+                                        <i class="fa fa-question-circle pointer pull-left mtop2" data-toggle="popover" data-html="true" data-content="
+                                         :15 - 15 <?php echo _l('minutes'); ?><br />
+                                         2 - 2 <?php echo _l('hours'); ?><br />
+                                         5:5 - 5 <?php echo _l('hours'); ?> & 5 <?php echo _l('minutes'); ?><br />
+                                         2:50 - 2 <?php echo _l('hours'); ?> & 50 <?php echo _l('minutes'); ?><br />
+                                         "></i>
+                                     <?php echo render_input('timesheet_duration','project_timesheet_time_spend','','text',array('placeholder'=>'HH:MM')); ?>
+                                   </div>
+                                 </div>
+                                 <div class="col-md-12 mbot15 mntop15">
+                                   <a href="#" class="timesheet-toggle-enter-type">
+                                     <span class="timesheet-duration-toggler-text switch-to">
+                                       <?php echo _l('timesheet_duration_instead'); ?>
+                                     </span>
+                                     <span class="timesheet-date-toggler-text hide ">
+                                       <?php echo _l('timesheet_date_instead'); ?>
+                                     </span>
+                                   </a>
                                  </div>
                                  <div class="col-md-12">
                                     <div class="form-group">
@@ -490,7 +513,7 @@
    <?php } ?>
 </h5>
 <hr class="task-info-separator" />
-<div class="task-info task-status">
+<div class="task-info task-status task-info-status">
    <h5>
       <i class="fa fa-<?php if($task->status == 5){echo 'star';} else if($task->status == 1){echo 'star-o';} else {echo 'star-half-o';} ?> pull-left task-info-icon fa-fw fa-lg"></i><?php echo _l('task_status'); ?>:
       <?php if($task->current_user_is_assigned || $task->current_user_is_creator || has_permission('tasks','','edit')) { ?>
@@ -520,13 +543,13 @@
    </h5>
 </div>
 <?php if($task->status == 5){ ?>
-<div class="task-info">
+<div class="task-info task-info-finished">
    <h5><i class="fa task-info-icon fa-fw fa-lg pull-left fa-check"></i>
       <?php echo _l('task_single_finished'); ?>: <span data-toggle="tooltip" data-title="<?php echo _dt($task->datefinished); ?>" data-placement="bottom" class="text-has-action"><?php echo time_ago($task->datefinished); ?></span>
    </h5>
 </div>
 <?php } ?>
-<div class="task-info task-single-inline-wrap">
+<div class="task-info task-single-inline-wrap task-info-start-date">
    <h5><i class="fa task-info-icon fa-fw fa-lg fa-calendar-plus-o pull-left fa-margin"></i>
       <?php echo _l('task_single_start_date'); ?>:
       <?php if(has_permission('tasks','','edit') && $task->status !=5) { ?>
@@ -536,7 +559,7 @@
       <?php } ?>
    </h5>
 </div>
-<div class="task-info task-single-inline-wrap<?php if(!$task->duedate && !has_permission('edit','','tasks')){echo ' hide';} ?>"<?php if(!$task->duedate){ echo ' style="opacity:0.5;"';} ?>>
+<div class="task-info task-info-due-date task-single-inline-wrap<?php if(!$task->duedate && !has_permission('edit','','tasks')){echo ' hide';} ?>"<?php if(!$task->duedate){ echo ' style="opacity:0.5;"';} ?>>
    <h5><i class="fa fa-calendar-check-o task-info-icon fa-fw fa-lg pull-left"></i>
       <?php echo _l('task_single_due_date'); ?>:
       <?php if(has_permission('tasks','','edit') && $task->status !=5) { ?>
@@ -546,7 +569,7 @@
       <?php } ?>
    </h5>
 </div>
-<div class="task-info">
+<div class="task-info task-info-priority">
    <h5>
       <i class="fa task-info-icon fa-fw fa-lg pull-left fa-bolt"></i>
       <?php echo _l('task_single_priority'); ?>:
@@ -578,7 +601,7 @@
    </h5>
 </div>
 <?php if((has_permission('tasks','','create') || has_permission('tasks','','edit'))){ ?>
-<div class="task-info">
+<div class="task-info task-info-hourly-rate">
    <h5><i class="fa task-info-icon fa-fw fa-lg pull-left fa-clock-o"></i>
       <?php echo _l('task_hourly_rate'); ?>: <?php if($task->rel_type == 'project' && $task->project_data->billing_type == 2){
          echo _format_number($task->project_data->project_rate_per_hour);
@@ -588,18 +611,18 @@
       ?>
    </h5>
 </div>
-<div class="task-info">
+<div class="task-info task-info-billable">
    <h5><i class="fa task-info-icon fa-fw fa-lg pull-left fa fa-credit-card"></i>
       <?php echo _l('task_billable'); ?>: <?php echo ($task->billable == 1 ? _l('task_billable_yes') : _l('task_billable_no')) ?>
       <?php if($task->billable == 1){ ?>
-      - <?php echo ($task->billed == 1 ? _l('task_billed_yes') : _l('task_billed_no')) ?>
+       <b>(<?php echo ($task->billed == 1 ? _l('task_billed_yes') : _l('task_billed_no')) ?>)</b>
       <?php } ?>
       <?php if($task->rel_type == 'project' && $task->project_data->billing_type == 1){echo '<small>('._l('project'). ' ' . _l('project_billing_type_fixed_cost').')</small>';} ?>
    </h5>
 </div>
 <?php } ?>
 <?php if($task->current_user_is_assigned || total_rows('tbltaskstimers',array('task_id'=>$task->id,'staff_id'=>get_staff_user_id())) > 0){ ?>
-<div class="task-info">
+<div class="task-info task-info-user-logged-time">
    <h5>
       <i class="fa fa-asterisk task-info-icon fa-fw fa-lg" aria-hidden="true"></i><?php echo _l('task_user_logged_time'); ?>
       <?php echo seconds_to_time_format($this->tasks_model->calc_task_total_time($task->id,' AND staff_id='.get_staff_user_id())); ?>
@@ -607,7 +630,7 @@
 </div>
 <?php } ?>
 <?php if(has_permission('tasks','','create')){ ?>
-<div class="task-info">
+<div class="task-info task-info-total-logged-time">
    <h5>
       <i class="fa task-info-icon fa-fw fa-lg fa-clock-o"></i><?php echo _l('task_total_logged_time'); ?>
       <span class="text-success">
@@ -621,7 +644,7 @@ foreach($custom_fields as $field){ ?>
 <?php $value = get_custom_field_value($task->id,$field['id'],'tasks');
 if($value == ''){continue;}?>
 <div class="task-info">
-   <h5 class="task-info-custom-field">
+   <h5 class="task-info-custom-field task-info-custom-field-<?php echo $field['id']; ?>">
      <?php echo $field['name']; ?>: <?php echo $value; ?>
    </h5>
 </div>
@@ -629,7 +652,7 @@ if($value == ''){continue;}?>
 
 <?php if(has_permission('tasks','','create') || has_permission('tasks','','edit')){ ?>
 <div class="mtop5 clearfix"></div>
-<div id="inputTagsWrapper" class="taskSingleTasks">
+<div id="inputTagsWrapper" class="taskSingleTasks task-info-tags-edit">
    <input type="text" class="tagsinput" id="taskTags" data-taskid="<?php echo $task->id; ?>" value="<?php echo prep_tags_input(get_tags_in($task->id,'task')); ?>" data-role="tagsinput">
 </div>
 <div class="clearfix"></div>

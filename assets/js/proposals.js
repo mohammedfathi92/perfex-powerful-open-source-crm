@@ -48,7 +48,7 @@ function init_proposal_editor() {
         fontsize_formats: '8pt 10pt 12pt 14pt 18pt 24pt 36pt',
         plugins: [
             'advlist pagebreak autolink autoresize lists link image charmap hr anchor',
-            'searchreplace wordcount visualblocks visualchars code fullscreen',
+            'searchreplace wordcount visualblocks visualchars code',
             'media nonbreaking save table contextmenu directionality',
             'paste textcolor colorpicker'
         ],

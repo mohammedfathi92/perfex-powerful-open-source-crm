@@ -23,7 +23,7 @@ class Custom_fields extends Admin_controller
     public function index()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('custom_fields');
+            $this->app->get_table_data('custom_fields');
         }
         $data['title'] = _l('custom_fields');
         $this->load->view('admin/custom_fields/manage', $data);

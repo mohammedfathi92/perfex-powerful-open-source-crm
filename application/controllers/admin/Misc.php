@@ -54,13 +54,15 @@ class Misc extends Admin_controller
         redirect($_SERVER['HTTP_REFERER']);
     }
 
-    public function clear_system_popup(){
+    public function clear_system_popup()
+    {
         $this->session->unset_userdata('system-popup');
     }
 
     public function tinymce_file_browser()
     {
-        $this->load->view('admin/includes/elfinder_tinymce');
+        $data['connector'] = admin_url() . '/utilities/media_connector';
+        $this->load->view('admin/includes/elfinder_tinymce', $data);
     }
 
     public function get_relation_data()
@@ -113,7 +115,7 @@ class Misc extends Admin_controller
 
         $this->db->where('id', $id);
         $this->db->update('tblfiles', array(
-            'visible_to_customer' => $v
+            'visible_to_customer' => $v,
         ));
         echo $v;
     }
@@ -136,7 +138,7 @@ class Misc extends Admin_controller
                     'attachment' => $this->input->post('file_path'),
                     'filename' => $this->input->post('file_name'),
                     'type' => $this->input->post('filetype'),
-                    'read' => true
+                    'read' => true,
                 ));
                 $message = $this->input->post('send_file_message');
                 $message = nl2br($message);
@@ -157,7 +159,7 @@ class Misc extends Admin_controller
         foreach ($data['data'] as $order) {
             $this->db->where('id', $order[0]);
             $this->db->update('tblitems_in', array(
-                'item_order' => $order[1]
+                'item_order' => $order[1],
             ));
         }
     }
@@ -176,16 +178,16 @@ class Misc extends Admin_controller
         }
         echo json_encode(array(
             'alert_type' => $alert_type,
-            'message' => $message
+            'message' => $message,
         ));
     }
 
     public function get_reminders($id, $rel_type)
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('reminders', array(
+            $this->app->get_table_data('reminders', array(
                 'id' => $id,
-                'rel_type' => $rel_type
+                'rel_type' => $rel_type,
             ));
         }
     }
@@ -193,21 +195,23 @@ class Misc extends Admin_controller
     public function my_reminders()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('staff_reminders');
+            $this->app->get_table_data('staff_reminders');
         }
     }
 
-    public function reminders() {
+    public function reminders()
+    {
         $this->load->model('staff_model');
         $data['members']  = $this->staff_model->get('', 1);
         $data['title'] = _l('reminders');
         $data['bodyclass'] = 'all_reminders';
-        $this->load->view('admin/utilities/all_reminders',$data);
+        $this->load->view('admin/utilities/all_reminders', $data);
     }
 
-    public function reminders_table(){
+    public function reminders_table()
+    {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('all_reminders');
+            $this->app->get_table_data('all_reminders');
         }
     }
 
@@ -226,14 +230,15 @@ class Misc extends Admin_controller
         }
         echo json_encode(array(
             'alert_type' => $alert_type,
-            'message' => $message
+            'message' => $message,
         ));
     }
 
-    public function get_reminder($id){
+    public function get_reminder($id)
+    {
         $reminder = $this->misc_model->get_reminders($id);
-        if($reminder){
-            if($reminder->creator == get_staff_user_id() || is_admin()){
+        if ($reminder) {
+            if ($reminder->creator == get_staff_user_id() || is_admin()) {
                 $reminder->date = _dt($reminder->date);
                 $reminder->description = clear_textarea_breaks($reminder->description);
                 echo json_encode($reminder);
@@ -241,14 +246,15 @@ class Misc extends Admin_controller
         }
     }
 
-    public function edit_reminder($id){
+    public function edit_reminder($id)
+    {
         $reminder = $this->misc_model->get_reminders($id);
-        if($reminder){
-            if(($reminder->creator == get_staff_user_id() || is_admin()) && $reminder->isnotified == 0){
-                $success = $this->misc_model->edit_reminder($this->input->post(),$id);
+        if ($reminder) {
+            if (($reminder->creator == get_staff_user_id() || is_admin()) && $reminder->isnotified == 0) {
+                $success = $this->misc_model->edit_reminder($this->input->post(), $id);
                 echo json_encode(array(
                     'alert_type' => 'success',
-                    'message' =>  ($success ? _l('updated_successfully',_l('reminder')) : '')
+                    'message' =>  ($success ? _l('updated_successfully', _l('reminder')) : ''),
                 ));
             }
         }
@@ -287,7 +293,7 @@ class Misc extends Admin_controller
             $success = $this->misc_model->edit_note($this->input->post(), $id);
             echo json_encode(array(
                 'success' => $success,
-                'message' => _l('note_updated_successfully')
+                'message' => _l('note_updated_successfully'),
             ));
         }
     }
@@ -296,14 +302,14 @@ class Misc extends Admin_controller
     {
         $success = $this->misc_model->delete_note($id);
 
-        if(!$this->input->is_ajax_request()){
+        if (!$this->input->is_ajax_request()) {
             if ($success) {
                 set_alert('success', _l('deleted', _l('note')));
             }
-                redirect($_SERVER['HTTP_REFERER']);
-            } else {
-                echo json_encode(array('success'=>$success));
-            }
+            redirect($_SERVER['HTTP_REFERER']);
+        } else {
+            echo json_encode(array('success'=>$success));
+        }
     }
 
     /* Remove customizer open from database */
@@ -311,7 +317,7 @@ class Misc extends Admin_controller
     {
         if ($this->input->is_ajax_request()) {
             $this->session->set_userdata(array(
-                'setup-menu-open' => ''
+                'setup-menu-open' => '',
             ));
         }
     }
@@ -321,7 +327,7 @@ class Misc extends Admin_controller
     {
         if ($this->input->is_ajax_request()) {
             $this->session->set_userdata(array(
-                'setup-menu-open' => true
+                'setup-menu-open' => true,
             ));
         }
     }
@@ -338,7 +344,7 @@ class Misc extends Admin_controller
     {
         if ($this->input->is_ajax_request()) {
             echo json_encode(array(
-                'success' => $this->misc_model->set_notifications_read()
+                'success' => $this->misc_model->set_notifications_read(),
             ));
         }
     }
@@ -373,7 +379,7 @@ class Misc extends Admin_controller
 
         echo json_encode(array(
         'html'=>$this->load->view('admin/includes/notifications', array(), true),
-        'notificationsIds'=>$notificationsIds
+        'notificationsIds'=>$notificationsIds,
         ));
     }
 
@@ -452,14 +458,6 @@ class Misc extends Admin_controller
         }
     }
 
-    // Temporary function
-    public function replace_changed_lang_keys_v162()
-    {
-        if (is_admin()) {
-            $this->misc_model->replace_changed_lang_keys_v162();
-        }
-    }
-
     public function change_maximum_number_of_digits_to_decimal_fields($digits)
     {
         if (is_admin()) {
@@ -475,15 +473,14 @@ class Misc extends Admin_controller
                         FROM ".$table." where Field ='".$field."'")->result_array();
                     $field_type = strtolower($field_info[0]['Type']);
                     if (strpos($field_type, 'decimal') !== false) {
-
                         $field_null = strtoupper($field_info[0]['Null']);
                         if ($field_null == 'YES') {
                             $field_is_null = 'NULL';
                         } else {
                             $field_is_null = 'NOT NULL';
                         }
-                        $total_decimals = strafter($field_info[0]['Type'],',');
-                        $total_decimals = strbefore($total_decimals,')');
+                        $total_decimals = strafter($field_info[0]['Type'], ',');
+                        $total_decimals = strbefore($total_decimals, ')');
 
                         if ($field_info[0]['Default'] == null) {
                             $field_default_value = '';

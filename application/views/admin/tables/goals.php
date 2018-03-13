@@ -34,7 +34,7 @@ foreach ($rResult as $aRow) {
         $row[] = $_data;
     }
     ob_start();
-    $achievement          = $this->_instance->goals_model->calculate_goal_achievement($aRow['id']);
+    $achievement          = $this->ci->goals_model->calculate_goal_achievement($aRow['id']);
     $percent              = $achievement['percent'];
     $progress_bar_percent = $achievement['progress_bar_percent'];
     ?>

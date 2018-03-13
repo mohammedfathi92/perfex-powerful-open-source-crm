@@ -61,12 +61,12 @@ class Proposals extends Admin_controller
             ajax_access_denied();
         }
 
-        $this->perfex_base->get_table_data('proposals');
+        $this->app->get_table_data('proposals');
     }
 
     public function proposal_relations($rel_id, $rel_type)
     {
-        $this->perfex_base->get_table_data('proposals_relations', array(
+        $this->app->get_table_data('proposals_relations', array(
             'rel_id' => $rel_id,
             'rel_type' => $rel_type,
         ));
@@ -469,6 +469,7 @@ class Proposals extends Admin_controller
                 array_push($taxnames, $tax['taxname']);
             }
             $item['taxname'] = $taxnames;
+            $item['parent_item_id'] = $item['id'];
             $item['id']      = 0;
             $items[]         = $item;
         }
@@ -512,11 +513,8 @@ class Proposals extends Admin_controller
         $new_id = $this->proposals_model->copy($id);
         if ($new_id) {
             set_alert('success', _l('proposal_copy_success'));
-            if ($this->set_proposal_pipeline_autoload($new_id)) {
-                redirect($_SERVER['HTTP_REFERER']);
-            } else {
-                redirect(admin_url('proposals/list_proposals/' . $new_id));
-            }
+            $this->set_proposal_pipeline_autoload($new_id);
+            redirect(admin_url('proposals/proposal/' . $new_id));
         } else {
             set_alert('success', _l('proposal_copy_fail'));
         }
@@ -714,29 +712,20 @@ class Proposals extends Admin_controller
 
     private function user_can_view_proposal($id)
     {
+        if (has_permission('proposals', '', 'view')) {
+            return true;
+        }
+
         $this->db->select('id,addedfrom,assigned');
         $this->db->from('tblproposals');
         $this->db->where('id', $id);
         $proposal = $this->db->get()->row();
 
-        if (!has_permission('proposals', '', 'view')) {
-            if ($proposal->addedfrom != get_staff_user_id() && $proposal->assigned != get_staff_user_id()) {
-                return false;
-            } else {
-                if (has_permission('proposals', '', 'view_own') && $proposal->addedfrom != get_staff_user_id() && $proposal->assigned != get_staff_user_id()) {
-                    return false;
-                } elseif (!has_permission('proposals', '', 'view_own') && $proposal->addedfrom == get_staff_user_id()) {
-                    return false;
-                } else {
-                    if ($proposal->assigned == get_staff_user_id()) {
-                        if (get_option('allow_staff_view_proposals_assigned') == 0) {
-                            return false;
-                        }
-                    }
-                }
-            }
+        if((has_permission('proposals','','view_own') && $proposal->addedfrom == get_staff_user_id())
+            || ($proposal->assigned == get_staff_user_id() && get_option('allow_staff_view_proposals_assigned') == 1)) {
+            return true;
         }
 
-        return true;
+        return false;
     }
 }

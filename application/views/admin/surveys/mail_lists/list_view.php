@@ -29,23 +29,27 @@
        ?>
      </div>
      <div class="col-md-3">
-       <select name="custom_view" title="<?php echo _l('additional_filters'); ?>" id="custom_view" class="selectpicker" data-width="100%">
+   <div class="select-placeholder">
+         <select name="custom_view" title="<?php echo _l('additional_filters'); ?>" id="custom_view" class="selectpicker" data-width="100%">
         <option value=""></option>
         <option value="lost"><?php echo _l('lead_lost'); ?></option>
         <option value="contacted_today"><?php echo _l('lead_add_edit_contacted_today'); ?></option>
         <option value="created_today"><?php echo _l('created_today'); ?></option>
       </select>
+   </div>
     </div>
   </div>
   <hr class="no-mtop" />
   <?php } else if($id == 'clients'){ ?>
   <div class="row mbot15">
     <div class="col-md-3">
-     <select name="customer_groups" title="<?php echo _l('customer_groups'); ?> - <?php echo _l('customers_sort_all'); ?>" multiple id="customer_groups" class="selectpicker" data-width="100%">
+    <div class="select-placeholder">
+       <select name="customer_groups" title="<?php echo _l('customer_groups'); ?> - <?php echo _l('customers_sort_all'); ?>" multiple id="customer_groups" class="selectpicker" data-width="100%">
       <?php foreach($groups as $group){ ?>
       <option value="<?php echo $group['id']; ?>"><?php echo $group['name']; ?></option>
       <?php } ?>
     </select>
+    </div>
   </div>
   <div class="col-md-6 mtop10">
     <div class="radio radio-inline radio-info">

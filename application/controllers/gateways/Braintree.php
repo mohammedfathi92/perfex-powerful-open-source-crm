@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Braintree extends CI_Controller
+class Braintree extends CRM_Controller
 {
     public function __construct()
     {

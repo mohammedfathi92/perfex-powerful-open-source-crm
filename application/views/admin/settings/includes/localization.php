@@ -33,7 +33,7 @@ $date_formats = get_available_date_formats();
 <div class="form-group">
     <label for="active_language" class="control-label"><?php echo _l('settings_localization_default_language'); ?></label>
     <select name="settings[active_language]" data-live-search="true" id="active_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
-        <?php foreach($this->perfex_base->get_available_languages() as $language){
+        <?php foreach($this->app->get_available_languages() as $language){
             $subtext = '';
             $_data['language'] = $language;
             $_data['subtext'] = $subtext;

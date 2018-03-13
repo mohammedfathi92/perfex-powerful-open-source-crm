@@ -44,7 +44,7 @@ class Invoices extends Admin_controller
         $this->load->model('payment_modes_model');
         $data['payment_modes'] = $this->payment_modes_model->get('', array(), true);
 
-        $this->perfex_base->get_table_data('invoices', array(
+        $this->app->get_table_data('invoices', array(
             'clientid' => $clientid,
             'data' => $data,
         ));
@@ -60,11 +60,21 @@ class Invoices extends Admin_controller
 
             $data['customer_has_projects'] = customer_has_projects($customer_id);
             $data['billable_tasks']     = $this->tasks_model->get_billable_tasks($customer_id);
-            $_data['invoices_to_merge'] = $this->invoices_model->check_for_merge_invoice($customer_id, $current_invoice);
+
+            if ($current_invoice != '') {
+                $this->db->select('status');
+                $this->db->where('id', $current_invoice);
+                $current_invoice_status = $this->db->get('tblinvoices')->row()->status;
+            }
+
+            $_data['invoices_to_merge'] = !isset($current_invoice_status) || (isset($current_invoice_status) && $current_invoice_status != 5) ? $this->invoices_model->check_for_merge_invoice($customer_id, $current_invoice) : array();
+
             $data['merge_info']         = $this->load->view('admin/invoices/merge_invoice', $_data, true);
 
             $this->load->model('currencies_model');
-            $__data['expenses_to_bill'] = $this->invoices_model->get_expenses_to_bill($customer_id);
+
+            $__data['expenses_to_bill'] = !isset($current_invoice_status) || (isset($current_invoice_status) && $current_invoice_status != 5) ? $this->invoices_model->get_expenses_to_bill($customer_id) : array();
+
             $data['expenses_bill_info'] = $this->load->view('admin/invoices/bill_expenses', $__data, true);
             echo json_encode($data);
         }
@@ -77,21 +87,19 @@ class Invoices extends Admin_controller
             'message' => '',
         );
         if (has_permission('invoices', '', 'edit')) {
-            if ($this->input->post('prefix')) {
-                $affected_rows = 0;
+            $affected_rows = 0;
 
-                $this->db->where('id', $id);
-                $this->db->update('tblinvoices', array(
+            $this->db->where('id', $id);
+            $this->db->update('tblinvoices', array(
                 'prefix' => $this->input->post('prefix'),
             ));
-                if ($this->db->affected_rows() > 0) {
-                    $affected_rows++;
-                }
+            if ($this->db->affected_rows() > 0) {
+                $affected_rows++;
+            }
 
-                if ($affected_rows > 0) {
-                    $response['success'] = true;
-                    $response['message'] = _l('updated_successfully', _l('invoice'));
-                }
+            if ($affected_rows > 0) {
+                $response['success'] = true;
+                $response['message'] = _l('updated_successfully', _l('invoice'));
             }
         }
         echo json_encode($response);
@@ -142,7 +150,7 @@ class Invoices extends Admin_controller
     {
         if (has_permission('invoices', '', 'edit')) {
             $this->db->where('id', $id);
-           $this->db->update('tblinvoices',array('cancel_overdue_reminders'=> 1));
+            $this->db->update('tblinvoices', array('cancel_overdue_reminders'=> 1));
         }
         redirect(admin_url('invoices/list_invoices/'.$id));
     }
@@ -151,7 +159,7 @@ class Invoices extends Admin_controller
     {
         if (has_permission('invoices', '', 'edit')) {
             $this->db->where('id', $id);
-            $this->db->update('tblinvoices',array('cancel_overdue_reminders'=> 0));
+            $this->db->update('tblinvoices', array('cancel_overdue_reminders'=> 0));
         }
         redirect(admin_url('invoices/list_invoices/'.$id));
     }
@@ -201,7 +209,10 @@ class Invoices extends Admin_controller
     public function get_merge_data($id)
     {
         $invoice = $this->invoices_model->get($id);
+        $cf = get_custom_fields('items');
+
         $i       = 0;
+
         foreach ($invoice->items as $item) {
             $invoice->items[$i]['taxname']          = get_invoice_item_taxes($item['id']);
             $invoice->items[$i]['long_description'] = clear_textarea_breaks($item['long_description']);
@@ -218,6 +229,13 @@ class Invoices extends Admin_controller
             }
             $invoice->items[$i]['item_related_formatted_for_input'] = $item_related_val;
             $invoice->items[$i]['rel_type']                        = $rel_type;
+
+            $invoice->items[$i]['custom_fields'] = array();
+
+            foreach ($cf as $custom_field) {
+                $custom_field['value'] = get_custom_field_value($item['id'], $custom_field['id'], 'items');
+                $invoice->items[$i]['custom_fields'][] = $custom_field;
+            }
             $i++;
         }
         echo json_encode($invoice);
@@ -285,7 +303,8 @@ class Invoices extends Admin_controller
 
             $data['invoice']        = $invoice;
             $data['edit']           = true;
-            $data['billable_tasks'] = $this->tasks_model->get_billable_tasks($invoice->clientid);
+            $data['billable_tasks'] = $this->tasks_model->get_billable_tasks($invoice->clientid,!empty($invoice->project_id) ? $invoice->project_id : '');
+
             $title                  = _l('edit', _l('invoice_lowercase')) . ' - ' . format_invoice_number($invoice->id);
         }
 
@@ -554,6 +573,7 @@ class Invoices extends Admin_controller
             redirect(admin_url('invoices/list_invoices'));
         }
         $invoice        = $this->invoices_model->get($id);
+        $invoice = do_action('before_admin_view_invoice_pdf', $invoice);
         $invoice_number = format_invoice_number($invoice->id);
 
         try {

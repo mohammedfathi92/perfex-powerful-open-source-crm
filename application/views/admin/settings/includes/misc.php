@@ -3,6 +3,10 @@
         <a href="#misc" aria-controls="misc" role="tab" data-toggle="tab">
           <i class="fa fa-cog"></i> <?php echo _l('settings_group_misc'); ?></a>
       </li>
+         <li role="presentation">
+        <a href="#settings_tables" aria-controls="settings_tables" role="tab" data-toggle="tab">
+          <i class="fa fa-table"></i> <?php echo _l('tables'); ?></a>
+      </li>
         <li role="presentation">
         <a href="#inline_create" aria-controls="inline_create" role="tab" data-toggle="tab">
           <i class="fa fa-plus"></i> <?php echo _l('inline_create'); ?>
@@ -12,25 +16,13 @@
         <a href="#set_recaptcha" aria-controls="set_recaptcha" role="tab" data-toggle="tab">
           <i class="fa fa-google"></i> <?php echo _l('re_captcha'); ?></a>
       </li>
+
     </ul>
     <div class="tab-content mtop30">
       <div role="tabpanel" class="tab-pane active" id="misc">
         <?php echo render_input('settings[google_api_key]','settings_google_api',get_option('google_api_key')); ?>
         <hr />
         <?php echo render_input('settings[dropbox_app_key]','dropbox_app_key',get_option('dropbox_app_key')); ?>
-        <hr />
-        <?php echo render_input('settings[tables_pagination_limit]','settings_general_tables_limit',get_option('tables_pagination_limit'),'number'); ?>
-        <hr />
-        <?php echo render_yes_no_option('scroll_responsive_tables','scroll_responsive_tables','scroll_responsive_tables_help'); ?>
-        <hr />
-        <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('text_not_recommended_for_servers_limited_resources'); ?>"></i>
-        <?php
-        $params = array();
-        if(get_option('pusher_realtime_notifications') == 1){
-          $params['disabled'] = true;
-        }
-
-        echo render_input('settings[auto_check_for_new_notifications]','auto_check_for_new_notifications',get_option('auto_check_for_new_notifications'),'number',$params); ?>
         <hr />
         <?php echo render_input('settings[media_max_file_size_upload]','settings_media_max_file_size_upload',get_option('media_max_file_size_upload'),'number'); ?>
         <hr />
@@ -45,7 +37,18 @@
         <?php echo render_input('settings[delete_activity_log_older_then]','delete_activity_log_older_then',get_option('delete_activity_log_older_then'),'number'); ?>
         <hr />
         <?php echo render_yes_no_option('show_setup_menu_item_only_on_hover','show_setup_menu_item_only_on_hover'); ?>
+
+
         <hr />
+        <?php echo render_yes_no_option('show_help_on_setup_menu','show_help_on_setup_menu'); ?>
+        <hr />
+        <?php render_yes_no_option('use_minified_files','use_minified_files'); ?>
+      </div>
+
+      <div role="tabpanel" class="tab-pane" id="settings_tables">
+          <?php echo render_yes_no_option('scroll_responsive_tables','scroll_responsive_tables','scroll_responsive_tables_help'); ?>
+        <hr />
+
         <div class="form-group">
           <label><?php echo _l('show_table_export_button'); ?></label><br />
           <div class="radio radio-primary">
@@ -63,11 +66,10 @@
             <label for="stbxb_hide"><?php echo _l('show_table_export_hide'); ?></label>
           </div>
         </div>
+          <hr />
+             <?php echo render_input('settings[tables_pagination_limit]','settings_general_tables_limit',get_option('tables_pagination_limit'),'number'); ?>
+        <hr />
 
-        <hr />
-        <?php echo render_yes_no_option('show_help_on_setup_menu','show_help_on_setup_menu'); ?>
-        <hr />
-        <?php render_yes_no_option('use_minified_files','use_minified_files'); ?>
       </div>
 
      <div role="tabpanel" class="tab-pane" id="set_recaptcha">

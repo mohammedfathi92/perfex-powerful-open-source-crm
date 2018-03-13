@@ -41,16 +41,16 @@ if (!has_permission('credit_notes', '', 'view')) {
     array_push($where, 'AND tblcreditnotes.addedfrom='.get_staff_user_id());
 }
 
-$project_id = $this->_instance->input->get('project_id');
+$project_id = $this->ci->input->get('project_id');
 if($project_id) {
     array_push($where,'AND project_id='.$project_id);
 }
 
-$statuses = $this->_instance->credit_notes_model->get_statuses();
+$statuses = $this->ci->credit_notes_model->get_statuses();
 $statusIds = array();
 
 foreach($statuses as $status){
-    if($this->_instance->input->post('credit_notes_status_'.$status['id'])){
+    if($this->ci->input->post('credit_notes_status_'.$status['id'])){
         array_push($statusIds,$status['id']);
     }
 }
@@ -59,11 +59,11 @@ if (count($statusIds) > 0) {
     array_push($filter, 'AND tblcreditnotes.status IN (' . implode(', ', $statusIds) . ')');
 }
 
-$years = $this->_instance->credit_notes_model->get_credits_years();
+$years = $this->ci->credit_notes_model->get_credits_years();
 $yearsArray = array();
 
 foreach ($years as $year) {
-    if ($this->_instance->input->post('year_'.$year['year'])) {
+    if ($this->ci->input->post('year_'.$year['year'])) {
         array_push($yearsArray, $year['year']);
     }
 }
@@ -78,7 +78,7 @@ if (count($filter) > 0) {
 
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
 
 $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(

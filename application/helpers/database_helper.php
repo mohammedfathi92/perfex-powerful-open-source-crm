@@ -180,11 +180,11 @@ function add_option($name, $value = '', $autoload = 1)
 function get_option($name)
 {
     $CI =& get_instance();
-    if (!class_exists('perfex_base')) {
-        $CI->load->library('perfex_base');
+    if (!class_exists('app')) {
+        $CI->load->library('app');
     }
 
-    return $CI->perfex_base->get_option($name);
+    return $CI->app->get_option($name);
 }
 /**
  * Get option value from database
@@ -720,6 +720,7 @@ function get_announcements_for_user($staff = true)
             return array();
         }
     }
+    $CI->db->order_by('dateadded','desc');
     $announcements = $CI->db->get('tblannouncements');
     if ($announcements) {
         return $announcements->result_array();

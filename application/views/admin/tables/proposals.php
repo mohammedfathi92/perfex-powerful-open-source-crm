@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-$baseCurrencySymbol = $this->_instance->currencies_model->get_base_currency()->symbol;
+$baseCurrencySymbol = $this->ci->currencies_model->get_base_currency()->symbol;
 
 $aColumns     = array(
     'tblproposals.id',
@@ -21,21 +21,21 @@ $sTable       = 'tblproposals';
 $where = array();
 $filter = array();
 
-if ($this->_instance->input->post('leads_related')) {
+if ($this->ci->input->post('leads_related')) {
     array_push($filter, 'OR rel_type="lead"');
 }
-if ($this->_instance->input->post('customers_related')) {
+if ($this->ci->input->post('customers_related')) {
     array_push($filter, 'OR rel_type="customer"');
 }
-if ($this->_instance->input->post('expired')) {
+if ($this->ci->input->post('expired')) {
     array_push($filter, 'OR open_till IS NOT NULL AND open_till <"'.date('Y-m-d').'" AND status NOT IN(2,3)');
 }
 
-$statuses = $this->_instance->proposals_model->get_statuses();
+$statuses = $this->ci->proposals_model->get_statuses();
 $statusIds = array();
 
 foreach ($statuses as $status) {
-    if ($this->_instance->input->post('proposals_'.$status)) {
+    if ($this->ci->input->post('proposals_'.$status)) {
         array_push($statusIds, $status);
     }
 }
@@ -43,10 +43,10 @@ if (count($statusIds) > 0) {
     array_push($filter, 'AND status IN (' . implode(', ', $statusIds) . ')');
 }
 
-$agents = $this->_instance->proposals_model->get_sale_agents();
+$agents = $this->ci->proposals_model->get_sale_agents();
 $agentsIds = array();
 foreach ($agents as $agent) {
-    if ($this->_instance->input->post('sale_agent_'.$agent['sale_agent'])) {
+    if ($this->ci->input->post('sale_agent_'.$agent['sale_agent'])) {
         array_push($agentsIds, $agent['sale_agent']);
     }
 }
@@ -54,10 +54,10 @@ if (count($agentsIds) > 0) {
     array_push($filter, 'AND assigned IN (' . implode(', ', $agentsIds) . ')');
 }
 
-$years = $this->_instance->proposals_model->get_proposals_years();
+$years = $this->ci->proposals_model->get_proposals_years();
 $yearsArray = array();
 foreach ($years as $year) {
-    if ($this->_instance->input->post('year_'.$year['year'])) {
+    if ($this->ci->input->post('year_'.$year['year'])) {
         array_push($yearsArray, $year['year']);
     }
 }
@@ -70,7 +70,7 @@ if (count($filter) > 0) {
 }
 
 if (!has_permission('proposals', '', 'view')) {
-    $userWhere = 'AND (addedfrom='.get_staff_user_id();
+    $userWhere = 'AND ((addedfrom='.get_staff_user_id().' AND addedfrom IN (SELECT staffid FROM tblstaffpermissions JOIN tblpermissions ON tblpermissions.permissionid=tblstaffpermissions.permissionid WHERE tblpermissions.name = "proposals" AND can_view_own=1))';
     if (get_option('allow_staff_view_proposals_assigned') == 1) {
         $userWhere .= ' OR assigned='.get_staff_user_id();
     }
@@ -90,6 +90,11 @@ foreach ($custom_fields as $key => $field) {
 }
 
 $aColumns = do_action('proposals_table_sql_columns', $aColumns);
+
+// Fix for big queries. Some hosting have max_join_limit
+if (count($custom_fields) > 4) {
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
+}
 
 $result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'currency',
@@ -122,7 +127,7 @@ foreach ($rResult as $aRow) {
 
     $row[] = $toOutput;
 
-    $row[] = format_money($aRow['total'], ($aRow['currency'] != 0 ? $this->_instance->currencies_model->get_currency_symbol($aRow['currency']) : $baseCurrencySymbol));
+    $row[] = format_money($aRow['total'], ($aRow['currency'] != 0 ? $this->ci->currencies_model->get_currency_symbol($aRow['currency']) : $baseCurrencySymbol));
 
     $row[] = _d($aRow['date']);
 

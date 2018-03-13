@@ -38,6 +38,16 @@ class App_gateway
     {
 
         /**
+         * Autoload the options defined below
+         * Options are used over the system while working and it's necessary to be autoloaded for performance.
+         * @var array
+         */
+
+        $autoload = array(
+            'label', 'default_selected', 'active'
+        );
+
+        /**
          * Try to add the options if the gateway is first time added or is options page in admin area
          * May happen there is new options added so let the script re-check
          * add_option will not re-add the option if already exists
@@ -45,7 +55,7 @@ class App_gateway
         if (!$this->isInitialized() || $this->isOptionsPage()) {
             foreach ($this->settings as $option) {
                 $val = isset($option['default_value']) ? $option['default_value'] : '';
-                add_option('paymentmethod_'. $this->getId() . '_' . $option['name'], $val, 0);
+                add_option('paymentmethod_'. $this->getId() . '_' . $option['name'], $val, (in_array($option['name'], $autoload) ? 1 : 0));
             }
             add_option('paymentmethod_'. $this->getId() . '_initialized', 1);
         }

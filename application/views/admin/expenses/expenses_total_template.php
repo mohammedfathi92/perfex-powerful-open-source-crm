@@ -22,12 +22,12 @@
   <?php if(count($expenses_years) > 1){ ?>
   <select data-none-selected-text="<?php echo date('Y'); ?>" data-width="auto" class="selectpicker" multiple name="expenses_total_years" onchange="init_expenses_total();">
    <?php foreach($expenses_years as $year){ ?>
-   <option value="<?php echo $year['year']; ?>"<?php if($this->input->post('years') && in_array($year['year'], $this->input->post('years')) || !$this->input->post('years') && date('Y') == $year['year']){echo ' selected'; } ?>><?php echo $year['year']; ?></option>
+    <option value="<?php echo $year['year']; ?>"<?php if($this->input->post('years') && in_array($year['year'], $this->input->post('years')) || !$this->input->post('years') && date('Y') == $year['year']){echo ' selected'; } ?>><?php echo $year['year']; ?></option>
    <?php } ?>
  </select>
  <?php } ?>
 </div>
-<?php  } ?>
+<?php } ?>
 <div class="col-md-5ths col-xs-12 total-column">
   <div class="panel_s">
     <div class="panel-body">

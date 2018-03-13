@@ -306,7 +306,7 @@ if (!function_exists('format_customer_info')) {
         if ($type == 'billing') {
             $city = $data->billing_city;
         } elseif ($type == 'shipping') {
-            $city = $data->billing_city;
+            $city = $data->shipping_city;
         }
         $state = '';
         if ($type == 'billing') {
@@ -544,8 +544,10 @@ function get_items_by_type($type, $id)
 function update_sales_total_tax_column($id, $type, $table)
 {
     $CI = &get_instance();
-    $CI->db->select('discount_percent, discount_type');
+    $CI->db->select('discount_percent, discount_type, discount_total, subtotal');
     $CI->db->from($table);
+    $CI->db->where('id',$id);
+
     $data = $CI->db->get()->row();
 
     $items = get_items_by_type($type, $id);
@@ -585,6 +587,9 @@ function update_sales_total_tax_column($id, $type, $table)
         if ($data->discount_percent != 0 && $data->discount_type == 'before_tax') {
             $total_tax_calculated = ($total * $data->discount_percent) / 100;
             $total                = ($total - $total_tax_calculated);
+        } elseif($data->discount_total != 0 && $data->discount_type == 'before_tax') {
+            $t = ($data->discount_total / $data->subtotal) * 100;
+            $total = ($total - $total*$t/100);
         }
         $total_tax += $total;
     }
@@ -646,7 +651,14 @@ function _maybe_insert_post_item_tax($item_id, $post_item, $rel_id, $rel_type)
  */
 function add_new_sales_item_post($item, $rel_id, $rel_type)
 {
+    $custom_fields = false;
+
+    if (isset($item['custom_fields'])) {
+        $custom_fields = $item['custom_fields'];
+    }
+
     $CI = &get_instance();
+
     $CI->db->insert('tblitems_in', array(
                     'description' => $item['description'],
                     'long_description' => nl2br($item['long_description']),
@@ -658,7 +670,13 @@ function add_new_sales_item_post($item, $rel_id, $rel_type)
                     'unit' => $item['unit'],
                 ));
 
-    return $CI->db->insert_id();
+    $id = $CI->db->insert_id();
+
+    if ($custom_fields !== false) {
+        handle_custom_fields_post($id, $custom_fields);
+    }
+
+    return $id;
 }
 
 /**
@@ -709,10 +727,16 @@ function update_sales_item_post($item_id, $data, $field = '')
 function handle_removed_sales_item_post($id, $rel_type)
 {
     $CI = &get_instance();
+
     $CI->db->where('id', $id);
     $CI->db->delete('tblitems_in');
     if ($CI->db->affected_rows() > 0) {
-        delete_taxes_from_item($id,$rel_type);
+        delete_taxes_from_item($id, $rel_type);
+
+        $CI->db->where('relid', $id);
+        $CI->db->where('fieldto', 'items');
+        $CI->db->delete('tblcustomfieldsvalues');
+
         return true;
     }
 
@@ -735,16 +759,39 @@ function delete_taxes_from_item($item_id, $rel_type)
     return $CI->db->affected_rows() > 0 ? true : false;
 }
 
-if(!function_exists('get_table_items_and_taxes')) {
-/**
- * Pluggable function for all table items HTML and PDF
- * @param  array  $items         all items
- * @param  [type]  $type          where do items come form, eq invoice,estimate,proposal etc..
- * @param  boolean $admin_preview in admin preview add additional sortable classes
- * @return array
- */
+function is_sale_discount_applied($data)
+{
+    return $data->discount_total > 0;
+}
+
+function is_sale_discount($data, $is)
+{
+    if($data->discount_percent == 0 && $data->discount_total == 0) {
+        return false;
+    }
+
+    $discount_type = 'fixed';
+    if ($data->discount_percent != 0) {
+        $discount_type = 'percent';
+    }
+
+    return $discount_type == $is;
+}
+
+if (!function_exists('get_table_items_and_taxes')) {
+    /**
+     * Function for all table items HTML and PDF
+     * @param  array  $items         all items
+     * @param  [type]  $type          where do items come form, eq invoice,estimate,proposal etc..
+     * @param  boolean $admin_preview in admin preview add additional sortable classes
+     * @return array
+     */
     function get_table_items_and_taxes($items, $type, $admin_preview = false)
     {
+        $cf = count($items) > 0 ? get_items_custom_fields_for_table_html($items[0]['rel_id'], $type) : array();
+
+        static $rel_data = null;
+
         $result['html']    = '';
         $result['taxes']   = array();
         $_calculated_taxes = array();
@@ -753,14 +800,15 @@ if(!function_exists('get_table_items_and_taxes')) {
             $_item             = '';
             $tr_attrs       = '';
             $td_first_sortable = '';
+
             if ($admin_preview == true) {
                 $tr_attrs       = ' class="sortable" data-item-id="' . $item['id'] . '"';
                 $td_first_sortable = ' class="dragger item_no"';
             }
 
-            if(class_exists('pdf')){
+            if (class_exists('pdf')) {
                 $font_size = get_option('pdf_font_size');
-                if($font_size == ''){
+                if ($font_size == '') {
                     $font_size = 10;
                 }
 
@@ -770,6 +818,10 @@ if(!function_exists('get_table_items_and_taxes')) {
             $_item .= '<tr' . $tr_attrs . '>';
             $_item .= '<td' . $td_first_sortable . ' align="center">' . $i . '</td>';
             $_item .= '<td class="description" align="left;"><span style="font-size:'.(isset($font_size) ? $font_size+4 : '').'px;"><strong>' . $item['description'] . '</strong></span><br /><span style="color:#424242;">' . $item['long_description'] . '</span></td>';
+
+            foreach ($cf as $custom_field) {
+                $_item .= '<td align="left">' . get_custom_field_value($item['id'], $custom_field['id'], 'items') . '</td>';
+            }
 
             $_item .= '<td align="right">' . floatVal($item['qty']);
             if ($item['unit']) {
@@ -786,11 +838,16 @@ if(!function_exists('get_table_items_and_taxes')) {
 
             // Separate functions exists to get item taxes for Invoice, Estimate, Proposal, Credit Note
             $func_taxes = 'get_'.$type.'_item_taxes';
-            if(function_exists($func_taxes)){
+            if (function_exists($func_taxes)) {
                 $item_taxes = call_user_func($func_taxes, $item['id']);
             }
 
             if (count($item_taxes) > 0) {
+
+                if (!$rel_data) {
+                    $rel_data = get_relation_data($item['rel_type'], $item['rel_id']);
+                }
+
                 foreach ($item_taxes as $tax) {
                     $calc_tax     = 0;
                     $tax_not_calc = false;
@@ -810,21 +867,21 @@ if(!function_exists('get_table_items_and_taxes')) {
                     if (get_option('show_tax_per_item') == 1) {
                         $item_tax = '';
                         if ((count($item_taxes) > 1 && get_option('remove_tax_name_from_item_table') == false) || get_option('remove_tax_name_from_item_table') == false || mutiple_taxes_found_for_item($item_taxes)) {
-                            $tmp = explode('|',$tax['taxname']);
+                            $tmp = explode('|', $tax['taxname']);
                             $item_tax = $tmp[0] . ' ' . _format_number($tmp[1]) . '%<br />';
                         } else {
                             $item_tax .= _format_number($tax['taxrate']) . '%';
                         }
-                        $hook_data = array('final_tax_html'=>$item_tax,'item_taxes'=>$item_taxes,'item_id'=>$item['id']);
-                        $hook_data = do_action('item_tax_table_row',$hook_data);
+                        $hook_data = array('final_tax_html'=>$item_tax, 'item_taxes'=>$item_taxes, 'item_id'=>$item['id']);
+                        $hook_data = do_action('item_tax_table_row', $hook_data);
                         $item_tax = $hook_data['final_tax_html'];
                         $_item .= $item_tax;
                     }
                 }
             } else {
                 if (get_option('show_tax_per_item') == 1) {
-                    $hook_data = array('final_tax_html'=>'0%','item_taxes'=>$item_taxes,'item_id'=>$item['id']);
-                    $hook_data = do_action('item_tax_table_row',$hook_data);
+                    $hook_data = array('final_tax_html'=>'0%', 'item_taxes'=>$item_taxes, 'item_id'=>$item['id']);
+                    $hook_data = do_action('item_tax_table_row', $hook_data);
                     $_item .= $hook_data['final_tax_html'];
                 }
             }
@@ -840,10 +897,10 @@ if(!function_exists('get_table_items_and_taxes')) {
              */
 
             $hook_data = do_action('final_item_amount', array(
-                    'amount'=>($item['qty'] * $item['rate']),
-                    'item_taxes'=>$item_taxes,
-                    'item'=>$item
-                ));
+                'amount'=>($item['qty'] * $item['rate']),
+                'item_taxes'=>$item_taxes,
+                'item'=>$item,
+            ));
 
             $item_amount_with_quantity = _format_number($hook_data['amount']);
 
@@ -853,6 +910,29 @@ if(!function_exists('get_table_items_and_taxes')) {
             $i++;
         }
 
-       return do_action('before_return_table_items_html_and_taxes',$result);
+        foreach ($result['taxes'] as $tax) {
+
+            $total_tax = array_sum($tax['total']);
+            if ($rel_data->discount_percent != 0 && $rel_data->discount_type == 'before_tax') {
+                $total_tax_tax_calculated = ($total_tax * $rel_data->discount_percent) / 100;
+                $total_tax = ($total_tax - $total_tax_tax_calculated);
+            } elseif ($rel_data->discount_total != 0 && $rel_data->discount_type == 'before_tax') {
+                $t = ($rel_data->discount_total / $rel_data->subtotal) * 100;
+                $total_tax = ($total_tax - $total_tax*$t/100);
+            }
+
+            $result['taxes'][$tax['tax_name']]['total_tax'] = $total_tax;
+            // Tax name is in format NAME|PERCENT
+            $tax_name_array = explode('|', $tax['tax_name']);
+            $result['taxes'][$tax['tax_name']]['taxname'] = $tax_name_array[0];
+        }
+
+        // Order taxes by taxrate
+        // Lowest tax rate will be on top (if multiple)
+        usort($result['taxes'], function($a, $b) {
+            return $a['taxrate'] - $b['taxrate'];
+        });
+
+        return do_action('before_return_table_items_html_and_taxes', $result);
     }
 }

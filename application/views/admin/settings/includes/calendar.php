@@ -45,25 +45,11 @@
       </select>
       <hr />
       <h4><?php echo _l('show_on_calendar'); ?></h4>
-          <hr />
-        <?php echo render_yes_no_option('hide_notified_reminders_from_calendar','hide_notified_reminders_from_calendar'); ?>
       <hr />
       <div class="row">
-        <div class="col-md-6">
-          <?php render_yes_no_option('show_invoices_on_calendar','show_invoices_on_calendar'); ?>
-          <hr />
-          <?php render_yes_no_option('show_estimates_on_calendar','show_estimates_on_calendar'); ?>
-          <hr />
-          <?php render_yes_no_option('show_proposals_on_calendar','show_proposals_on_calendar'); ?>
-          <hr />
-          <?php render_yes_no_option('show_contracts_on_calendar','show_contracts_on_calendar'); ?>
-          <hr />
-          <?php render_yes_no_option('show_tasks_on_calendar','show_tasks_on_calendar'); ?>
-          <hr />
-          <?php render_yes_no_option('show_projects_on_calendar','show_projects_on_calendar'); ?>
-          <hr />
-        </div>
-        <div class="col-md-6">
+         <div class="col-md-6">
+         <?php echo render_yes_no_option('hide_notified_reminders_from_calendar','hide_notified_reminders_from_calendar'); ?>
+         <hr />
          <?php render_yes_no_option('show_lead_reminders_on_calendar','show_lead_reminders_on_calendar'); ?>
          <hr />
          <?php render_yes_no_option('show_customer_reminders_on_calendar','show_customer_reminders_on_calendar'); ?>
@@ -78,6 +64,21 @@
          <hr />
          <?php render_yes_no_option('show_credit_note_reminders_on_calendar','show_credit_note_reminders_on_calendar'); ?>
        </div>
+        <div class="col-md-6">
+          <?php render_yes_no_option('show_invoices_on_calendar','show_invoices_on_calendar'); ?>
+          <hr />
+          <?php render_yes_no_option('show_estimates_on_calendar','show_estimates_on_calendar'); ?>
+          <hr />
+          <?php render_yes_no_option('show_proposals_on_calendar','show_proposals_on_calendar'); ?>
+          <hr />
+          <?php render_yes_no_option('show_contracts_on_calendar','show_contracts_on_calendar'); ?>
+          <hr />
+          <?php render_yes_no_option('show_tasks_on_calendar','show_tasks_on_calendar'); ?>
+          <hr />
+          <?php render_yes_no_option('show_projects_on_calendar','show_projects_on_calendar'); ?>
+          <hr />
+        </div>
+
      </div>
    </div>
    <div role="tabpanel" class="tab-pane" id="colors">

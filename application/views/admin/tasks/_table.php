@@ -7,6 +7,7 @@ $table_data = array(
         'name'=>_l('task_duedate'),
         'th_attrs'=>array('class'=>'duedate')
     ),
+    _l('tags'),
     _l('task_assigned'),
     _l('tasks_list_priority'),
     _l('task_status')

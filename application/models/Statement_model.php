@@ -208,7 +208,7 @@ class Statement_model extends CRM_Model
      */
     public function send_statement_to_email($customer_id, $send_to, $from, $to, $cc = '')
     {
-        $send = false;
+        $sent = false;
         if (is_array($send_to) && count($send_to) > 0) {
             $this->load->model('emails_model');
 
@@ -246,13 +246,13 @@ class Statement_model extends CRM_Model
                         $cc = '';
                     }
                     if ($this->emails_model->send_email_template('client-statement', $contact->email, $merge_fields, '', $cc)) {
-                        $send = true;
+                        $sent = true;
                     }
                 }
                 $i++;
             }
 
-            if ($send) {
+            if ($sent) {
                 return true;
             }
         }

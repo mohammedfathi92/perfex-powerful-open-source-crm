@@ -634,14 +634,15 @@ function slug_it($str, $options = array())
         unset($options['delimiter']);
     }
 
-    // Version 3.0.1 (24 September 2017)
-    require_once(APPPATH.'third_party/slugify/src/RuleProvider/RuleProviderInterface.php');
-    require_once(APPPATH.'third_party/slugify/src/RuleProvider/DefaultRuleProvider.php');
-    require_once(APPPATH.'third_party/slugify/src/RuleProvider/FileRuleProvider.php');
-    require_once(APPPATH.'third_party/slugify/src/SlugifyInterface.php');
-    require_once(APPPATH.'third_party/slugify/src/Slugify.php');
+    //  Version 3.0.1 (24 September 2017)
+    //  Using composer
+    //  require_once(APPPATH.'third_party/slugify/src/RuleProvider/RuleProviderInterface.php');
+    //  require_once(APPPATH.'third_party/slugify/src/RuleProvider/DefaultRuleProvider.php');
+    //  require_once(APPPATH.'third_party/slugify/src/RuleProvider/FileRuleProvider.php');
+    //  require_once(APPPATH.'third_party/slugify/src/SlugifyInterface.php');
+    //  require_once(APPPATH.'third_party/slugify/src/Slugify.php');
 
-    $m = new \Cocur\Slugify\RuleProvider\DefaultRuleProvider();
+    $m = new Cocur\Slugify\RuleProvider\DefaultRuleProvider();
 
     $lang = get_option('active_language');
     $set = $lang == 'english' ? 'default' : $lang;
@@ -682,7 +683,7 @@ function slug_it($str, $options = array())
 
     $options = array_merge($defaults, $options);
 
-    $slugify = new \Cocur\Slugify\Slugify($options);
+    $slugify = new Cocur\Slugify\Slugify($options);
 
     return $slugify->slugify($str);
 }

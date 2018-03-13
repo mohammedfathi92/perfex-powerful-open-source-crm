@@ -150,6 +150,11 @@
          $('.smtp-fields').removeClass('hide');
       }
   });
+  $('.sms_gateway_active input').on('change',function(){
+      if($(this).val() == '1') {
+          $('body .sms_gateway_active').not($(this).parents('.sms_gateway_active')[0]).find('input[value="0"]').prop('checked',true);
+      }
+  });
    <?php if($view_name == 'pusher'){ ?>
     <?php if(get_option('desktop_notifications') == '1'){ ?>
       // Let's check if the browser supports notifications
@@ -157,7 +162,7 @@
         $('#pusherHelper').html('<div class="alert alert-danger">Your browser does not support desktop notifications, please disable this option or use more modern browser.</div>');
       } else {
         if(Notification.permission == "denied"){
-          $('#pusherHelper').html('<div class="alert alert-danger">Desktop notifications not allowed in browser settings, search Google "How to allow desktop notifications for <?php echo $this->agent->browser(); ?>"</div>');
+          $('#pusherHelper').html('<div class="alert alert-danger">Desktop notifications not allowed in browser settings, search on Google "How to allow desktop notifications for <?php echo $this->agent->browser(); ?>"</div>');
         }
       }
       <?php } ?>
@@ -194,7 +199,6 @@
            var ubtn = $(this);
            ubtn.html('<?php echo _l('wait_text'); ?>');
            ubtn.addClass('disabled');
-           clearInterval(autocheck_notifications_timer_id);
            $.post(admin_url+'auto_update',{purchase_key:purchase_key,latest_version:latest_version,auto_update:true}).done(function(){
              window.location.reload();
            }).fail(function(response){

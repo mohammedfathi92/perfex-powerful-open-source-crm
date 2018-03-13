@@ -1,6 +1,8 @@
 <div class="row">
     <div class="col-md-12">
         <?php echo form_open_multipart('clients/company'); ?>
+        <!-- Required hidden field -->
+        <?php echo form_hidden('company_form',true); ?>
         <div class="panel_s">
             <div class="panel-body">
                <h4 class="no-margin"><?php echo _l('clients_profile_heading'); ?></h4>

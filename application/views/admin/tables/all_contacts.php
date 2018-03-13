@@ -34,7 +34,7 @@ if (!has_permission('customers', '', 'view')) {
 
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
 
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array('tblcontacts.id as id', 'userid', 'is_primary','(SELECT count(*) FROM tblcontacts c WHERE c.userid=tblcontacts.userid) as total_contacts'));

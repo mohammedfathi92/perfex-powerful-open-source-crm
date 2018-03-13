@@ -33,6 +33,7 @@
     init_ajax_search('items','#item_select.ajax-search',undefined,admin_url+'items/search');
     custom_fields_hyperlink();
     init_selectpicker();
+    init_tags_inputs();
     init_datepicker();
     init_color_pickers();
     init_items_sortable();

@@ -17,7 +17,7 @@ $aColumns = array(
 
 $companyColumn = 5;
 $tagsColumns = 2;
-if ($this->_instance->input->get('bulk_actions')) {
+if ($this->ci->input->get('bulk_actions')) {
     array_unshift($aColumns, '1');
     $companyColumn++;
     $tagsColumns++;
@@ -49,11 +49,6 @@ foreach ($custom_fields as $key => $field) {
     array_push($join, 'LEFT JOIN tblcustomfieldsvalues as ctable_' . $key . ' ON tbltickets.ticketid = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
 }
 
-// Fix for big queries. Some hosting have max_join_limit
-if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
-}
-
 $where = array();
 $filter = array();
 
@@ -65,14 +60,14 @@ if (isset($userid) && $userid != '') {
 if (isset($where_not_ticket_id)) {
     array_push($where, 'AND tbltickets.ticketid != ' . $where_not_ticket_id);
 }
-if ($this->_instance->input->post('project_id')) {
-    array_push($where, 'AND project_id = ' . $this->_instance->input->post('project_id'));
+if ($this->ci->input->post('project_id')) {
+    array_push($where, 'AND project_id = ' . $this->ci->input->post('project_id'));
 }
 
-$statuses = $this->_instance->tickets_model->get_ticket_status();
+$statuses = $this->ci->tickets_model->get_ticket_status();
 $_statuses = array();
 foreach ($statuses as $__status) {
-    if ($this->_instance->input->post('ticket_status_'.$__status['ticketstatusid'])) {
+    if ($this->ci->input->post('ticket_status_'.$__status['ticketstatusid'])) {
         array_push($_statuses, $__status['ticketstatusid']);
     }
 }
@@ -80,14 +75,14 @@ if (count($_statuses) > 0) {
     array_push($filter, 'AND status IN (' . implode(', ', $_statuses) . ')');
 }
 
-if ($this->_instance->input->post('my_tickets')) {
+if ($this->ci->input->post('my_tickets')) {
     array_push($where, 'OR assigned = ' . get_staff_user_id());
 }
 
-$assignees = $this->_instance->tickets_model->get_tickets_assignes_disctinct();
+$assignees = $this->ci->tickets_model->get_tickets_assignes_disctinct();
 $_assignees = array();
 foreach ($assignees as $__assignee) {
-    if ($this->_instance->input->post('ticket_assignee_'.$__assignee['assigned'])) {
+    if ($this->ci->input->post('ticket_assignee_'.$__assignee['assigned'])) {
         array_push($_assignees, $__assignee['assigned']);
     }
 }
@@ -101,11 +96,11 @@ if (count($filter) > 0) {
 // If userid is set, the the view is in client profile, should be shown all tickets
 if (!is_admin()) {
     if (get_option('staff_access_only_assigned_departments') == 1) {
-        $this->_instance->load->model('departments_model');
-        $staff_deparments_ids = $this->_instance->departments_model->get_staff_departments(get_staff_user_id(), true);
+        $this->ci->load->model('departments_model');
+        $staff_deparments_ids = $this->ci->departments_model->get_staff_departments(get_staff_user_id(), true);
         $departments_ids = array();
         if (count($staff_deparments_ids) == 0) {
-            $departments = $this->_instance->departments_model->get();
+            $departments = $this->ci->departments_model->get();
             foreach ($departments as $department) {
                 array_push($departments_ids, $department['departmentid']);
             }
@@ -120,12 +115,16 @@ if (!is_admin()) {
 
 $sIndexColumn = 'ticketid';
 $sTable       = 'tbltickets';
+
+// Fix for big queries. Some hosting have max_join_limit
+if (count($custom_fields) > 4) {
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
+}
+
 $result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, $additionalSelect);
+
 $output  = $result['output'];
-
-
 $rResult = $result['rResult'];
-
 
 foreach ($rResult as $aRow) {
     $row = array();

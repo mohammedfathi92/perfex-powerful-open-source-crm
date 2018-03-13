@@ -47,8 +47,8 @@ $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $wher
 ));
 $output       = $result['output'];
 $rResult      = $result['rResult'];
-$this->_instance->load->model('currencies_model');
-$this->_instance->load->model('payment_modes_model');
+$this->ci->load->model('currencies_model');
+$this->ci->load->model('payment_modes_model');
 foreach ($rResult as $aRow) {
     $row = array();
     for ($i = 0; $i < count($aColumns); $i++) {
@@ -86,11 +86,11 @@ foreach ($rResult as $aRow) {
                 $_tax = get_tax_by_id($aRow['tax2']);
                 $total += ($tmp_total / 100 * $_tax->taxrate);
             }
-            $_data = format_money($total, $this->_instance->currencies_model->get($aRow['currency'])->symbol);
+            $_data = format_money($total, $this->ci->currencies_model->get($aRow['currency'])->symbol);
         } elseif ($aColumns[$i] == 'paymentmode') {
             $_data = '';
             if ($aRow['paymentmode'] != '0' && !empty($aRow['paymentmode'])) {
-                $_data = $this->_instance->payment_modes_model->get($aRow['paymentmode'])->name;
+                $_data = $this->ci->payment_modes_model->get($aRow['paymentmode'])->name;
             }
         } elseif ($aColumns[$i] == 'file_name') {
             if (!empty($_data)) {

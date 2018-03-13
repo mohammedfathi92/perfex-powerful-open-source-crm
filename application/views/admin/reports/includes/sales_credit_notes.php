@@ -13,7 +13,7 @@
          </div>
       </div>
 
-      <table class="table table-striped table-credit-notes-report scroll-responsive">
+      <table class="table table-credit-notes-report scroll-responsive">
         <thead>
            <tr>
               <th><?php echo _l('credit_note_number'); ?></th>

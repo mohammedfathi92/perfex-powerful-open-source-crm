@@ -23,8 +23,9 @@
                             <hr class="no-mtop" />
                         </div>
                         </div>
+                        <div class="timesheet-start-end-time">
                             <div class="col-md-12">
-                                <div class="form-group">
+                                <div class="form-group no-mbot">
                                 <div class="row">
                                     <div class="col-md-3">
                                         <label class="control-label" for="start_time"><?php echo _l('project_timesheet_start_time'); ?></label>
@@ -35,11 +36,9 @@
                                 </div>
                                 </div>
                             </div>
-                        </div>
-                        <!-- End Time -->
-                        <div class="row">
+
                            <div class="col-md-12">
-                                <div class="form-group">
+                                <div class="form-group no-mbot">
                                 <div class="row">
                                     <div class="col-md-3">
                                         <label class="control-label" for="end_time"><?php echo _l('project_timesheet_end_time'); ?></label>
@@ -51,6 +50,39 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="timesheet-duration hide">
+                         <div class="col-md-12">
+                            <div class="form-group no-mbot">
+                                <div class="row">
+                                    <div class="col-md-3 popover-250">
+                                        <label class="control-label" for="timesheet_duration">
+                                              <?php echo _l('project_timesheet_time_spend'); ?>
+                                        </label>
+                                         <i class="fa fa-question-circle pointer" data-toggle="popover" data-html="true" data-content="
+                                         :15 - 15 <?php echo _l('minutes'); ?><br />
+                                         2 - 2 <?php echo _l('hours'); ?><br />
+                                         5:5 - 5 <?php echo _l('hours'); ?> & 5 <?php echo _l('minutes'); ?><br />
+                                         2:50 - 2 <?php echo _l('hours'); ?> & 50 <?php echo _l('minutes'); ?><br />
+                                         "></i>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <?php echo render_input('timesheet_duration','','','text',array('placeholder'=>'HH:MM')); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-9 col-md-offset-3 mbot15 mntop15">
+                           <a href="#" class="timesheet-toggle-enter-type">
+                             <span class="timesheet-duration-toggler-text switch-to">
+                               <?php echo _l('timesheet_duration_instead'); ?>
+                           </span>
+                           <span class="timesheet-date-toggler-text hide ">
+                               <?php echo _l('timesheet_date_instead'); ?>
+                           </span>
+                       </a>
+                   </div>
+                     </div>
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="row">

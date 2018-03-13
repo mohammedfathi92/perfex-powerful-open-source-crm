@@ -15,7 +15,7 @@ class Paymentmodes extends Admin_controller
     public function index()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('payment_modes');
+            $this->app->get_table_data('payment_modes');
         }
         $data['title'] = _l('payment_modes');
         $this->load->view('admin/paymentmodes/manage', $data);

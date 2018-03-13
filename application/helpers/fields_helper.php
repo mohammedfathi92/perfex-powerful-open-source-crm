@@ -320,7 +320,7 @@ function render_select($name, $options, $option_attrs = array(), $label = '', $s
     if (!empty($form_group_class)) {
         $form_group_class = ' ' . $form_group_class;
     }
-    $select .= '<div class="form-group' . $form_group_class . '" ' . $_form_group_attr . '>';
+    $select .= '<div class="select-placeholder form-group' . $form_group_class . '" ' . $_form_group_attr . '>';
     if ($label != '') {
         $select .= '<label for="' . $name . '" class="control-label">' . _l($label, '', false) . '</label>';
     }
@@ -404,6 +404,7 @@ function render_select_with_input_group($name, $options, $option_attrs = array()
     $select_class .= ' _select_input_group';
     $select = render_select($name, $options, $option_attrs, $label, $selected, $select_attrs, $form_group_attr, $form_group_class, $select_class, $include_blank);
     $select = str_replace('form-group', 'input-group input-group-select select-'.$name, $select);
+    $select = str_replace('select-placeholder ', '', $select);
     $select = str_replace('</select>', '</select><div class="input-group-addon">'.$input_group_contents.'</div>', $select);
 
     $re = '/<label.*<\/label>/i';
@@ -411,7 +412,7 @@ function render_select_with_input_group($name, $options, $option_attrs = array()
 
     if (count($label) > 0) {
         $select = preg_replace($re, '', $select);
-        $select = '<div class="form-group form-group-select-input-'.$name.'">' . $label[0] . $select . '</div>';
+        $select = '<div class="select-placeholder form-group form-group-select-input-'.$name.' input-group-select">' . $label[0] . $select . '</div>';
     }
 
     return $select;

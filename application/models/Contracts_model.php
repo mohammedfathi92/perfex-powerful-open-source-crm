@@ -17,7 +17,7 @@ class Contracts_model extends CRM_Model
      */
     public function get($id = '', $where = array(), $for_editor = false)
     {
-        $this->db->select('*,tblcontracttypes.name as type_name,tblcontracts.id as id');
+        $this->db->select('*,tblcontracttypes.name as type_name,tblcontracts.id as id, tblcontracts.addedfrom');
         $this->db->where($where);
         $this->db->join('tblcontracttypes', 'tblcontracttypes.id = tblcontracts.contract_type', 'left');
         $this->db->join('tblclients', 'tblclients.userid = tblcontracts.client');
@@ -283,7 +283,7 @@ class Contracts_model extends CRM_Model
             $attach = $pdf->Output(slug_it($contract->subject) . '.pdf', 'S');
         }
         $sent_to = $this->input->post('sent_to');
-        $send    = false;
+        $sent    = false;
         if (is_array($sent_to)) {
             $i = 0;
             foreach ($sent_to as $contact_id) {
@@ -316,7 +316,7 @@ class Contracts_model extends CRM_Model
                         $cc = '';
                     }
                     if ($this->emails_model->send_email_template('send-contract', $contact->email, $merge_fields, '', $cc)) {
-                        $send = true;
+                        $sent = true;
                     }
                 }
                 $i++;
@@ -324,7 +324,7 @@ class Contracts_model extends CRM_Model
         } else {
             return false;
         }
-        if ($send) {
+        if ($sent) {
             return true;
         }
 

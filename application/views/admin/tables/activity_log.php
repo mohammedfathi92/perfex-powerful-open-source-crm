@@ -7,8 +7,8 @@ $aColumns         = array(
     );
 
 $sWhere = array();
-if($this->_instance->input->post('activity_log_date')){
-    array_push($sWhere,'AND date LIKE "'.to_sql_date($this->_instance->input->post('activity_log_date')).'%"');
+if($this->ci->input->post('activity_log_date')){
+    array_push($sWhere,'AND date LIKE "'.to_sql_date($this->ci->input->post('activity_log_date')).'%"');
 }
 $sIndexColumn     = "id";
 $sTable           = 'tblactivitylog';

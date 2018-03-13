@@ -3,7 +3,7 @@
 		<a href="#email_config" aria-controls="email_config" role="tab" data-toggle="tab"><?php echo _l('settings_smtp_settings_heading'); ?></a>
 	</li>
 	<li role="presentation">
-		<a href="#email_queue" aria-controls="email_queue" role="tab" data-toggle="tab"><?php echo _l('email_queue'); ?> (Beta)</a>
+		<a href="#email_queue" aria-controls="email_queue" role="tab" data-toggle="tab"><?php echo _l('email_queue'); ?></a>
 	</li>
 </ul>
 <div class="tab-content">

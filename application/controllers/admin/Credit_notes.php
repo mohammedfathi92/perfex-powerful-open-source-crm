@@ -37,7 +37,7 @@ class Credit_notes extends Admin_controller
             ajax_access_denied();
         }
 
-        $this->perfex_base->get_table_data('credit_notes', array(
+        $this->app->get_table_data('credit_notes', array(
             'clientid' => $clientid,
         ));
     }

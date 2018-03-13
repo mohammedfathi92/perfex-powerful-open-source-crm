@@ -134,7 +134,6 @@ function app_admin_ajax_search_function()
     ?>
 <script>
   function init_ajax_search(type, selector, server_data, url){
-    clearInterval(autocheck_notifications_timer_id);
 
     var ajaxSelector = $('body').find(selector);
     if(ajaxSelector.length){

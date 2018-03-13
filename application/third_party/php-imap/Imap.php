@@ -216,6 +216,8 @@ class Imap
         'zh_tw-euc' => 'x-euc-tw',
     ];
 
+    private $attachments = array();
+
     /**
      * imap connection
      */
@@ -423,7 +425,7 @@ class Imap
         'uid'       => $uid,
         'unread'   => strlen(trim($header->Unseen))>0,
         'answered' => strlen(trim($header->Answered))>0,
-        'deleted' => strlen(trim($header->Deleted))>0
+        'deleted' => strlen(trim($header->Deleted))>0,
     );
         if (isset($header->cc)) {
             $email['cc'] = $this->arrayToAddress($header->cc);
@@ -436,7 +438,10 @@ class Imap
         }
         // get attachments
         $mailStruct = imap_fetchstructure($this->imap, $id);
-        $attachments = $this->attachments2name($this->getAttachments($this->imap, $id, $mailStruct, ""));
+
+        $this->getAttachments($this->imap, $id, $uid, $mailStruct, "");
+        $attachments = isset($this->attachments[$uid]) ? $this->attachments2name($this->attachments[$uid]) : array();
+
         if (count($attachments)>0) {
             foreach ($attachments as $val) {
                 foreach ($val as $k=>$t) {
@@ -538,32 +543,25 @@ class Imap
      * return content of messages attachment
      *
      * @return binary attachment
-     * @param $id of the message
+     * @param $uid of the message
      * @param $index of the attachment (default: first attachment)
      */
-    public function getAttachment($id, $index = 0)
+    public function getAttachment($uid, $index = 0)
     {
         // find message
-        $attachments = false;
-        $messageIndex = imap_msgno($this->imap, $id);
-        $header = imap_headerinfo($this->imap, $messageIndex);
-        $mailStruct = imap_fetchstructure($this->imap, $messageIndex);
-        $attachments = $this->getAttachments($this->imap, $messageIndex, $mailStruct, "");
-
-        if ($attachments==false) {
-            return false;
-        }
+        $attachments = isset($this->attachments[$uid]) ? $this->attachments[$uid] : array();
 
         // find attachment
         if ($index > count($attachments)) {
             return false;
         }
+
         $attachment = $attachments[$index];
 
         // get attachment body
-        $partStruct = imap_bodystruct($this->imap, imap_msgno($this->imap, $id), $attachment['partNum']);
-        $filename = $partStruct->dparameters[0]->value;
-        $message = imap_fetchbody($this->imap, $id, $attachment['partNum'], FT_UID);
+        $partStruct = imap_bodystruct($this->imap, $attachment['mailNum'], $attachment['partNum']);
+
+        $message = imap_fetchbody($this->imap, $attachment['mailNum'], $attachment['partNum'], FT_PEEK);
 
         switch ($attachment['enc']) {
             case 0:
@@ -584,7 +582,7 @@ class Imap
         return array(
                 "name" => $attachment['name'],
                 "size" => $attachment['size'],
-                "content" => $message);
+                "content" => $message, );
     }
 
     /**
@@ -774,7 +772,7 @@ class Imap
         foreach ($attachments as $attachment) {
             $names[] = array(
                 'name' => $attachment['name'],
-                'size' => $attachment['size']
+                'size' => $attachment['size'],
             );
         }
 
@@ -972,7 +970,7 @@ class Imap
      * @param $part
      * @param $partNum
      */
-    protected function getAttachments($imap, $mailNum, $part, $partNum)
+    protected function getAttachments($imap, $mailNum, $uID, $part, $partNum)
     {
         $attachments = array();
 
@@ -986,32 +984,35 @@ class Imap
                 $result = $this->getAttachments(
                     $imap,
                     $mailNum,
+                    $uID,
                     $subpart,
                     $newPartNum
                 );
-                if (count($result) != 0) {
-                    array_push($attachments, $result);
+                if (!empty($result) && isset($result['name'])) {
+                    $this->attachments[$uID][] = $result;
                 }
             }
         } elseif (isset($part->disposition)) {
-            if (strtolower($part->disposition) == "attachment") {
+            if (strtolower($part->disposition) == "attachment" || strtolower($part->disposition) == "inline") {
+
                 $partStruct = imap_bodystruct(
                     $imap,
                     $mailNum,
                     $partNum
                 );
+
                 $attachmentDetails = array(
                     "name"    => $part->dparameters[0]->value,
                     "partNum" => $partNum,
                     "enc"     => $partStruct->encoding,
-                    "size"    => $part->bytes
+                    "size"    => $part->bytes,
+                    "mailNum"    => $mailNum,
+                    "uid"    => $uID,
                 );
 
                 return $attachmentDetails;
             }
         }
-
-        return $attachments;
     }
 
     /**

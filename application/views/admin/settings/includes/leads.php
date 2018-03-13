@@ -1,10 +1,19 @@
+<?php do_action('before_leads_settings'); ?>
 <?php echo render_input('settings[leads_kanban_limit]','settings_leads_kanban_limit',get_option('leads_kanban_limit'),'number'); ?>
 <hr />
-<?php echo render_select('settings[leads_default_status]',$leads_statuses,array('id','name'),'leads_default_status',get_option('leads_default_status')); ?>
-<br />
+<?php
+foreach($leads_statuses as $subKey => $subArray){
+  if($subArray['isdefault'] == '1'){
+    unset($leads_statuses[$subKey]);
+ }
+}
+echo render_select('settings[leads_default_status]',$leads_statuses,array('id','name'),'leads_default_status',get_option('leads_default_status')); ?>
+<hr />
 <?php echo render_select('settings[leads_default_source]',$leads_sources,array('id','name'),'leads_default_source',get_option('leads_default_source')); ?>
 <hr />
 <?php render_yes_no_option('auto_assign_customer_admin_after_lead_convert','auto_assign_customer_admin_after_lead_convert','auto_assign_customer_admin_after_lead_convert_help'); ?>
+<hr />
+<?php render_yes_no_option('allow_non_admin_members_to_import_leads','allow_non_admin_members_to_import_leads'); ?>
 <hr />
 <div class="row">
   <div class="col-md-7">
@@ -38,3 +47,4 @@
   </label>
   <input type="text" id="settings[lead_modal_class]" name="settings[lead_modal_class]" class="form-control" value="<?php echo get_option('lead_modal_class'); ?>">
 </div>
+<?php do_action('after_leads_settings'); ?>

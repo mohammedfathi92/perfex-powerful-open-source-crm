@@ -68,7 +68,7 @@
                   <li>
                      <a href="<?php echo site_url('viewproposal/'.$proposal->id .'/'.$proposal->hash); ?>" target="_blank"><?php echo _l('proposal_view'); ?></a>
                   </li>
-                  <?php if($proposal->open_till != NULL && date('Y-m-d') < $proposal->open_till && ($proposal->status == 4 || $proposal->status == 1)) { ?>
+                  <?php if(!empty($proposal->open_till) && date('Y-m-d') < $proposal->open_till && ($proposal->status == 4 || $proposal->status == 1) && is_proposals_expiry_reminders_enabled()) { ?>
                   <li>
                      <a href="<?php echo admin_url('proposals/send_expiry_reminder/'.$proposal->id); ?>"><?php echo _l('send_expiry_reminder'); ?></a>
                   </li>

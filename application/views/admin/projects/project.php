@@ -22,8 +22,8 @@
                         ?>
                         <?php $value = (isset($project) ? $project->name : ''); ?>
                         <?php echo render_input('name','project_name',$value); ?>
-                        <div class="form-group">
-                            <label for="clientid"><?php echo _l('project_customer'); ?></label>
+                        <div class="form-group select-placeholder">
+                            <label for="clientid" class="control-label"><?php echo _l('project_customer'); ?></label>
                             <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                <?php $selected = (isset($project) ? $project->clientid : '');
                                if($selected == ''){
@@ -56,7 +56,7 @@
                     <div class="project_progress_slider project_progress_slider_horizontal mbot15"></div>
                     <div class="row">
                         <div class="col-md-6">
-                            <div class="form-group">
+                            <div class="form-group select-placeholder">
                                 <label for="billing_type"><?php echo _l('project_billing_type'); ?></label>
                                 <div class="clearfix"></div>
                                 <select name="billing_type" class="selectpicker" id="billing_type" data-width="100%" <?php echo $disable_type_edit ; ?> data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
@@ -72,7 +72,7 @@
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="form-group">
+                            <div class="form-group select-placeholder">
                                 <label for="status"><?php echo _l('project_status'); ?></label>
                                 <div class="clearfix"></div>
                                 <select name="status" id="status" class="selectpicker" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
@@ -154,7 +154,7 @@
                         } else {
                             array_push($selected,get_staff_user_id());
                         }
-                        echo render_select('project_members[]',$staff,array('staffid',array('firstname','lastname')),'project_members',$selected,array('multiple'=>true));
+                        echo render_select('project_members[]',$staff,array('staffid',array('firstname','lastname')),'project_members',$selected,array('multiple'=>true,'data-actions-box'=>true),array(),'','',false);
                         ?>
                     </div>
                 </div>
@@ -232,9 +232,9 @@
             </label>
         </div>
         <?php } else { ?>
-        <div class="form-group mtop15">
+        <div class="form-group mtop15 select-placeholder">
             <label for="available_features"><?php echo _l('visible_tabs'); ?></label>
-            <select name="settings[<?php echo $setting; ?>][]" id="<?php echo $setting; ?>" multiple="true" class="selectpicker" id="available_features" data-width="100%">
+            <select name="settings[<?php echo $setting; ?>][]" id="<?php echo $setting; ?>" multiple="true" class="selectpicker" id="available_features" data-width="100%" data-actions-box="true">
             <?php $tabs = get_project_tabs_admin(null); ?>
             <?php foreach($tabs as $tab) {
                 $selected = '';

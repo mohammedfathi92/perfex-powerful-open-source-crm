@@ -128,108 +128,6 @@ class Misc_model extends CRM_Model
         return $select;
     }
 
-    public function get_update_info()
-    {
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_RETURNTRANSFER => 1,
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_USERAGENT=>$this->agent->agent_string(),
-            CURLOPT_SSL_VERIFYPEER => 0,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_URL => UPDATE_INFO_URL,
-            CURLOPT_POST => 1,
-            CURLOPT_POSTFIELDS => array(
-                'update_info' => 'true',
-                'current_version' => $this->get_current_db_version()
-            )
-        ));
-
-        $result = curl_exec($curl);
-        $error  = '';
-
-        if (!$curl || !$result) {
-            $error = 'Curl Error - Contact your hosting provider with the following error as reference: Error: "' . curl_error($curl) . '" - Code: ' . curl_errno($curl);
-        }
-
-        curl_close($curl);
-
-        if ($error != '') {
-            return $error;
-        }
-
-        return $result;
-    }
-
-    public function get_current_db_version()
-    {
-        $this->db->limit(1);
-
-        return $this->db->get('tblmigrations')->row()->version;
-    }
-
-    public function is_db_upgrade_required($v = '')
-    {
-        if (!is_numeric($v)) {
-            $v = $this->get_current_db_version();
-        }
-        $this->load->config('migration');
-        if ((int) $this->config->item('migration_version') !== (int) $v) {
-            return true;
-        }
-
-        return false;
-    }
-
-     public function upgrade_database_silent()
-    {
-        $this->load->config('migration');
-
-        $beforeUpdateVersion = $this->get_current_db_version();
-
-        $this->load->library('migration', array(
-            'migration_enabled' => true,
-            'migration_type' => $this->config->item('migration_type'),
-            'migration_table' => $this->config->item('migration_table'),
-            'migration_auto_latest' => $this->config->item('migration_auto_latest'),
-            'migration_version' => $this->config->item('migration_version'),
-            'migration_path' => $this->config->item('migration_path')
-        ));
-        if ($this->migration->current() === false) {
-
-            return array(
-                'success' => false,
-                'message' => $this->migration->error_string()
-            );
-        } else {
-
-            update_option('upgraded_from_version',$beforeUpdateVersion);
-
-            return array(
-                'success' => true
-            );
-        }
-    }
-
-    public function upgrade_database()
-    {
-        if (!is_really_writable(APPPATH . 'config/config.php')) {
-            show_error('/config/config.php file is not writable. You need to change the permissions to 755. This error occurs while trying to update database to latest version.');
-            die;
-        }
-        $update = $this->upgrade_database_silent();
-        if ($update['success'] == false) {
-            show_error($update['message']);
-        } else {
-            set_alert('success', 'Your database is up to date');
-            if (is_staff_logged_in()) {
-                redirect(admin_url(), 'refresh');
-            } else {
-                redirect(site_url('authentication/admin'));
-            }
-        }
-    }
-
     public function add_attachment_to_database($rel_id, $rel_type, $attachment, $external = false)
     {
         $data['dateadded'] = date('Y-m-d H:i:s');
@@ -249,7 +147,7 @@ class Misc_model extends CRM_Model
             }
         }
 
-        $data['attachment_key'] = md5(uniqid(rand(), true) . $rel_id . $rel_type . time());
+        $data['attachment_key'] = app_generate_hash();
 
         if ($external == false) {
             $data['file_name'] = $attachment[0]['file_name'];
@@ -404,6 +302,15 @@ class Misc_model extends CRM_Model
         return false;
     }
 
+    /**
+     * Get current db version
+     * @deprecated 1.9.8 Use $this->app->get_current_db_version() instead
+     * @return mixed
+     */
+    public function get_current_db_version(){
+        return $this->app->get_current_db_version();
+    }
+
     public function get_activity_log($limit = 30)
     {
         $this->db->limit($limit);
@@ -481,25 +388,27 @@ class Misc_model extends CRM_Model
         $departments       = $this->departments_model->get();
         $staff_departments = $this->departments_model->get_staff_departments(false, true);
         $ids               = array();
+
         // Check departments google calendar ids
         foreach ($departments as $department) {
             if ($department['calendar_id'] == '') {
                 continue;
-            } //$department['calendar_id'] == ''
+            }
             if ($is_admin) {
                 $ids[] = $department['calendar_id'];
-            } //$is_admin
+            }
             else {
                 if (in_array($department['departmentid'], $staff_departments)) {
                     $ids[] = $department['calendar_id'];
-                } //in_array($department['departmentid'], $staff_departments)
+                }
             }
-        } //$departments as $department
+        }
+
         // Ok now check if main calendar is setup
         $main_id_calendar = get_option('google_calendar_main_calendar');
         if ($main_id_calendar != '') {
             $ids[] = $main_id_calendar;
-        } //$main_id_calendar != ''
+        }
 
         return array_unique($ids);
     }
@@ -558,7 +467,7 @@ class Misc_model extends CRM_Model
         ));
         if ($this->db->affected_rows() > 0) {
             return true;
-        } //$this->db->affected_rows() > 0
+        }
         return false;
     }
 
@@ -949,16 +858,16 @@ class Misc_model extends CRM_Model
             'search_heading' => _l('leads')
         );
 
-        $is_admin = is_admin();
+        $has_permission_view = has_permission('leads','','view');
+
         if (is_staff_member()) {
             // Leads
             $this->db->select();
             $this->db->from('tblleads');
-            if (!$is_admin) {
+
+            if (!$has_permission_view) {
                 $this->db->where('(assigned = ' . get_staff_user_id() . ' OR addedfrom = ' . get_staff_user_id() . ' OR is_public=1)');
-            } //$staff->admin == 0
-
-
+            }
 
             if (!_startsWith($q, '#')) {
                 $this->db->where('(name LIKE "%' . $q . '%"
@@ -969,6 +878,7 @@ class Misc_model extends CRM_Model
                     OR state LIKE "%' . $q . '%"
                     OR address LIKE "%' . $q . '%"
                     OR email LIKE "%' . $q . '%"
+                    OR phonenumber LIKE "%' . $q . '%"
                     )');
             } else {
                 $this->db->where('id IN
@@ -1246,7 +1156,7 @@ class Misc_model extends CRM_Model
             if (!$has_permission_view_invoices) {
                 $this->db->where('addedfrom', get_staff_user_id());
             }
-
+             if (!_startsWith($q, '#')) {
             $this->db->where('(
                 tblinvoices.number LIKE "' . $q . '"
                 OR
@@ -1302,6 +1212,13 @@ class Misc_model extends CRM_Model
                 OR
                 tblclients.shipping_zip LIKE "%' . $q . '%"
                 )');
+        } else {
+              $this->db->where('tblinvoices.id IN
+                (SELECT rel_id FROM tbltags_in WHERE tag_id IN
+                (SELECT id FROM tbltags WHERE name="' . strafter($q, '#') . '")
+                AND tbltags_in.rel_type=\'invoice\' GROUP BY rel_id HAVING COUNT(tag_id) = 1)
+                ');
+        }
 
 
             $this->db->order_by('number,YEAR(date)', 'desc');
@@ -1562,95 +1479,4 @@ class Misc_model extends CRM_Model
         return $result;
     }
 
-    // Temporary function
-    public function replace_changed_lang_keys_v162()
-    {
-        $changed_strings = array(
-            'added_successfuly' => 'added_successfully',
-            'updated_successfuly' => 'updated_successfully',
-            'email_template_disabed' => 'email_template_disabled',
-            'email_added_to_mail_list_successfuly' => 'email_added_to_mail_list_successfully',
-            'predifined_replies_dt_name' => 'predefined_replies_dt_name',
-            'predifined_reply_add_edit_name' => 'predefined_reply_add_edit_name',
-            'predifined_reply_add_edit_content' => 'predefined_reply_add_edit_content',
-            'lead_add_edit_contected_today' => 'lead_add_edit_contacted_today',
-            'lead_add_edit_contected_this_lead' => 'lead_add_edit_contacted_this_lead',
-            'new_ticket_added_succesfuly' => 'new_ticket_added_successfully',
-            'replied_to_ticket_succesfuly' => 'replied_to_ticket_successfully',
-            'ticket_settings_updated_successfuly' => 'ticket_settings_updated_successfully',
-            'ticket_settings_updated_successfuly_and_reassigned' => 'ticket_settings_updated_successfully_and_reassigned',
-            'ticket_status_changed_successfuly' => 'ticket_status_changed_successfully',
-            'staff_old_password_incorect' => 'staff_old_password_incorrect',
-            'utility_calendar_event_added_successfuly' => 'utility_calendar_event_added_successfully',
-            'utility_calendar_event_deleted_successfuly' => 'utility_calendar_event_deleted_successfully',
-            'clients_single_ticket_informations_heading' => 'clients_single_ticket_information_heading',
-            'clients_ticket_single_submited' => 'clients_ticket_single_submitted',
-            'invoices_list_recuring' => 'invoices_list_recurring',
-            'invoice_add_edit_recuring_invoices_from_invoice' => 'invoice_add_edit_recurring_invoices_from_invoice',
-            'clients_estimate_invoiced_successfuly' => 'clients_estimate_invoiced_successfully',
-            'contract_renewed_successfuly' => 'contract_renewed_successfully',
-            'goal_notify_staff_manualy' => 'goal_notify_staff_manually',
-            'goal_notify_staff_notified_manualy_success' => 'goal_notify_staff_notified_manually_success',
-            'goal_notify_staff_notified_manualy_fail' => 'goal_notify_staff_notified_manually_fail',
-            'numbers_not_formated_while_editing' => 'numbers_not_formatted_while_editing',
-            'estimate_convert_to_invoice_successfuly' => 'estimate_convert_to_invoice_successfully',
-            'reminder_added_successfuly' => 'reminder_added_successfully',
-            'sender_blocked_successfuly' => 'sender_blocked_successfully',
-            'invoice_activity_recuring_created' => 'invoice_activity_recurring_created',
-            'invoice_activity_recuring_from_expense_created' => 'invoice_activity_recurring_from_expense_created',
-            'estimate_copied_successfuly' => 'estimate_copied_successfully',
-            'check_email_for_reseting_password' => 'check_email_for_resetting_password',
-            'ticket_message_updated_successfuly' => 'ticket_message_updated_successfully',
-            'project_invoiced_successfuly' => 'project_invoiced_successfully',
-            'project_copied_successfuly' => 'project_copied_successfully',
-            'invoice_project_data_timesheets_individualy' => 'invoice_project_data_timesheets_individually',
-            'invoice_project_timesheet_indivudualy_data' => 'invoice_project_timesheet_individually_data',
-            'invoice_marked_as_cancelled_successfuly' => 'invoice_marked_as_cancelled_successfully',
-            'invoice_project_stop_billabe_timers_only' => 'invoice_project_stop_billable_timers_only',
-            'defaut_leads_kanban_sort' => 'default_leads_kanban_sort',
-            'defaut_leads_kanban_sort_type' => 'default_leads_kanban_sort_type',
-            'file_exceds_max_filesize' => 'file_exceeds_max_filesize',
-            'file_exceds_maxfile_size_in_form' => 'file_exceeds_maxfile_size_in_form',
-            'client_old_password_incorect' => 'client_old_password_incorrect',
-            'not_invoice_payment_recored' => 'not_invoice_payment_recorded',
-            'task_copied_successfuly' => 'task_copied_successfully',
-            'expense_recuring_days' => 'expense_recurring_days',
-            'expense_recuring_weeks' => 'expense_recurring_weeks',
-            'expense_recuring_months' => 'expense_recurring_months',
-            'expense_recuring_years' => 'expense_recurring_years',
-            'invoice_recuring_days' => 'invoice_recurring_days',
-            'invoice_recuring_weeks' => 'invoice_recurring_weeks',
-            'invoice_recuring_months' => 'invoice_recurring_months',
-            'invoice_recuring_years' => 'invoice_recurring_years',
-            'task_recuring_days' => 'task_recurring_days',
-            'task_recuring_weeks' => 'task_recurring_weeks',
-            'task_recuring_months' => 'task_recurring_months',
-            'task_recuring_years' => 'task_recurring_years',
-            'note_updated_successfuly' => 'note_updated_successfully',
-            'comment_updated_successfuly' => 'comment_updated_successfully',
-            'all_data_synced_successfuly' => 'all_data_synced_successfully',
-            'task_edit_delte_timesheet_notice' => 'task_edit_delete_timesheet_notice'
-        );
-
-        foreach ($changed_strings as $find => $replace) {
-            $this->db->query('UPDATE `tblnotifications` SET `description` = replace(description, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblnotifications` SET `additional_data` = replace(additional_data, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblprojectactivity` SET `description_key` = replace(description_key, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblprojectactivity` SET `additional_data` = replace(additional_data, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblsalesactivity` SET `description` = replace(description, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblsalesactivity` SET `additional_data` = replace(additional_data, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblleadactivitylog` SET `description` = replace(description, "' . $find . '", "' . $replace . '")');
-            $this->db->query('UPDATE `tblleadactivitylog` SET `additional_data` = replace(additional_data, "' . $find . '", "' . $replace . '")');
-        }
-
-        $langs = $this->perfex_base->get_available_languages();
-        foreach ($langs as $lang) {
-            foreach ($changed_strings as $find => $replace) {
-                @replace_in_file(APPPATH . 'language/' . $lang . '/' . $lang . '_lang.php', "'$find'", "'$replace'");
-                if (file_exists(APPPATH . 'language/' . $lang . '/custom_lang.php')) {
-                    @replace_in_file(APPPATH . 'language/' . $lang . '/custom_lang.php', "'$find'", "'$replace'");
-                }
-            }
-        }
-    }
 }

@@ -165,7 +165,6 @@ class Proposals_model extends CRM_Model
         $insert_id = $this->db->insert_id();
 
         if ($insert_id) {
-
             if (isset($custom_fields)) {
                 handle_custom_fields_post($insert_id, $custom_fields);
             }
@@ -321,6 +320,12 @@ class Proposals_model extends CRM_Model
         foreach ($items as $key => $item) {
             if (update_sales_item_post($item['itemid'], $item)) {
                 $affectedRows++;
+            }
+
+            if (isset($item['custom_fields'])) {
+                if (handle_custom_fields_post($item['itemid'], $item['custom_fields'])) {
+                    $affectedRows++;
+                }
             }
 
             if (!isset($item['taxname']) || (isset($item['taxname']) && count($item['taxname']) == 0)) {
@@ -509,6 +514,11 @@ class Proposals_model extends CRM_Model
         if ($insert_id) {
             $proposal = $this->get($data['proposalid']);
 
+            // No notifications client when proposal is with draft status
+            if($proposal->status == '6' && $client == false) {
+                return true;
+            }
+
             $merge_fields = array();
             $merge_fields = array_merge($merge_fields, get_proposal_merge_fields($proposal->id));
 
@@ -518,7 +528,8 @@ class Proposals_model extends CRM_Model
             $this->emails_model->set_rel_type('proposal');
 
             if ($client == true) {
-                // Get creator and assigned;
+                // Get creator and assigned
+                $this->db->select('staffid,email,phonenumber');
                 $this->db->where('staffid', $proposal->addedfrom);
                 $this->db->or_where('staffid', $proposal->assigned);
                 $staff_proposal = $this->db->get('tblstaff')->result_array();
@@ -537,13 +548,15 @@ class Proposals_model extends CRM_Model
                     if ($notified) {
                         array_push($notifiedUsers, $member['staffid']);
                     }
-                    // Send email to admin that client commented
+                    // Send email/sms to admin that client commented
                     $this->emails_model->send_email_template('proposal-comment-to-admin', $member['email'], $merge_fields);
+                    $this->sms->trigger(SMS_TRIGGER_PROPOSAL_NEW_COMMENT_TO_STAFF, $member['phonenumber'], $merge_fields);
                 }
                 pusher_trigger_notification($notifiedUsers);
             } else {
-                // Send email to client that admin commented
+                // Send email/sms to client that admin commented
                 $this->emails_model->send_email_template('proposal-comment-to-client', $proposal->email, $merge_fields);
+                $this->sms->trigger(SMS_TRIGGER_PROPOSAL_NEW_COMMENT_TO_CUSTOMER, $proposal->phone, $merge_fields);
             }
 
             return true;
@@ -654,6 +667,7 @@ class Proposals_model extends CRM_Model
         }
 
         $insert_data['newitems'] = array();
+        $custom_fields_items = get_custom_fields('items');
         $key                     = 1;
         foreach ($proposal->items as $item) {
             $insert_data['newitems'][$key]['description']      = $item['description'];
@@ -668,6 +682,13 @@ class Proposals_model extends CRM_Model
             }
             $insert_data['newitems'][$key]['rate']  = $item['rate'];
             $insert_data['newitems'][$key]['order'] = $item['item_order'];
+            foreach ($custom_fields_items as $cf) {
+                $insert_data['newitems'][$key]['custom_fields']['items'][$cf['id']] = get_custom_field_value($item['id'], $cf['id'], 'items', false);
+
+                if (!defined('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST')) {
+                    define('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST', true);
+                }
+            }
             $key++;
         }
 
@@ -750,6 +771,9 @@ class Proposals_model extends CRM_Model
                             'touserid' => $member['staffid'],
                             'description' => $message,
                             'link' => 'proposals/list_proposals/' . $id,
+                            'additional_data' => serialize(array(
+                                format_proposal_number($id)
+                            )),
                         ));
                         if ($notified) {
                             array_push($notifiedUsers, $member['staffid']);
@@ -821,6 +845,10 @@ class Proposals_model extends CRM_Model
             foreach ($attachments as $attachment) {
                 $this->delete_attachment($attachment['id']);
             }
+
+            $this->db->where('relid IN (SELECT id from tblitems_in WHERE rel_type="proposal" AND rel_id="'.$id.'")');
+            $this->db->where('fieldto', 'items');
+            $this->db->delete('tblcustomfieldsvalues');
 
             $this->db->where('rel_id', $id);
             $this->db->where('rel_type', 'proposal');
@@ -935,6 +963,13 @@ class Proposals_model extends CRM_Model
         $proposal = $this->get($id);
         $pdf      = proposal_pdf($proposal);
         $attach   = $pdf->Output(slug_it($proposal->subject) . '.pdf', 'S');
+
+        // For all cases update this to prevent sending multiple reminders eq on fail
+        $this->db->where('id', $proposal->id);
+        $this->db->update('tblproposals', array(
+            'is_expiry_notified' => 1,
+        ));
+
         $this->load->model('emails_model');
 
         $this->emails_model->set_rel_id($id);
@@ -950,14 +985,9 @@ class Proposals_model extends CRM_Model
         $merge_fields = array_merge($merge_fields, get_proposal_merge_fields($proposal->id));
         $sent = $this->emails_model->send_email_template('proposal-expiry-reminder', $proposal->email, $merge_fields);
 
-        if (!$sent) {
-            return false;
+        if(can_send_sms_based_on_creation_date($proposal->datecreated)){
+            $sms_sent = $this->sms->trigger(SMS_TRIGGER_PROPOSAL_EXP_REMINDER, $proposal->phone, $merge_fields);
         }
-
-        $this->db->where('id', $proposal->id);
-        $this->db->update('tblproposals', array(
-            'is_expiry_notified' => 1,
-        ));
 
         return true;
     }

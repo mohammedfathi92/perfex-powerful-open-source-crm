@@ -40,7 +40,7 @@ class Tasks extends Admin_controller
 
     public function table()
     {
-        $this->perfex_base->get_table_data('tasks');
+        $this->app->get_table_data('tasks');
     }
 
     public function kanban()
@@ -108,6 +108,21 @@ class Tasks extends Admin_controller
             } else {
                 redirect($_SERVER['HTTP_REFERER']);
             }
+        }
+    }
+
+    // Used in invoice add/edit
+    public function get_billable_tasks_by_project($project_id) {
+        if($this->input->is_ajax_request()&& (has_permission('invoices','','edit') || has_permission('invoices','','create'))){
+            $customer_id = get_client_id_by_project_id($project_id);
+            echo json_encode($this->tasks_model->get_billable_tasks($customer_id,$project_id));
+        }
+    }
+
+    // Used in invoice add/edit
+    public function get_billable_tasks_by_customer_id($customer_id) {
+        if($this->input->is_ajax_request() && (has_permission('invoices','','edit') || has_permission('invoices','','create'))){
+            echo json_encode($this->tasks_model->get_billable_tasks($customer_id));
         }
     }
 
@@ -248,7 +263,7 @@ class Tasks extends Admin_controller
     public function init_relation_tasks($rel_id, $rel_type)
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('tasks_relations', array(
+            $this->app->get_table_data('tasks_relations', array(
                 'rel_id' => $rel_id,
                 'rel_type' => $rel_type,
             ));
@@ -848,6 +863,7 @@ class Tasks extends Admin_controller
             $alert_type = 'warning';
             $success    = $this->tasks_model->delete_timesheet($id);
             if ($success) {
+                $this->session->set_flashdata('task_single_timesheets_open', true);
                 $message = _l('deleted', _l('project_timesheet'));
                 set_alert('success', $message);
             }

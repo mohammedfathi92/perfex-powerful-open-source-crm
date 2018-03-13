@@ -43,8 +43,8 @@ $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $wher
 $output       = $result['output'];
 $rResult      = $result['rResult'];
 
-$this->_instance->load->model('payment_modes_model');
-$online_modes = $this->_instance->payment_modes_model->get_online_payment_modes(true);
+$this->ci->load->model('payment_modes_model');
+$online_modes = $this->ci->payment_modes_model->get_online_payment_modes(true);
 
 foreach ($rResult as $aRow) {
 

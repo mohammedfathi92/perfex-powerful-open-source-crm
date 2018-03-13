@@ -39,7 +39,7 @@
                            ?>
                      </div>
                      <div class="col-md-2 text-center border-right">
-                        <div class="form-group no-margin">
+                        <div class="form-group no-margin select-placeholder">
                            <select name="status" id="status" class="selectpicker no-margin" data-width="100%" data-title="<?php echo _l('task_status'); ?>">
                               <option value="" selected><?php echo _l('task_list_all'); ?></option>
                               <?php foreach($task_statuses as $status){ ?>
@@ -48,7 +48,7 @@
                            </select>
                         </div>
                      </div>
-                     <div class="col-md-2 border-right">
+                     <div class="col-md-2 border-right select-placeholder">
                         <select name="year" id="year" class="selectpicker no-margin" data-width="100%">
                            <?php foreach($years as $data){ ?>
                            <option value="<?php echo $data['year']; ?>" <?php if($this->input->post('year') == $data['year'] || date('Y') == $data['year']){echo 'selected'; } ?>><?php echo $data['year']; ?></option>

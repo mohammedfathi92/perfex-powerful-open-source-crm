@@ -14,16 +14,21 @@
           <div class="clearfix"></div>
           <hr class="hr-panel-heading" />
           <?php } ?>
-          <?php render_datatable(array(
+          <?php
+          $table_data = array(
             _l('invoice_items_list_description'),
             _l('invoice_item_long_description'),
             _l('invoice_items_list_rate'),
             _l('tax_1'),
             _l('tax_2'),
             _l('unit'),
-            _l('item_group_name'),
-            _l('options'),
-            ),'invoice-items'); ?>
+            _l('item_group_name'));
+            $cf = get_custom_fields('items');
+            foreach($cf as $custom_field) {
+                array_push($table_data,$custom_field['name']);
+            }
+            array_push($table_data,_l('options'));
+            render_datatable($table_data,'invoice-items'); ?>
           </div>
         </div>
       </div>
@@ -52,7 +57,7 @@
         <?php } ?>
         <div class="row">
          <div class="container-fluid">
-          <table class="table table-striped dt-table table-items-groups" data-order-col="0" data-order-type="asc">
+          <table class="table dt-table table-items-groups" data-order-col="0" data-order-type="asc">
             <thead>
               <tr>
                 <th><?php echo _l('item_group_name'); ?></th>
@@ -92,7 +97,9 @@
 <?php init_tail(); ?>
 <script>
   $(function(){
-    initDataTable('.table-invoice-items', admin_url+'invoice_items/table', [7], [7],'undefined',[0,'ASC']);
+    var not_sortable_items;
+    not_sortable_items = [($('.table-invoice-items').find('th').length - 1)];
+    initDataTable('.table-invoice-items', admin_url+'invoice_items/table', not_sortable_items, not_sortable_items,'undefined',[0,'ASC']);
     if(get_url_param('groups_modal')){
        // Set time out user to see the message
        setTimeout(function(){

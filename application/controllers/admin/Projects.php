@@ -20,20 +20,20 @@ class Projects extends Admin_controller
 
     public function table($clientid = '')
     {
-        $this->perfex_base->get_table_data('projects', array(
+        $this->app->get_table_data('projects', array(
             'clientid' => $clientid,
         ));
     }
 
     public function staff_projects()
     {
-        $this->perfex_base->get_table_data('staff_projects');
+        $this->app->get_table_data('staff_projects');
     }
 
     public function expenses($id)
     {
         $this->load->model('expenses_model');
-        $this->perfex_base->get_table_data('project_expenses', array(
+        $this->app->get_table_data('project_expenses', array(
             'project_id' => $id,
         ));
     }
@@ -358,6 +358,23 @@ class Projects extends Admin_controller
         }
     }
 
+    public function download_all_files($id) {
+        if ($this->projects_model->is_member($id) || has_permission('projects', '', 'view')) {
+            $files = $this->projects_model->get_files($id);
+            if(count($files) == 0){
+                set_alert('warning',_l('no_files_found'));
+                redirect(admin_url('projects/view/'.$id.'?group=project_files'));
+            }
+            $path = get_upload_path_by_type('project'). $id;
+            $this->load->library('zip');
+            foreach($files as $file) {
+                $this->zip->read_file($path.'/'.$file['file_name']);
+            }
+            $this->zip->download(slug_it(get_project_name_by_id($id)) . '-files.zip');
+            $this->zip->clear_data();
+        }
+    }
+
     public function export_project_data($id)
     {
         if (has_permission('projects', '', 'create')) {
@@ -438,7 +455,7 @@ class Projects extends Admin_controller
     {
         if ($this->projects_model->is_member($project_id) || has_permission('projects', '', 'view')) {
             if ($this->input->is_ajax_request()) {
-                $this->perfex_base->get_table_data('project_discussions', array(
+                $this->app->get_table_data('project_discussions', array(
                     'project_id' => $project_id,
                 ));
             }
@@ -593,7 +610,7 @@ class Projects extends Admin_controller
     {
         if ($this->projects_model->is_member($project_id) || has_permission('projects', '', 'view')) {
             if ($this->input->is_ajax_request()) {
-                $this->perfex_base->get_table_data('milestones', array(
+                $this->app->get_table_data('milestones', array(
                     'project_id' => $project_id,
                 ));
             }
@@ -662,7 +679,7 @@ class Projects extends Admin_controller
     {
         if ($this->projects_model->is_member($project_id) || has_permission('projects', '', 'view')) {
             if ($this->input->is_ajax_request()) {
-                $this->perfex_base->get_table_data('timesheets', array(
+                $this->app->get_table_data('timesheets', array(
                     'project_id' => $project_id,
                 ));
             }

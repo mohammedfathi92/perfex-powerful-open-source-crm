@@ -5,7 +5,7 @@
 class CRM_Form_validation extends CI_Form_validation
 {
     protected $CI;
-    // CUSTOM
+    // Custom
     protected $cfk_hidden = array();
 
     public function __construct()
@@ -18,13 +18,12 @@ class CRM_Form_validation extends CI_Form_validation
      *
      * This function does all the work.
      *
-     * @param   string  $config
-     * @param   array   $data
+     * @param   string  $group
      * @return  bool
      */
-    public function run($config = null, &$data = null)
+    public function run($group = '')
     {
-        // CUSTOM
+        // Custom
         $cf_found = false;
         if ($this->CI->input->post('custom_fields')) {
             foreach ($this->CI->input->post('custom_fields') as $_k => $_f) {
@@ -48,6 +47,7 @@ class CRM_Form_validation extends CI_Form_validation
                 }
             }
         }
+
         if ($cf_found == false) {
             $this->cfk_hidden = array();
         }
@@ -60,17 +60,17 @@ class CRM_Form_validation extends CI_Form_validation
         // If not, we look to see if they were assigned via a config file
         if (count($this->_field_data) === 0) {
             // No validation rules?  We're done...
-            if (empty($this->_config_rules)) {
+            if (count($this->_config_rules) === 0) {
                 return false;
             }
 
-            if (empty($config)) {
+            if (empty($group)) {
                 // Is there a validation rule for the particular URI being accessed?
-                $config = trim($this->CI->uri->ruri_string(), '/');
-                isset($this->_config_rules[$config]) or $config = $this->CI->router->class.'/'.$this->CI->router->method;
+                $group = trim($this->CI->uri->ruri_string(), '/');
+                isset($this->_config_rules[$group]) or $group = $this->CI->router->class.'/'.$this->CI->router->method;
             }
 
-            $this->set_rules(isset($this->_config_rules[$config]) ? $this->_config_rules[$config] : $this->_config_rules);
+            $this->set_rules(isset($this->_config_rules[$group]) ? $this->_config_rules[$group] : $this->_config_rules);
 
             // Were we able to set the rules correctly?
             if (count($this->_field_data) === 0) {
@@ -106,22 +106,16 @@ class CRM_Form_validation extends CI_Form_validation
             $this->_execute($row, $row['rules'], $row['postdata']);
         }
 
-        if (! empty($this->_error_array)) {
-            return false;
+        // Did we end up with any errors?
+        $total_errors = count($this->_error_array);
+        if ($total_errors > 0) {
+            $this->_safe_form_data = true;
         }
 
-        // Fill $data if requested, otherwise modify $_POST, as long as
-        // set_data() wasn't used (yea, I know it sounds confusing)
-        if (func_num_args() >= 2) {
-            $data = empty($this->validation_data) ? $_POST : $this->validation_data;
-            $this->_reset_data_array($data);
+        // Now we need to re-set the POST data with the new, processed data
+        empty($this->validation_data) && $this->_reset_post_array();
 
-            return true;
-        }
-
-        empty($this->validation_data) && $this->_reset_data_array($_POST);
-
-        /// CUSTOM
+        // Custom
         foreach ($this->cfk_hidden as $type => $total) {
             foreach ($total as $key =>$_total) {
                 if (!isset($_POST['custom_fields'][$type][$key])) {
@@ -134,9 +128,29 @@ class CRM_Form_validation extends CI_Form_validation
             }
         }
 
-        return true;
+        return ($total_errors === 0);
     }
 
+    /**
+     * Valid Email
+     *
+     * @param   string
+     * @return  bool
+     */
+  /*  public function valid_email($str)
+    {
+        if (function_exists('idn_to_ascii') && preg_match('#\A([^@]+)@(.+)\z#', $str, $matches))
+        {
+            $variant = defined('INTL_IDNA_VARIANT_UTS46') ? INTL_IDNA_VARIANT_UTS46 : INTL_IDNA_VARIANT_2003;
+            $str = $matches[1].'@'.idn_to_ascii($matches[2], 0, $variant);
+        }
+        return (bool) filter_var($str, FILTER_VALIDATE_EMAIL);
+    }*/
+
+    /**
+     * Custom method for error messages in array
+     * @return mixed
+     */
     public function errors_array()
     {
         if (count($this->_error_array) === 0) {
@@ -145,4 +159,5 @@ class CRM_Form_validation extends CI_Form_validation
             return $this->_error_array;
         }
     }
+
 }

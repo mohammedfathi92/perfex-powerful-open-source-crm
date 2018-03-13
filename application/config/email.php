@@ -6,7 +6,7 @@
     $charset = strtoupper(get_option('smtp_email_charset'));
     $charset = trim($charset);
     if ($charset == '' || strcasecmp($charset,'utf8') == 'utf8') {
-        $charset = 'UTF-8';
+        $charset = 'utf-8';
     }
     $config['charset']      = $charset;
     $config['newline']      = "\r\n";

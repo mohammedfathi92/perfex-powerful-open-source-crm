@@ -1,5 +1,8 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
+
+$has_permission_delete = has_permission('staff','','delete');
+
 $custom_fields = get_custom_fields('staff', array(
     'show_on_table' => 1
     ));
@@ -24,7 +27,7 @@ foreach ($custom_fields as $field) {
 }
             // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
 
 $where = do_action('staff_table_sql_where', array());
@@ -81,10 +84,12 @@ foreach ($rResult as $aRow) {
         $row[] = $_data;
     }
     $options = icon_btn('staff/member/' . $aRow['staffid'], 'pencil-square-o');
-    if (has_permission('staff', '', 'delete') && $output['iTotalRecords'] > 1 && $aRow['staffid'] != get_staff_user_id()) {
-        $options .= icon_btn('#', 'remove', 'btn-danger', array(
-            'onclick'=>'delete_staff_member('.$aRow['staffid'].'); return false;',
-            ));
+    if(($has_permission_delete && ($has_permission_delete && !is_admin($aRow['staffid']))) || is_admin()){
+        if ($has_permission_delete && $output['iTotalRecords'] > 1 && $aRow['staffid'] != get_staff_user_id()) {
+            $options .= icon_btn('#', 'remove', 'btn-danger', array(
+                'onclick'=>'delete_staff_member('.$aRow['staffid'].'); return false;',
+                ));
+        }
     }
     $row[]              = $options;
     $output['aaData'][] = $row;

@@ -24,12 +24,17 @@ class Auto_update extends Admin_controller
         $url = UPDATE_URL . "?purchase_key=" . $purchase_key;
 
         $tmp_dir = get_temp_dir();
+
+        if (!$tmp_dir || !is_writable($tmp_dir)) {
+             $tmp_dir = TEMP_FOLDER;
+        }
+
         $tmp_dir = rtrim($tmp_dir, '/') . '/';
 
         if (!is_writable($tmp_dir)) {
             header('HTTP/1.0 400');
             echo json_encode(array(
-                "Temporary directory not writable - <b>$tmp_dir</b><br />Please contact your hosting provider make this directory writable. The directory needs to be writable for the update files."
+                "Temporary directory not writable - <b>$tmp_dir</b><br />Please contact your hosting provider make this directory writable. The directory needs to be writable for the update files.",
                 ));
             die;
         }
@@ -40,6 +45,7 @@ class Auto_update extends Admin_controller
 
         if (!is_dir($tmp_dir)) {
             mkdir($tmp_dir);
+            fopen($tmp_dir . 'index.html', 'w');
         }
 
         $zipFile = $tmp_dir . $latest_version . '.zip'; // Local Zip File Path
@@ -61,18 +67,32 @@ class Auto_update extends Admin_controller
         curl_setopt($ch, CURLOPT_FILE, $zipResource);
         curl_setopt($ch, CURLOPT_POSTFIELDS, array(
             'base_url' => site_url(),
-            'buyer_version' => $this->misc_model->get_current_db_version(),
+            'buyer_version' => $this->app->get_current_db_version(),
             'user_ip' => $this->input->ip_address(),
-            'server_ip' => $_SERVER['SERVER_ADDR']
+            'server_ip' => $_SERVER['SERVER_ADDR'],
             ));
 
         $success = curl_exec($ch);
-
         if (!$success) {
+
             $this->clean_tmp_files();
+
+            $response_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = '';
+            if ($response_code == 499) {
+                $error = 'Purchase key already used to download update files for version '.wordwrap($latest_version, 1, '.', true).'. Performing multiple auto updates to the latest version with one purchase key is not allowed. If you have multiple installations you must buy another license.<br /><br /> If you have staging/testing installation and auto update is performed there, you can perform manually update in your production area.';
+            } elseif ($response_code == 498) {
+                $error = 'Invalid Purchase Key';
+            } elseif ($response_code == 497) {
+                $error = 'Purchase Key Empty';
+            } else {
+                // Uknown error
+                $error = curl_error($ch);
+            }
+
             header('HTTP/1.0 400 Bad error');
             echo json_encode(array(
-                curl_error($ch)
+                    $error,
                 ));
             die;
         }
@@ -82,23 +102,23 @@ class Auto_update extends Admin_controller
             if (!$zip->extractTo(FCPATH)) {
                 header('HTTP/1.0 400 Bad error');
                 echo json_encode(array(
-                    'Failed to extract downloaded zip file'
+                    'Failed to extract downloaded zip file',
                     ));
             }
             $zip->close();
         } else {
             header('HTTP/1.0 400 Bad error');
             echo json_encode(array(
-                'Failed to open downloaded zip file'
+                'Failed to open downloaded zip file',
                 ));
         }
         $this->clean_tmp_files();
         do_action('after_perform_auto_update');
     }
-    // Temporary function for v1.7.0 will be removed in a future.
+
+    // Temporary function for v1.7.0 will be removed in a future, or perhaps not?
     public function database()
     {
-
     }
 
     private function clean_tmp_files()

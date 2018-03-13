@@ -1,5 +1,9 @@
-// Core JS Files
-// Not recommened to edit this file directly if you plan to upgrade the script when new versions are released.
+/**
+ * Core JS Files
+ * Not recommened to edit this file directly if you plan to upgrade the script when new versions are released.
+ * Use hooks to inject custom javascript code
+ */
+
 $(window).on('load', function() {
     init_btn_with_tooltips();
 });
@@ -20,9 +24,20 @@ if (("Notification" in window) && app_desktop_notifications == '1') {
 // Jquery validate set default options
 $.validator.setDefaults({
     highlight: function(element) {
+        var $child_tab_in_form = $(element).parents('.tab-pane');
+        if ($child_tab_in_form.length && !$child_tab_in_form.is(':visible')) {
+            $('a[href="#' + $child_tab_in_form.attr('id') + '"]')
+                .css('border-bottom', '1px solid red')
+                .css('color', 'red')
+                .addClass('tab-validation');
+        }
         $(element).closest('.form-group').addClass('has-error');
     },
     unhighlight: function(element) {
+        var $child_tab_in_form = $(element).parents('.tab-pane');
+        if ($child_tab_in_form.length) {
+            $('a[href="#' + $child_tab_in_form.attr('id') + '"]').removeAttr('style').removeClass('tab-validation');
+        }
         $(element).closest('.form-group').removeClass('has-error');
     },
     errorElement: 'p',
@@ -61,8 +76,18 @@ $("body").on('loaded.bs.select change', 'select.ajax-search', function(e) {
     }
 });
 
+// On render select remove the placeholder
+$("body").on('rendered.bs.select', 'select', function() {
+    $(this).parents().removeClass('select-placeholder');
+});
+
 // Predefined global variables
 var original_top_search_val,
+    table_leads,
+    table_activity_log,
+    table_estimates,
+    table_invoices,
+    table_tasks,
     tab_active = get_url_param('tab'),
     tab_group = get_url_param('group'),
     side_bar = $('#side-menu'),
@@ -84,7 +109,7 @@ $(window).on("load resize", function(e) {
 
     if (!$("body").hasClass('page-small')) {
         // Add special class to minimalize page elements when screen is less than 768px
-        setBodySmall();
+        set_body_small();
     }
 
     // Waint until metsiMenu, collapse and other effect finish and set wrapper height
@@ -333,7 +358,7 @@ $(function() {
     });
     init_selectpicker();
     // Optimize body
-    setBodySmall();
+    set_body_small();
     // Validate all form for reminders
     init_form_reminder();
     // On document read check and init for client ajax-search
@@ -402,10 +427,17 @@ $(function() {
         });
     }
 
+    if (app_user_browser == 'safari') {
+        $('body').on('input', '.bootstrap-select .bs-searchbox input', function() {
+            $(this).trigger('keyup');
+        });
+    }
+
     // Optimize wrapper height
     mainWrapperHeightFix();
     // Top search input fetch results
-    $('#search_input').on('keyup paste', function() {
+    $('#search_input').on('keyup paste' + (app_user_browser == 'safari' ? ' input' : ''), function() {
+
         var q = $(this).val().trim();
         var search_results = $('#search_results');
         var top_search_button = $('#top_search_button button');
@@ -417,10 +449,19 @@ $(function() {
             top_search_button.html('<i class="fa fa-search"></i>').removeClass('search_remove');
             return;
         }
-        if (q.length < 2) { return; }
+
+        if (q.length < 2 &&
+            (app_language.indexOf('chinese') === -1 &&
+                app_language.indexOf('japanese') === -1)) {
+            return;
+        }
+
         top_search_button.html('<i class="fa fa-remove"></i>').addClass('search_remove');
+
         delay(function() {
-            if (q == original_top_search_val) { return; }
+            if (q == original_top_search_val) {
+                return;
+            }
             $.post(admin_url + 'misc/search', { q: q }).done(function(results) {
                 content_wrapper.unhighlight();
                 search_results.html(results);
@@ -428,6 +469,56 @@ $(function() {
                 original_top_search_val = q;
             });
         }, 700);
+    });
+
+    // Format timesheet duration type and do necesary checkings
+    $('body').on('blur', '#timesheet_duration', function() {
+        var that = $(this);
+        var pattern = /[^0-9:]/gi;
+        var val = $(this).val();
+        val = val.replace(pattern, '');
+        if (val.indexOf(':') > -1) {
+            var duration_array = val.split(':');
+
+            if (duration_array[0].length == 0) {
+                duration_array[0] = '00';
+            }
+
+            if (duration_array[1] >= 60) {
+                var subtr = Math.floor(parseInt(duration_array[1] / 60));
+                duration_array[0] = subtr + parseInt(duration_array[0]);
+                duration_array[1] = (duration_array[1] - (subtr * 60));
+            }
+
+            if (duration_array[0].toString().length == 1) {
+                duration_array[0] = '0' + duration_array[0];
+            }
+
+            if (duration_array[1].toString().length == 1) {
+                duration_array[1] = '0' + duration_array[1];
+            } else if (duration_array[1].toString().length == 0) {
+                duration_array[1] = '00';
+            }
+
+            val = duration_array[0] + ':' + duration_array[1];
+
+        } else if (val.length == 1 && val.indexOf(':') == -1) {
+            val = '0' + val + ':' + '00';
+        } else if (val.length >= 2 && val.indexOf(':') == -1) {
+            val = val + ':' + '00';
+        }
+        val = val == '00:00' ? '' : val;
+        that.val(val);
+    });
+
+    // Switching timesheet enter type
+    $('body').on('click', '.timesheet-toggle-enter-type', function(e) {
+        e.preventDefault();
+        var $switch_to = $(this).find('span.switch-to').removeClass('switch-to').addClass('hide');
+        $(this).find('span').not($switch_to).removeClass('hide').addClass('switch-to');
+        $('.timesheet-start-end-time,.timesheet-duration').toggleClass('hide');
+        $('.timesheet-start-end-time input').val('');
+        $('.timesheet-duration input').val('');
     });
 
     // On hidden modal reminder set all values to empty and set the form action to ADD in case edit was clicked
@@ -483,6 +574,7 @@ $(function() {
     });
 
     $("body").on('rendered.bs.select,refreshed.bs.select', 'select.checklist-items-template-select', function() {
+
         if (has_permission_tasks_checklist_items_delete == '1') {
             setTimeout(function() {
                 var itemsHtml = $("body").find('.checklist-items-template-select ul.dropdown-menu li').not(':first-child');
@@ -494,6 +586,17 @@ $(function() {
                     }
                 });
             }, 100);
+        }
+    });
+
+    // Cant update if nothing is selected
+    $('body').on('change', 'select.custom-field-multi-select', function() {
+        var selected = $(this).selectpicker('val');
+        if (selected.length == 0 || (selected.length == 1 && selected[0] == "")) {
+            $(this).selectpicker('val', "");
+        } else if (selected.length > 1 && selected[0] == "") {
+            selected.splice(0, 1);
+            $(this).selectpicker('val', selected);
         }
     });
 
@@ -563,13 +666,13 @@ $(function() {
         lead_status_select.selectpicker('val', '');
         var selected_status = [];
         lead_status_select.find('option').filter(function() {
-            if(this.text == lead_status_name) {
+            if (this.text == lead_status_name) {
                 selected_status.push($(this).attr('value'))
             }
         });
         lead_status_select.selectpicker('val', selected_status);
         lead_status_select.selectpicker('refresh');
-        $('.table-leads').DataTable().ajax.reload();
+        table_leads.DataTable().ajax.reload();
     });
 
     // Permissions change, apply necessary action to disable OWN or VIEW OWN
@@ -624,8 +727,10 @@ $(function() {
         e.preventDefault();
         var start_time = $("body").find('#task-modal input[name="timesheet_start_time"]').val();
         var end_time = $("body").find('#task-modal input[name="timesheet_end_time"]').val();
-        if (start_time != '' && end_time != '') {
+        var duration = $("body").find('#task-modal input[name="timesheet_duration"]').val();
+        if ((start_time != '' && end_time != '') || duration != '') {
             var data = {};
+            data.timesheet_duration = duration;
             data.start_time = start_time;
             data.end_time = end_time;
             data.timesheet_task_id = $(this).data('task-id');
@@ -1212,20 +1317,20 @@ $(function() {
     }
 
     // Init the table
-    var _tableLeads = $('.table-leads');
-    if (_tableLeads.length) {
-        var headers_leads = _tableLeads.find('th');
-        initDataTable('.table-leads', admin_url + 'leads/table', [headers_leads.length - 1, 0], [headers_leads.length - 1, 0], LeadsServerParams, [_tableLeads.find('th.date-created').index(), 'DESC']);
+    table_leads = $('table.table-leads');
+    if (table_leads.length) {
+        var headers_leads = table_leads.find('th');
+        initDataTable(table_leads, admin_url + 'leads/table', [headers_leads.length - 1, 0], [headers_leads.length - 1, 0], LeadsServerParams, [table_leads.find('th.date-created').index(), 'DESC']);
         $.each(LeadsServerParams, function(i, obj) {
             $('select' + obj).on('change', function() {
-                if($(this).val() == 'lost' || $(this).val() == 'junk') {
-                    $("[name='view_status[]']").prop('disabled',true).selectpicker('refresh');
+                if ($(this).val() == 'lost' || $(this).val() == 'junk') {
+                    $("[name='view_status[]']").prop('disabled', true).selectpicker('refresh');
                 } else {
-                    $("[name='view_status[]']").prop('disabled',false).selectpicker('refresh');
+                    $("[name='view_status[]']").prop('disabled', false).selectpicker('refresh');
                 }
-                _tableLeads.DataTable().ajax.reload()
-                .columns.adjust()
-                .responsive.recalc();
+                table_leads.DataTable().ajax.reload()
+                    .columns.adjust()
+                    .responsive.recalc();
             });
         });
     }
@@ -1389,7 +1494,7 @@ $(function() {
 
     // Activity log datepicker on change
     $('.datepicker.activity-log-date').on('change', function() {
-        $('.table-activity-log').DataTable().ajax.reload();
+        table_activity_log.DataTable().ajax.reload();
     });
 
     // For expenses and recurring tasks
@@ -1524,7 +1629,6 @@ $(function() {
 
     // Set notifications to read when notifictions dropdown is opened
     $('.notifications-wrapper').on('show.bs.dropdown', function() {
-        clearInterval(autocheck_notifications_timer_id);
         var total = notifications_wrapper.find('.notifications').attr('data-total-unread');
         if (total > 0) {
             $.post(admin_url + 'misc/set_notifications_read').done(function(response) {
@@ -1537,24 +1641,24 @@ $(function() {
         }
     });
 
-    // Auto check for new notifications
-    if (app_auto_check_for_new_notifications != 0) {
-        autocheck_notifications_timer_id = setInterval(function() {
-            fetch_notifications();
-        }, app_auto_check_for_new_notifications * 1000); //time in milliseconds
-    }
-
     // Tables
     init_table_tickets();
     init_table_announcements();
     init_table_staff_projects();
 
     // Ticket pipe log and system activity log
-    var ActivityLogServerParams = [];
-    ActivityLogServerParams['activity_log_date'] = '[name="activity_log_date"]';
-    initDataTable('.table-activity-log', window.location.href, 'undefined', 'undefined', ActivityLogServerParams, [1, 'DESC']);
+    table_activity_log = $('table.table-activity-log')
+    if (table_activity_log.length) {
+        var ActivityLogServerParams = [];
+        ActivityLogServerParams['activity_log_date'] = '[name="activity_log_date"]';
+        initDataTable(table_activity_log, window.location.href, 'undefined', 'undefined', ActivityLogServerParams, [1, 'DESC']);
+    }
 
-    if ($('.table-invoices').length > 0 || $('.table-estimates').length > 0) {
+    table_invoices = $('table.table-invoices');
+    table_estimates = $('table.table-estimates');
+
+    if (table_invoices.length > 0 || table_estimates.length > 0) {
+
         // Invoices additional server params
         var Invoices_Estimates_ServerParams = {};
         var Invoices_Estimates_Filter = $('._hidden_inputs._filters input');
@@ -1563,21 +1667,24 @@ $(function() {
             Invoices_Estimates_ServerParams[$(this).attr('name')] = '[name="' + $(this).attr('name') + '"]';
         });
 
-        // Invoices tables
-        initDataTable('.table-invoices', admin_url + 'invoices/table', 'undefined', 'undefined', Invoices_Estimates_ServerParams, [
-            [3, 'DESC'],
-            [0, 'DESC']
-        ]);
-
-        // Estimates table
-        initDataTable('.table-estimates', admin_url + 'estimates/table', 'undefined', 'undefined', Invoices_Estimates_ServerParams, [
-            [3, 'DESC'],
-            [0, 'DESC']
-        ]);
+        if (table_invoices.length) {
+            // Invoices tables
+            initDataTable(table_invoices, admin_url + 'invoices/table', 'undefined', 'undefined', Invoices_Estimates_ServerParams, [
+                [3, 'DESC'],
+                [0, 'DESC']
+            ]);
+        }
+        if (table_estimates.length) {
+            // Estimates table
+            initDataTable(table_estimates, admin_url + 'estimates/table', 'undefined', 'undefined', Invoices_Estimates_ServerParams, [
+                [3, 'DESC'],
+                [0, 'DESC']
+            ]);
+        }
     }
 
-    var tableTasks = $('.table-tasks');
-    if (tableTasks.length) {
+    table_tasks = $('.table-tasks');
+    if (table_tasks.length) {
         var TasksServerParams = {},
             Tasks_Filters;
         Tasks_Filters = $('._hidden_inputs._filters._tasks_filters input');
@@ -1586,7 +1693,7 @@ $(function() {
         });
 
         // Tasks not sortable
-        var _tns = [(tableTasks.find('th').length - 1)];
+        var _tns = [(table_tasks.find('th').length - 1)];
         var tasksTableURL = admin_url + 'tasks/table';
 
         if ($("body").hasClass('tasks_page')) {
@@ -1594,11 +1701,12 @@ $(function() {
             tasksTableURL += '?bulk_actions=true';
         }
 
-        _table_api = initDataTable('.table-tasks', tasksTableURL, _tns, _tns, TasksServerParams, [tableTasks.find('th.duedate').index(), 'ASC']);
+        _table_api = initDataTable(table_tasks, tasksTableURL, _tns, _tns, TasksServerParams, [table_tasks.find('th.duedate').index(), 'ASC']);
 
         if (_table_api && $("body").hasClass('dashboard')) {
             _table_api.column(3).visible(false, false)
-                .column(5).visible(false, false)
+                .column(4).visible(false, false)
+                .column(table_tasks.find('.table-tasks-options').index()).visible(false, false)
                 .columns.adjust();
         }
     }
@@ -1614,8 +1722,8 @@ $(function() {
         }
     });
 
-    $('#send_file form').on('submit',function(){
-        $(this).find('button[type="submit"]').prop('disabled',true);
+    $('#send_file form').on('submit', function() {
+        $(this).find('button[type="submit"]').prop('disabled', true);
     });
 
     // Set password checkbox change
@@ -1769,11 +1877,15 @@ $(function() {
 
         if ($previewItem.find('[name="description"]').val().trim().length > 0 &&
             $previewItem.find('[name="rate"]').val().trim().length > 0) {
-            $itemsTable.before('<div class="alert alert-warning mbot20" id="items-warning">' + appLang.item_forgotten_in_preview + '</div>');
+
+            $itemsTable.before('<div class="alert alert-warning mbot20" id="items-warning">' + appLang.item_forgotten_in_preview + '<i class="fa fa-angle-double-down pointer pull-right fa-2x" style="margin-top:-4px;" onclick="add_item_to_table(\'undefined\',\'undefined\',undefined); return false;"></i></div>');
+
             $('html,body').animate({
                 scrollTop: $("#items-warning").offset().top
             });
+
             return false;
+
         } else {
             if ($itemsTable.find('.item').length == 0) {
                 $itemsTable.before('<div class="alert alert-warning mbot20" id="items-warning">' + appLang.no_items_warning + '</div>');
@@ -1833,7 +1945,8 @@ $(function() {
         $("body").find('th.qty').html($(this).data('text'));
     });
 
-    $("body").on('change', 'div.estimate input[name="date"]', function() {
+    // No duedate for credit note, separate event
+    $("body").on('change', 'div.credit_note input[name="date"]', function() {
         do_prefix_year($(this).val());
     });
 
@@ -1841,27 +1954,30 @@ $(function() {
 
         var date = $(this).val();
         do_prefix_year(date);
+
         // This function not work on edit
         if ($('input[name="isedit"]').length > 0) {
             return;
         }
+
         var due_date_input_name = 'duedate';
         var due_calc_url = admin_url + 'invoices/get_due_date';
+
         if ($("body").find('div.estimate').length > 0) {
             due_calc_url = admin_url + 'estimates/get_due_date';
             due_date_input_name = 'expirydate';
         }
 
+        if (date == '') {
+            $('input[name="' + due_date_input_name + '"]').val('');
+        }
+
         if (date != '') {
-            $.post(due_calc_url, {
-                date: date
-            }).done(function(formatted) {
+            $.post(due_calc_url, { date: date }).done(function(formatted) {
                 if (formatted) {
                     $('input[name="' + due_date_input_name + '"]').val(formatted);
                 }
             });
-        } else {
-            $('input[name="' + due_date_input_name + '"]').val('');
         }
     });
 
@@ -1993,6 +2109,22 @@ $(function() {
         calculate_total();
     });
 
+    $('body').on('click', '.discount-total-type', function(e) {
+        e.preventDefault();
+        $('#discount-total-type-dropdown').find('.discount-total-type').removeClass('selected');
+        $(this).addClass('selected');
+        $('.discount-total-type-selected').html($(this).text());
+        if ($(this).hasClass('discount-type-percent')) {
+            $('.input-discount-fixed').addClass('hide').val(0);
+            $('.input-discount-percent').removeClass('hide');
+        } else {
+            $('.input-discount-fixed').removeClass('hide');
+            $('.input-discount-percent').addClass('hide').val(0);
+            $('#discount_percent-error').remove();
+        }
+        calculate_total();
+    });
+
     // Discount type for estimate/invoice
     $("body").on('change', 'select[name="discount_type"]', function() {
         // if discount_type == ''
@@ -2004,7 +2136,7 @@ $(function() {
     });
 
     // In case user enter discount percent but there is no discount type set
-    $("body").on('change', 'input[name="discount_percent"]', function() {
+    $("body").on('change', 'input[name="discount_percent"],input[name="discount_total"]', function() {
         if ($('select[name="discount_type"]').val() == '' && $(this).val() != 0) {
             alert('You need to select discount type');
             $('html,body').animate({ scrollTop: 0 }, 'slow');
@@ -2016,6 +2148,25 @@ $(function() {
         }
         if ($(this).valid() == true) {
             calculate_total();
+        }
+    });
+
+    $('body').on('change', '.invoice #project_id', function() {
+        var project_id = $(this).selectpicker('val');
+        if (project_id != '') {
+            requestGetJSON('tasks/get_billable_tasks_by_project/' + project_id).done(function(tasks) {
+                _init_tasks_billable_select(tasks, project_id);
+            });
+        } else {
+            var client_id = $('#clientid').selectpicker('val');
+            if(client_id != ''){
+                requestGetJSON('tasks/get_billable_tasks_by_customer_id/'+client_id).done(function(tasks){
+                    _init_tasks_billable_select(tasks);
+                })
+            } else {
+                // Empty dropdown
+                _init_tasks_billable_select([], '');
+            }
         }
     });
 
@@ -2047,8 +2198,10 @@ $(function() {
             projectsWrapper.addClass('hide');
             return false;
         }
+
         var currentInvoiceID = $("body").find('input[name="merge_current_invoice"]').val();
-        currentInvoiceID = typeof(currentInvoiceID == 'undefined') ? '' : currentInvoiceID;
+        currentInvoiceID = typeof(currentInvoiceID) == 'undefined' ? '' : currentInvoiceID;
+
         requestGetJSON('invoices/client_change_data/' + val + '/' + currentInvoiceID).done(function(response) {
             $('#merge').html(response.merge_info);
             var $billExpenses = $('#expenses_to_bill');
@@ -2094,25 +2247,7 @@ $(function() {
             var s_currency = $("body").find('.accounting-template select[name="currency"]');
             client_currency = parseInt(client_currency);
             client_currency != 0 ? s_currency.val(client_currency) : s_currency.val(s_currency.data('base'));
-
-            var billable_tasks_area = $('#task_select');
-            if (billable_tasks_area.length > 0) {
-                var option_data;
-                billable_tasks_area.find('option').filter(function() {
-                    return this.value || $.trim(this.value).length > 0 || $.trim(this.text).length > 0;
-                }).remove();
-
-                $.each(response['billable_tasks'], function(i, obj) {
-                    option_data = ' ';
-                    if (obj.started_timers == true) {
-                        option_data += 'disabled class="text-danger important" data-subtext="' + appLang.invoice_task_billable_timers_found + '"';
-                    } else {
-                        option_data += 'data-subtext="' + obj.rel_name + '"';
-                    }
-                    billable_tasks_area.append('<option value="' + obj.id + '"' + option_data + '>' + obj.name + '</option>');
-                });
-                billable_tasks_area.selectpicker('refresh');
-            }
+            _init_tasks_billable_select(response['billable_tasks'], projectAjax.selectpicker('val'));
             response.customer_has_projects === true ? projectsWrapper.removeClass('hide') : projectsWrapper.addClass('hide');
             s_currency.selectpicker('refresh');
             init_currency_symbol();
@@ -2171,6 +2306,7 @@ $(function() {
                             $('input[name="expense_id"]').val(obj.item_related_formatted_for_input);
                         }
                     }
+                    _set_item_preview_custom_fields_array(obj.custom_fields);
                     add_item_to_table(obj, 'undefined', _id);
                 });
             });
@@ -2230,6 +2366,49 @@ $(document).keyup(function(e) {
     }
 });
 
+function _init_tasks_billable_select(tasks, project_id) {
+    var billable_tasks_area = $('#task_select');
+    if (billable_tasks_area.length > 0) {
+        var option_data;
+        billable_tasks_area.find('option').filter(function() {
+            return this.value || $.trim(this.value).length > 0 || $.trim(this.text).length > 0;
+        }).remove();
+
+        $.each(tasks, function(i, obj) {
+            option_data = ' ';
+            if (obj.started_timers == true) {
+                option_data += 'disabled class="text-danger important" data-subtext="' + appLang.invoice_task_billable_timers_found + '"';
+            } else if (obj.started_timers == false && obj.rel_type != 'project') {
+                option_data += 'data-subtext="' + obj.rel_name + '"';
+            }
+            billable_tasks_area.append('<option value="' + obj.id + '"' + option_data + '>' + obj.name + '</option>');
+        });
+
+        var tasks_help_wrapper = $('.input-group-addon-bill-tasks-help');
+        tasks_help_wrapper.find('.popover-invoker').popover('destroy');
+        tasks_help_wrapper.empty();
+
+        var help_tooltip = '';
+
+        if (!empty(project_id)) {
+            help_tooltip = appLang['showing_billable_tasks_from_project'] + ' ' + $('#project_id option:selected').text().trim();
+        } else {
+            help_tooltip = appLang['invoice_task_item_project_tasks_not_included'];
+        }
+
+        tasks_help_wrapper.html('<span class="pointer popover-invoker" data-container=".form-group-select-task_select" data-trigger="click" data-placement="top" data-toggle="popover" data-content="' + help_tooltip + '"><i class="fa fa-question-circle"></i></span>');
+
+        delay(function() {
+            if ((tasks_help_wrapper.attr('info-shown-count') < 3 || typeof(tasks_help_wrapper.attr('info-shown-count')) == 'undefined')
+                && $('.projects-wrapper').is(':visible') && tasks.length > 0) {
+               tasks_help_wrapper.attr('info-shown-count', typeof(tasks_help_wrapper.attr('info-shown-count')) == 'undefined' ? 1 : parseInt(tasks_help_wrapper.attr('info-shown-count')) + 1);
+                tasks_help_wrapper.find('.popover-invoker').click()
+            }
+        }, 3500);
+    }
+
+    billable_tasks_area.selectpicker('refresh');
+}
 // Lightbox plugins for images
 function init_lightbox(options) {
     if (typeof(lightbox) != 'undefined') {
@@ -2303,7 +2482,7 @@ function mainWrapperHeightFix() {
 }
 
 // Set body small based on device width
-function setBodySmall() {
+function set_body_small() {
     if ($(this).width() < 769) {
         $("body").addClass('page-small');
     } else {
@@ -2361,14 +2540,18 @@ function _validate_form(form, form_rules, submithandler) {
 
             $.each(custom_required_fields, function() {
 
-                $(this).rules("add", {
-                    required: true
-                });
+                // for custom fields in tr.main, do not validate those
+                if (!$(this).parents('tr.main').length) {
 
-                var name = $(this).attr('name');
-                var label = $(this).parents('.form-group').find('[for="' + name + '"]');
-                if (label.length > 0 && label.find('.req').length == 0) {
-                    label.prepend('<small class="req text-danger">* </small>');
+                    $(this).rules("add", {
+                        required: true
+                    });
+
+                    var name = $(this).attr('name');
+                    var label = $(this).parents('.form-group').find('[for="' + name + '"]');
+                    if (label.length > 0 && label.find('.req').length == 0) {
+                        label.prepend('<small class="req text-danger">* </small>');
+                    }
                 }
             });
         }
@@ -2433,9 +2616,12 @@ function init_rel_tasks_table(rel_id, rel_type, selector) {
     if (typeof(selector) == 'undefined') { selector = '.table-rel-tasks'; }
     var $selector = $("body").find(selector);
     if ($selector.length == 0) { return; }
+
     var TasksServerParams = {},
         not_sortable_tasks, Tasks_Filters;
+
     Tasks_Filters = $('._hidden_inputs._filters._tasks_filters input');
+
     $.each(Tasks_Filters, function() {
         TasksServerParams[$(this).attr('name')] = '[name="' + $(this).attr('name') + '"]';
     });
@@ -2450,7 +2636,7 @@ function init_rel_tasks_table(rel_id, rel_type, selector) {
     }
 
     var Api = initDataTable($selector, url, not_sortable_tasks, not_sortable_tasks, TasksServerParams, [$selector.find('th.duedate').index(), 'ASC']);
-    // Hide option on lead modal because the table reserver area is too small
+    // Hide option on lead modal because the table reserved area is too small
     if (Api && rel_type == 'lead') {
         Api.column($('table .table-tasks-options').index()).visible(false, false).columns.adjust();
     }
@@ -2579,12 +2765,6 @@ function get_dt_export_buttons(table) {
         postfixButtons: ['colvisRestore'],
         className: 'btn btn-default-dt-options dt-column-visibility',
         text: appLang.dt_button_column_visibility
-    }, {
-        text: appLang.dt_button_reload,
-        className: 'btn btn-default-dt-options',
-        action: function(e, dt, node, config) {
-            dt.ajax.reload();
-        }
     }];
 
     if (app_show_table_columns_visibility == 0) {
@@ -2595,18 +2775,30 @@ function get_dt_export_buttons(table) {
         delete table_buttons_options[0];
     }
 
-    var bulkActions = $("body").find('.bulk-actions-btn');
-    if (bulkActions.length && bulkActions.attr('data-table')) {
-        if ($(table).is(bulkActions.attr('data-table'))) {
-            table_buttons_options.push({
-                text: bulkActions.text(),
-                className: 'btn btn-default-dt-options',
-                action: function(e, dt, node, config) {
-                    $(bulkActions.attr('data-target')).modal('show');
-                }
-            });
+    var tableButtons = $("body").find('.table-btn');
+    $.each(tableButtons, function() {
+        var b = $(this);
+        if (b.length && b.attr('data-table')) {
+            if ($(table).is(b.attr('data-table'))) {
+                table_buttons_options.push({
+                    text: b.text(),
+                    className: 'btn btn-default-dt-options',
+                    action: function(e, dt, node, config) {
+                        b.click();
+                    }
+                });
+            }
         }
-    }
+    });
+
+    table_buttons_options.push({
+        text: '<i class="fa fa-refresh"></i>',
+        className: 'btn btn-default-dt-options btn-dt-reload',
+        action: function(e, dt, node, config) {
+            dt.ajax.reload();
+        }
+    });
+
     return table_buttons_options;
 }
 
@@ -2679,13 +2871,19 @@ function _table_jump_to_page(table, oSettings) {
 }
 
 // @deprecated
-function initDatatableOffline(dt_table){
+function initDatatableOffline(dt_table) {
     initDataTableInline(dt_table);
 }
 
 // Datatbles inline/offline - no serverside
 function initDataTableInline(dt_table) {
+
     var selector = typeof(dt_table) !== 'undefined' ? dt_table : '.dt-table';
+    var tables = $(selector);
+
+    if (tables.length == 0) {
+        return;
+    }
 
     var length_options = [10, 25, 50, 100];
     var length_options_names = [10, 25, 50, 100];
@@ -2708,7 +2906,7 @@ function initDataTableInline(dt_table) {
     length_options.push(-1);
     length_options_names.push(appLang.dt_length_menu_all);
 
-    var tables = $(selector);
+
     if (tables.length) {
         var order_col, order_type, options, _buttons;
         var _options = {
@@ -2782,9 +2980,12 @@ function initDataTableInline(dt_table) {
 
 // General function for all datatables serverside
 function initDataTable(selector, url, notsearchable, notsortable, fnserverparams, defaultorder) {
+    var table = typeof(selector) == 'string' ? $("body").find('table' + selector) : selector;
 
-    var table = $("body").find(selector);
-    if (table.length == 0) { return false; }
+    if (table.length == 0) {
+        return false;
+    }
+
     fnserverparams = (fnserverparams == 'undefined' || typeof(fnserverparams) == 'undefined') ? [] : fnserverparams;
 
     // If not order is passed order by the first column
@@ -2854,6 +3055,9 @@ function initDataTable(selector, url, notsearchable, notsortable, fnserverparams
         "initComplete": function(settings, json) {
             var t = this;
 
+            $('.btn-dt-reload').attr('data-toggle', 'tooltip');
+            $('.btn-dt-reload').attr('title', appLang.dt_button_reload);
+
             if (t.hasClass('scroll-responsive') || app_scroll_responsive_tables == 1) {
                 t.wrap('<div class="table-responsive"></div>');
             }
@@ -2894,7 +3098,7 @@ function initDataTable(selector, url, notsearchable, notsortable, fnserverparams
                 }
             },
             "error": function(error) {
-                if(error.responseText != '') {
+                if (error.responseText != '') {
                     alert_float('danger', error.responseText);
                 }
             },
@@ -2987,25 +3191,27 @@ function update_todo_items() {
     }
     var update = [];
     $.each(unfinished_items, function() {
-        var todo_id = $(this).find('input[name="todo_id"]').val();
-        var order = $(this).find('input[name="todo_order"]').val();
-        var finished = $(this).find('input[name="finished"]').val();
         var description = $(this).find('.todo-description');
         if (description.hasClass('line-throught')) {
             description.removeClass('line-throught')
         }
         $(this).find('input[type="checkbox"]').prop('checked', false);
-        update.push([todo_id, order, finished])
+        update.push([
+            $(this).find('input[name="todo_id"]').val(),
+            $(this).find('input[name="todo_order"]').val(),
+            $(this).find('input[name="finished"]').val(),
+        ]);
     });
     $.each(finished, function() {
-        var todo_id = $(this).find('input[name="todo_id"]').val();
-        var order = $(this).find('input[name="todo_order"]').val();
-        var finished = $(this).find('input[name="finished"]').val();
         var description = $(this).find('.todo-description');
         if (!description.hasClass('line-throught')) {
             description.addClass('line-throught')
         }
-        update.push([todo_id, order, finished])
+        update.push([
+            $(this).find('input[name="todo_id"]').val(),
+            $(this).find('input[name="todo_order"]').val(),
+            $(this).find('input[name="finished"]').val(),
+        ]);
     });
     data = {};
     data.data = update;
@@ -3144,12 +3350,17 @@ function init_selectpicker() {
 function dt_custom_view(value, table, custom_input_name, clear_other_filters) {
     var name = typeof(custom_input_name) == 'undefined' ? 'custom_view' : custom_input_name;
     if (typeof(clear_other_filters) != 'undefined') {
-        $('._filters input').val('');
-        $('._filter_data li.active').removeClass('active');
+        var filters = $('._filter_data li.active').not('.clear-all-prevent');
+        filters.removeClass('active');
+        $.each(filters, function() {
+            var input_name = $(this).find('a').attr('data-cview');
+            $('._filters input[name="' + input_name + '"]').val('');
+        });
     }
-    var _original_val = value;
     var _cinput = do_filter_active(name);
-    if (_cinput != name) { value = ""; }
+    if (_cinput != name) {
+        value = "";
+    }
     $('input[name="' + name + '"]').val(value);
     $(table).DataTable().ajax.reload();
 }
@@ -3162,10 +3373,17 @@ function do_filter_active(value, parent_selector) {
         if (typeof(parent_selector) != 'undefined') {
             selector = $(parent_selector + ' [data-cview="' + value + '"]');
         }
-        if (!selector.parents('li').not('.dropdown-submenu').hasClass('active')) {
-            selector.parents('li').addClass('active');
+        var parent = selector.parents('li');
+        if (parent.hasClass('filter-group')) {
+            var group = parent.data('filter-group');
+            $('[data-filter-group="' + group + '"]').not(parent).removeClass('active');
+            $('input[name="' + value + '"]').val('');
+        }
+        if (!parent.not('.dropdown-submenu').hasClass('active')) {
+            parent.addClass('active');
+
         } else {
-            selector.parents('li').not('.dropdown-submenu').removeClass('active');
+            parent.not('.dropdown-submenu').removeClass('active');
             // Remove active class from the parent dropdown if nothing selected in the child dropdown
             var parents_sub = selector.parents('li.dropdown-submenu');
             if (parents_sub.length > 0) {
@@ -3188,19 +3406,36 @@ function do_filter_active(value, parent_selector) {
 function init_roles_permissions(roleid, user_changed) {
     roleid = typeof(roleid) == 'undefined' ? $('select[name="role"]').val() : roleid;
     var isedit = $('.member > input[name="isedit"]');
+
     // Check if user is edit view and user has changed the dropdown permission if not only return
     if (isedit.length > 0 && typeof(roleid) !== 'undefined' && typeof(user_changed) == 'undefined') {
         return;
     }
+
+    // Administrators does not have permissions
+    if ($('input[name="administrator"]').prop('checked') === true) {
+        return;
+    }
+
     // Last if the roleid is blank return
-    if (roleid == '') { return; }
+    if (roleid == '') {
+        return;
+    }
+
     // Get all permissions
     var permissions = $('table.roles').find('tr');
     requestGetJSON('misc/get_role_permissions_ajax/' + roleid).done(function(response) {
         var can_view_st, can_view_own_st;
+
         $.each(permissions, function() {
             var permissionid = $(this).data('id');
             var row = $(this);
+
+            // No permissions for this role
+            if (response.length == 0) {
+                row.find('input[type="checkbox"]').prop('checked', false);
+            }
+
             $.each(response, function(i, obj) {
                 if (permissionid == obj.permissionid) {
                     can_view_st = (obj.can_view == 1 ? true : false);
@@ -3221,7 +3456,6 @@ function init_roles_permissions(roleid, user_changed) {
         });
     });
 }
-
 // Generate hidden input field
 function hidden_input(name, val) {
     return '<input type="hidden" name="' + name + '" value="' + val + '">';
@@ -3324,7 +3558,7 @@ function decimalToHM(decimal) {
 // Init the media elfinder for tinymce browser
 function elFinderBrowser(field_name, url, type, win) {
     tinymce.activeEditor.windowManager.open({
-        file: admin_url + 'misc/tinymce_file_browser', // use an absolute path!
+        file: admin_url + 'misc/tinymce_file_browser',
         title: appLang.media_files,
         width: 900,
         height: 450,
@@ -3382,7 +3616,7 @@ function init_editor(selector, settings) {
         },
         plugins: [
             'advlist autoresize autosave lists link image print hr codesample',
-            'searchreplace wordcount visualblocks visualchars code fullscreen',
+            'visualblocks code fullscreen',
             'media save table contextmenu',
             'paste textcolor colorpicker'
         ],
@@ -3392,7 +3626,7 @@ function init_editor(selector, settings) {
 
     // Add the rtl to the settings if is true
     isRTL == 'true' ? _settings.directionality = 'rtl' : '';
-    isRTL == 'true' ? _settings.plugins[0]  += ' directionality' : '';
+    isRTL == 'true' ? _settings.plugins[0] += ' directionality' : '';
 
     // Possible settings passed to be overwrited or added
     if (typeof(settings) != 'undefined') {
@@ -3461,7 +3695,7 @@ function init_btn_with_tooltips() {
     }
 }
 
-// Helper hash id for estimates,invoices,proposals,expenses
+// Helper hash id for estimates,invoices,proposals,expenses, credit notes
 function do_hash_helper(hash) {
     if (typeof(history.pushState) != "undefined") {
         var url = window.location.href;
@@ -3762,19 +3996,19 @@ function init_kanban(url, callbackUpdate, connect_with, column_px, container_px,
     }, 200);
 }
 
-function kan_ban_sort(type,callback) {
+function kan_ban_sort(type, callback) {
     var sort_type = $('input[name="sort_type"]');
     sort_type.val(type);
     var sort = $('input[name="sort"]');
     var val = sort.val().toLowerCase();
     sort.val((val == 'asc' ? 'DESC' : 'ASC'));
-    init_kan_ban_sort_icon(sort.val(),type);
+    init_kan_ban_sort_icon(sort.val(), type);
     callback();
 }
 
-function init_kan_ban_sort_icon(sort, type){
+function init_kan_ban_sort_icon(sort, type) {
     $('body').find('.kanban-sort-icon').remove();
-    $('body').find('.'+type).prepend(" <i class=\'kanban-sort-icon fa fa-sort-amount-"+sort.toLowerCase()+'\'></i>');
+    $('body').find('.' + type).prepend(" <i class=\'kanban-sort-icon fa fa-sort-amount-" + sort.toLowerCase() + '\'></i>');
 }
 
 // Kanban til direction
@@ -4108,7 +4342,7 @@ function init_lead(id) {
 }
 
 // Lead form validation
-function validate_lead_form(formHandler) {
+function validate_lead_form() {
     _validate_form($('#lead_form'), {
         name: 'required',
         status: {
@@ -4138,7 +4372,7 @@ function validate_lead_form(formHandler) {
                 }
             }
         }
-    }, formHandler);
+    }, lead_profile_form_handler);
 }
 
 // Lead conver to customer form validation
@@ -4183,6 +4417,7 @@ function lead_profile_form_handler(form) {
     var data = form.serialize();
     var serializeArray = $(form).serializeArray();
     var leadid = $('#lead-modal').find('input[name="leadid"]').val();
+    $('.lead-save-btn').addClass('disabled');
     $.post(form.attr('action'), data).done(function(response) {
         response = JSON.parse(response);
         if (response.message != '') {
@@ -4198,7 +4433,7 @@ function lead_profile_form_handler(form) {
         }
         // If is from kanban reload the list tables
         if ($.fn.DataTable.isDataTable('.table-leads')) {
-            $('.table-leads').DataTable().ajax.reload(null, false);
+            table_leads.DataTable().ajax.reload(null, false);
         }
     }).fail(function(data) {
         alert_float('danger', data.responseText);
@@ -4235,7 +4470,7 @@ function _lead_init_data(data, id) {
     init_form_reminder();
     init_datepicker();
     init_color_pickers();
-    validate_lead_form(lead_profile_form_handler);
+    validate_lead_form();
 
     if (hash == '#tab_lead_profile' || hash == '#attachments' || hash == '#lead_notes') {
         window.location.hash = hash;
@@ -4283,6 +4518,12 @@ function _lead_init_data(data, id) {
             $leadModal.find('#lead-latest-activity').html(latest_lead_activity);
         } else {
             $leadModal.find('.lead-latest-activity > .lead-info-heading').addClass('hide');
+        }
+
+        // The status is not required when lead is lost or junk
+        // Remove the * required mark
+        if ($('[lead-is-junk-or-lost]').length > 0) {
+            $('.form-group-select-input-status').find('.req').remove();
         }
     }
 }
@@ -4458,7 +4699,7 @@ function leads_bulk_action(event) {
         } else {
             data.mass_delete = true;
         }
-        var rows = $('.table-leads').find('tbody tr');
+        var rows = table_leads.find('tbody tr');
         $.each(rows, function() {
             var checkbox = $($(this).find('td').eq(0)).find('input');
             if (checkbox.prop('checked') == true) {
@@ -4507,8 +4748,8 @@ function init_table_announcements(manual) {
 function init_table_tickets(manual) {
 
     // Single ticket is for other tickets from user
-    if (typeof(manual) == 'undefined'
-        && ($("body").hasClass('dashboard') || $('body').hasClass('single-ticket'))) {
+    if (typeof(manual) == 'undefined' &&
+        ($("body").hasClass('dashboard') || $('body').hasClass('single-ticket'))) {
         return false;
     }
 
@@ -4826,8 +5067,8 @@ function delete_user_unfinished_timesheet(id) {
 
 // Reload all tasks possible table where the table data needs to be refreshed after an action is performed on task.
 function reload_tasks_tables() {
-    var tableTasks = ['.table-tasks', '.table-rel-tasks', '.table-rel-tasks-leads', '.table-timesheets'];
-    $.each(tableTasks, function(i, selector) {
+    var av_tasks_tables = ['.table-tasks', '.table-rel-tasks', '.table-rel-tasks-leads', '.table-timesheets'];
+    $.each(av_tasks_tables, function(i, selector) {
         if ($.fn.DataTable.isDataTable(selector)) {
             $(selector).DataTable().ajax.reload(null, false);
         }
@@ -5092,18 +5333,18 @@ function edit_task_comment(id) {
     tinymce.triggerSave();
 }
 
-function _simple_editor_config(){
-  return {
+function _simple_editor_config() {
+    return {
         height: 150,
         auto_focus: true,
         menubar: false,
         plugins: [
             'table advlist codesample autosave autoresize lists link image textcolor media contextmenu paste',
         ],
-        toolbar: 'insert formatselect bold forecolor backcolor'+(is_mobile() ? ' | ' : ' ')+'alignleft aligncenter alignright bullist numlist | restoredraft',
+        toolbar: 'insert formatselect bold forecolor backcolor' + (is_mobile() ? ' | ' : ' ') + 'alignleft aligncenter alignright bullist numlist | restoredraft',
         insert_button_items: 'image media link codesample',
         toolbar1: ''
-  };
+    };
 }
 
 // Cancel editing commment after clicked on edit href
@@ -5354,8 +5595,13 @@ function record_payment(id) {
 // Add item to preview
 function add_item_to_preview(id) {
     requestGetJSON('invoice_items/get_item_by_id/' + id).done(function(response) {
+        clear_item_preview_values();
+
         $('.main textarea[name="description"]').val(response.description);
         $('.main textarea[name="long_description"]').val(response.long_description.replace(/(<|&lt;)br\s*\/*(>|&gt;)/g, " "));
+
+        _set_item_preview_custom_fields_array(response.custom_fields);
+
         $('.main input[name="quantity"]').val(1);
 
         var taxSelectedArray = [];
@@ -5393,6 +5639,39 @@ function add_item_to_preview(id) {
     });
 }
 
+function _set_item_preview_custom_fields_array(custom_fields) {
+
+    var cf_act_as_inputs = ['input', 'number', 'date_picker', 'date_picker_time', 'colorpicker'];
+
+    for (var i = 0; i < custom_fields.length; i++) {
+        var cf = custom_fields[i];
+        if ($.inArray(cf.type, cf_act_as_inputs) > -1) {
+            var f = $('tr.main td[data-id="' + cf.id + '"] input');
+            // trigger change eq. for colorpicker
+            f.val(cf.value).trigger('change');
+        } else if (cf.type == 'textarea') {
+            $('tr.main td[data-id="' + cf.id + '"] textarea').val(cf.value);
+        } else if (cf.type == 'select' || cf.type == 'multiselect') {
+            if (!empty(cf.value)) {
+                var selected = cf.value.split(',');
+                selected = selected.map(function(e) {
+                    return e.trim();
+                });
+                $('tr.main td[data-id="' + cf.id + '"] select').selectpicker('val', selected);
+            }
+        } else if (cf.type == 'checkbox') {
+            if (!empty(cf.value)) {
+                var selected = cf.value.split(',');
+                selected = selected.map(function(e) {
+                    return e.trim();
+                });
+                $.each(selected, function(i, e) {
+                    $('tr.main td[data-id="' + cf.id + '"] input[type="checkbox"][value="' + e + '"]').prop('checked', true);
+                });
+            }
+        }
+    }
+}
 // Add task to preview
 function add_task_to_preview_as_item(id) {
     requestGetJSON('tasks/get_billable_task_data/' + id).done(function(response) {
@@ -5414,15 +5693,20 @@ function add_task_to_preview_as_item(id) {
 
 // Clear the items added to preview
 function clear_item_preview_values(default_taxes) {
+
     // Get the last taxes applied to be available for the next item
     var last_taxes_applied = $('table.items tbody').find('tr:last-child').find('select').selectpicker('val');
     var previewArea = $('.main');
-    previewArea.find('textarea[name="description"]').val('');
-    previewArea.find('textarea[name="long_description"]').val('');
+
+    previewArea.find('textarea').val(''); // includes cf
+    previewArea.find('td.custom_field input[type="checkbox"]').prop('checked', false); // cf
+    previewArea.find('td.custom_field input:not(:checkbox):not(:hidden)').val(''); // cf // not hidden for chkbox hidden helpers
+    previewArea.find('td.custom_field select').selectpicker('val', ''); // cf
     previewArea.find('input[name="quantity"]').val(1);
     previewArea.find('select.tax').selectpicker('val', last_taxes_applied);
     previewArea.find('input[name="rate"]').val('');
     previewArea.find('input[name="unit"]').val('');
+
     $('input[name="task_id"]').val('');
     $('input[name="expense_id"]').val('');
 }
@@ -5436,8 +5720,11 @@ function add_item_to_table(data, itemid, merge_invoice, bill_expense) {
     var table_row = '';
     var unit_placeholder = '';
     var item_key = $("body").find('tbody .item').length + 1;
+
     table_row += '<tr class="sortable item" data-merge-invoice="' + merge_invoice + '" data-bill-expense="' + bill_expense + '">';
+
     table_row += '<td class="dragger">';
+
     // Check if quantity is number
     if (isNaN(data.qty)) {
         data.qty = 1;
@@ -5454,14 +5741,93 @@ function add_item_to_table(data, itemid, merge_invoice, bill_expense) {
     $("body").append('<div class="dt-loader"></div>');
     var regex = /<br[^>]*>/gi;
     get_taxes_dropdown_template(tax_name, data.taxname).done(function(tax_dropdown) {
+
         // order input
         table_row += '<input type="hidden" class="order" name="newitems[' + item_key + '][order]">';
+
         table_row += '</td>';
+
         table_row += '<td class="bold description"><textarea name="newitems[' + item_key + '][description]" class="form-control" rows="5">' + data.description + '</textarea></td>';
+
         table_row += '<td><textarea name="newitems[' + item_key + '][long_description]" class="form-control item_long_description" rows="5">' + data.long_description.replace(regex, "\n") + '</textarea></td>';
+
+        var custom_fields = $('tr.main td.custom_field');
+        var cf_has_required = false;
+
+        if (custom_fields.length > 0) {
+
+            $.each(custom_fields, function() {
+
+                var cf = $(this).clone();
+                var cf_html = '';
+                var cf_field = $(this).find('[data-fieldid]');
+                var cf_name = 'newitems[' + item_key + '][custom_fields][items][' + cf_field.attr('data-fieldid') + ']';
+
+                if (cf_field.is(':checkbox')) {
+
+                    var checked = $(this).find('input[type="checkbox"]:checked');
+                    var checkboxes = cf.find('input[type="checkbox"]');
+
+                    $.each(checkboxes, function(i, e) {
+                        var random_key = Math.random().toString(20).slice(2);
+                        $(this).attr('id', random_key)
+                            .attr('name', cf_name)
+                            .next('label').attr('for', random_key);
+                        if ($(this).attr('data-custom-field-required') == '1') {
+                            cf_has_required = true;
+                        }
+                    });
+
+                    $.each(checked, function(i, e) {
+                        cf.find('input[value="' + $(e).val() + '"]')
+                            .attr('checked', true);
+                    });
+
+                    cf_html = cf.html();
+
+                } else if (cf_field.is('input') || cf_field.is('textarea')) {
+                    if (cf_field.is('input')) {
+                        cf.find('[data-fieldid]').attr('value', cf_field.val());
+                    } else {
+                        cf.find('[data-fieldid]').html(cf_field.val());
+                    }
+                    cf.find('[data-fieldid]').attr('name', cf_name);
+                    if (cf.find('[data-fieldid]').attr('data-custom-field-required') == '1') {
+                        cf_has_required = true;
+                    }
+                    cf_html = cf.html();
+                } else if (cf_field.is('select')) {
+
+                    if ($(this).attr('data-custom-field-required') == '1') {
+                        cf_has_required = true;
+                    }
+
+                    var selected = $(this).find('select[data-fieldid]').selectpicker('val');
+                    selected = typeof(selected != 'array') ? new Array(selected) : selected;
+
+                    // Check if is multidimensional by multi-select customfield
+                    selected = selected[0].constructor === Array ? selected[0] : selected;
+
+                    var selectNow = cf.find('select');
+                    var $wrapper = $('<div/>');
+                    selectNow.attr('name', cf_name);
+
+                    var $select = selectNow.clone();
+                    $wrapper.append($select);
+                    $.each(selected, function(i, e) {
+                        $wrapper.find('select option[value="' + e + '"]').attr('selected', true);
+                    });
+
+                    cf_html = $wrapper.html();
+                }
+                table_row += '<td class="custom_field">' + cf_html + '</td>';
+            });
+        }
+
         table_row += '<td><input type="number" min="0" onblur="calculate_total();" onchange="calculate_total();" data-quantity name="newitems[' + item_key + '][qty]" value="' + data.qty + '" class="form-control">';
 
         unit_placeholder = '';
+
         if (!data.unit || typeof(data.unit) == 'undefined') {
             unit_placeholder = appLang.unit;
             data.unit = '';
@@ -5470,10 +5836,15 @@ function add_item_to_table(data, itemid, merge_invoice, bill_expense) {
         table_row += '<input type="text" placeholder="' + unit_placeholder + '" name="newitems[' + item_key + '][unit]" class="form-control input-transparent text-right" value="' + data.unit + '">';
 
         table_row += '</td>';
+
         table_row += '<td class="rate"><input type="number" data-toggle="tooltip" title="' + appLang.item_field_not_formatted + '" onblur="calculate_total();" onchange="calculate_total();" name="newitems[' + item_key + '][rate]" value="' + data.rate + '" class="form-control"></td>';
+
         table_row += '<td class="taxrate">' + tax_dropdown + '</td>';
-        table_row += '<td class="amount">' + amount + '</td>';
+
+        table_row += '<td class="amount" align="right">' + amount + '</td>';
+
         table_row += '<td><a href="#" class="btn btn-danger pull-left" onclick="delete_item(this,' + itemid + '); return false;"><i class="fa fa-trash"></i></a></td>';
+
         table_row += '</tr>';
 
         $('table.items tbody').append(table_row);
@@ -5490,6 +5861,7 @@ function add_item_to_table(data, itemid, merge_invoice, bill_expense) {
 
         var billed_task = $('input[name="task_id"]').val();
         var billed_expense = $('input[name="expense_id"]').val();
+
         if (billed_task != '' && typeof(billed_task) != 'undefined') {
             billed_tasks = billed_task.split(',');
             $.each(billed_tasks, function(i, obj) {
@@ -5505,6 +5877,8 @@ function add_item_to_table(data, itemid, merge_invoice, bill_expense) {
         }
 
         init_selectpicker();
+        init_datepicker();
+        init_color_pickers();
         clear_item_preview_values();
         reorder_items();
 
@@ -5512,8 +5886,20 @@ function add_item_to_table(data, itemid, merge_invoice, bill_expense) {
         $("body").find('.dt-loader').remove();
         $('#item_select').selectpicker('val', '');
 
+        if (cf_has_required == true && $('.invoice-form').length) {
+            validate_invoice_form();
+        } else if (cf_has_required && $('.estimate-form').length) {
+            validate_estimate_form();
+        } else if (cf_has_required && $('.proposal-form').length) {
+            validate_proposal_form();
+        } else if (cf_has_required && $('.credit-note-form').length) {
+            validate_credit_note_form();
+        }
+
         return true;
+
     });
+
     return false;
 }
 
@@ -5663,9 +6049,11 @@ function calculate_total() {
         quantity = 1,
         total_discount_calculated = 0,
         rows = $('.table.table-main-invoice-edit tbody tr.item,.table.table-main-estimate-edit tbody tr.item,.table.table-main-credit-note-edit tbody tr.item'),
+        discount_area = $('#discount_area'),
         adjustment = $('input[name="adjustment"]').val(),
-        discount_area = $('tr#discount_percent'),
         discount_percent = $('input[name="discount_percent"]').val(),
+        discount_fixed = $('input[name="discount_total"]').val(),
+        discount_total_type = $('.discount-total-type.selected'),
         discount_type = $('select[name="discount_type"]').val();
 
     $('.tax-area').remove();
@@ -5704,16 +6092,22 @@ function calculate_total() {
         }
     });
 
-    if (discount_percent != '' && discount_type == 'before_tax') {
-        // Calculate the discount total
+    // Discount by percent
+    if ((discount_percent != '' && discount_percent != 0) && discount_type == 'before_tax' && discount_total_type.hasClass('discount-type-percent')) {
         total_discount_calculated = (subtotal * discount_percent) / 100;
+    } else if ((discount_fixed != '' && discount_fixed != 0) && discount_type == 'before_tax' && discount_total_type.hasClass('discount-type-fixed')) {
+        total_discount_calculated = discount_fixed;
     }
 
     $.each(taxes, function(taxname, total_tax) {
-        if (discount_percent != '' && discount_type == 'before_tax') {
+        if ((discount_percent != '' && discount_percent != 0) && discount_type == 'before_tax' && discount_total_type.hasClass('discount-type-percent')) {
             total_tax_calculated = (total_tax * discount_percent) / 100;
             total_tax = (total_tax - total_tax_calculated);
+        } else if ((discount_fixed != '' && discount_fixed != 0) && discount_type == 'before_tax' && discount_total_type.hasClass('discount-type-fixed')) {
+            var t = (discount_fixed / subtotal) * 100;
+            total_tax = (total_tax - (total_tax * t) / 100);
         }
+
         total += total_tax;
         total_tax = accounting.formatNumber(total_tax)
         $('#tax_id_' + slugify(taxname)).html(total_tax);
@@ -5721,9 +6115,11 @@ function calculate_total() {
 
     total = (total + subtotal);
 
-    if (discount_percent != '' && discount_type == 'after_tax') {
-        // Calculate the discount total
+    // Discount by percent
+    if ((discount_percent != '' && discount_percent != 0) && discount_type == 'after_tax' && discount_total_type.hasClass('discount-type-percent')) {
         total_discount_calculated = (total * discount_percent) / 100;
+    } else if ((discount_fixed != '' && discount_fixed != 0) && discount_type == 'after_tax' && discount_total_type.hasClass('discount-type-fixed')) {
+        total_discount_calculated = discount_fixed;
     }
 
     total = total - total_discount_calculated;
@@ -5734,9 +6130,12 @@ function calculate_total() {
         total = total + adjustment;
     }
 
+    var discount_html = '-' + accounting.formatNumber(total_discount_calculated);
+    $('input[name="discount_total"]').val(accounting.toFixed(total_discount_calculated, app_decimal_places));
+
     // Append, format to html and display
-    $('.discount_percent').html('-' + accounting.formatNumber(total_discount_calculated) + hidden_input('discount_percent', discount_percent) + hidden_input('discount_total', total_discount_calculated));
-    $('.adjustment').html(accounting.formatNumber(adjustment) + hidden_input('adjustment', accounting.toFixed(adjustment, app_decimal_places)))
+    $('.discount-total').html(discount_html);
+    $('.adjustment').html(accounting.formatNumber(adjustment));
     $('.subtotal').html(accounting.formatNumber(subtotal) + hidden_input('subtotal', accounting.toFixed(subtotal, app_decimal_places)));
     $('.total').html(format_money(total) + hidden_input('total', accounting.toFixed(total, app_decimal_places)));
     $(document).trigger('sales-total-calculated');
@@ -6191,15 +6590,13 @@ function small_table_full_view() {
 function save_sales_number_settings(e) {
     var data = {};
     data.prefix = $("body").find('input[name="s_prefix"]').val();
-    if (data.prefix != '') {
-        $.post($(e).data('url'), data).done(function(response) {
-            response = JSON.parse(response);
-            if (response.success && response.message) {
-                alert_float('success', response.message);
-                $('#prefix').html(data.prefix);
-            }
-        });
-    }
+    $.post($(e).data('url'), data).done(function(response) {
+        response = JSON.parse(response);
+        if (response.success && response.message) {
+            alert_float('success', response.message);
+            $('#prefix').html(data.prefix);
+        }
+    });
 }
 
 // Prefix for invoices/estimates in case there is year.
@@ -6215,7 +6612,24 @@ function do_prefix_year(date) {
     if (typeof(date_array) != 'undefined') {
         $.each(date_array, function(i, string) {
             if (string.length == 4) {
-                $('#prefix_year').html(string);
+                var $pYear = $('#prefix_year');
+                if ($pYear.hasClass('format-n-yy')) {
+                    string = string.substr(-2);
+                } else if ($pYear.hasClass('format-mm-yyyy')) {
+                    var month_index;
+                    if (app_date_format == 'd-m-Y' ||
+                        app_date_format == 'd/m/Y' ||
+                        app_date_format == 'Y-m-d' ||
+                        app_date_format == 'd.m.Y') {
+                        month_index = 1;
+                    } else if (app_date_format == 'm-d-Y' ||
+                        app_date_format == 'm.d.Y' ||
+                        app_date_format == 'm/d/Y') {
+                        month_index = 0;
+                    }
+                    $('#prefix_month').html(date_array[month_index]);
+                }
+                $pYear.html(string);
             }
         });
     }
@@ -6372,8 +6786,6 @@ function fetch_notifications(callback) {
 }
 
 function init_ajax_search(type, selector, server_data, url) {
-    clearInterval(autocheck_notifications_timer_id);
-
     var ajaxSelector = $('body').find(selector);
     if (ajaxSelector.length) {
         var options = {

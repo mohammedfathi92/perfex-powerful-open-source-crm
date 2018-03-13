@@ -22,6 +22,7 @@ $table_data = array(
        'th_attrs'=>array('class'=>'not_visible')
        ),
     _l('project'),
+    _l('tags'),
     _l('invoice_dt_table_heading_duedate'),
     _l('invoice_dt_table_heading_status'));
 

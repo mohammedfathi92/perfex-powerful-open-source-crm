@@ -3,7 +3,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 use Omnipay\Omnipay;
 
-require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
+// require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
 
 class Paypal_braintree_gateway extends App_gateway
 {

@@ -22,14 +22,19 @@
             </a>
         <?php } ?>
     </div>
-    <?php if(($list['finished'] == 1 && $list['finished_from'] != get_staff_user_id()) || ($list['addedfrom'] != get_staff_user_id())){ ?>
-    <p class="small mtop10 checklist-item-completed-by">
-        <?php if($list['addedfrom'] != get_staff_user_id()) { ?>
-        <?php echo _l('task_created_by',get_staff_full_name($list['addedfrom'])); ?>
-        <?php } ?>
-        <?php if($list['finished'] == 1 && $list['finished_from'] != get_staff_user_id()){ ?>
-            <?php echo ' - ' . _l('task_checklist_item_completed_by',get_staff_full_name($list['finished_from'])); ?>
-        <?php } ?>
+    <?php if($list['finished'] == 1 || $list['addedfrom'] != get_staff_user_id()){ ?>
+    <p class="font-medium-xs mtop15 text-muted checklist-item-completed-by">
+        <?php
+            if($list['addedfrom'] != get_staff_user_id()) {
+                echo _l('task_created_by',get_staff_full_name($list['addedfrom']));
+            }
+            if($list['addedfrom'] != get_staff_user_id() && $list['finished'] == 1) {
+                echo ' - ';
+            }
+            if($list['finished'] == 1){
+                echo _l('task_checklist_item_completed_by',get_staff_full_name($list['finished_from']));
+            }
+        ?>
         </p>
     <?php } ?>
 </div>

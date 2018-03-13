@@ -1,0 +1,18 @@
+{
+    "require": {
+        "twilio/sdk": "^5.16",
+        "cocur/slugify": "^3.0",
+        "nuovo/spreadsheet-reader": "^0.5.11",
+        "neitanod/forceutf8": "~2.0",
+        "omnipay/paypal": "~2.0",
+        "omnipay/stripe": "~2.0",
+        "collizo4sky/omnipay-2checkout": "^1.4",
+        "omnipay/authorizenet": "~2.5",
+        "omnipay/mollie": "~3.0",
+        "omnipay/braintree": "~2.0@dev",
+        "pusher/pusher-php-server": "^3.0",
+        "tecnickcom/tcpdf": "^6.2",
+        "Studio-42/elFinder": "2.1.30",
+        "stripe/stripe-php": "^5.8"
+    }
+}

@@ -305,7 +305,14 @@ class Staff_model extends CRM_Model
      */
     public function get($id = '', $active = '', $where = array())
     {
-        $this->db->select('*,CONCAT(firstname," ",lastname) as full_name');
+        $select_str = '*,CONCAT(firstname," ",lastname) as full_name';
+
+        // Used to prevent multiple queries on logged in staff to check the total unread notifications in admin_controller.php
+        if(is_staff_logged_in() && $id != '' && $id == get_staff_user_id()) {
+            $select_str .= ',(SELECT COUNT(*) FROM tblnotifications WHERE touserid='.get_staff_user_id().' and isread=0) as total_unread_notifications, (SELECT COUNT(*) FROM tbltodoitems WHERE finished=0 AND staffid='.get_staff_user_id().') as total_unfinished_todos';
+        }
+
+        $this->db->select($select_str);
 
         if (is_int($active)) {
             $this->db->where('active', $active);

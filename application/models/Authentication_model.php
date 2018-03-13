@@ -271,9 +271,9 @@ class Authentication_model extends CRM_Model
                     $merge_fields = array_merge($merge_fields, get_staff_merge_fields($user->$_id));
                 }
                 $merge_fields = array_merge($merge_fields, get_password_merge_field($data, $staff, 'set'));
-                $send         = $this->emails_model->send_email_template('contact-set-password', $user->email, $merge_fields);
+                $sent         = $this->emails_model->send_email_template('contact-set-password', $user->email, $merge_fields);
 
-                if ($send) {
+                if ($sent) {
                     return true;
                 }
 
@@ -331,8 +331,8 @@ class Authentication_model extends CRM_Model
                     $merge_fields = array_merge($merge_fields, get_staff_merge_fields($user->$_id));
                 }
                 $merge_fields = array_merge($merge_fields, get_password_merge_field($data, $staff, 'forgot'));
-                $send         = $this->emails_model->send_email_template($template, $user->email, $merge_fields);
-                if ($send) {
+                $sent         = $this->emails_model->send_email_template($template, $user->email, $merge_fields);
+                if ($sent) {
                     return true;
                 }
 

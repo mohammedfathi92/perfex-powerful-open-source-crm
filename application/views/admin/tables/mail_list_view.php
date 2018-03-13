@@ -71,8 +71,8 @@ if (is_numeric($id)) {
 
     $where = array();
     if($id == 'leads'){
-        if ($this->_instance->input->post('custom_view')) {
-            $filter = $this->_instance->input->post('custom_view');
+        if ($this->ci->input->post('custom_view')) {
+            $filter = $this->ci->input->post('custom_view');
             if ($filter == 'lost') {
                 array_push($where, 'AND lost = 1');
             }  else if($filter == 'contacted_today'){
@@ -82,23 +82,23 @@ if (is_numeric($id)) {
             }
         }
 
-        if ($this->_instance->input->post('status')) {
-            $by_assigned = $this->_instance->input->post('status');
+        if ($this->ci->input->post('status')) {
+            $by_assigned = $this->ci->input->post('status');
             array_push($where, 'AND status =' . $by_assigned);
         }
 
-        if ($this->_instance->input->post('source')) {
-            $by_assigned = $this->_instance->input->post('source');
+        if ($this->ci->input->post('source')) {
+            $by_assigned = $this->ci->input->post('source');
             array_push($where, 'AND source =' . $by_assigned);
         }
         array_push($where,' AND junk = 0');
     } else if($id == 'clients'){
-        if($this->_instance->input->post('customer_groups')){
-            $groups = $this->_instance->input->post('customer_groups');
+        if($this->ci->input->post('customer_groups')){
+            $groups = $this->ci->input->post('customer_groups');
             array_push($where,' AND userid IN (SELECT customer_id FROM tblcustomergroups_in WHERE groupid IN ('.implode(',',$groups).'))');
         }
-        if($this->_instance->input->post('active_customers_filter')){
-                $active_customers_filter = $this->_instance->input->post('active_customers_filter');
+        if($this->ci->input->post('active_customers_filter')){
+                $active_customers_filter = $this->ci->input->post('active_customers_filter');
                 if($active_customers_filter == 'active_contacts'){
                     array_push($where,' AND tblcontacts.active=1');
                 } else {

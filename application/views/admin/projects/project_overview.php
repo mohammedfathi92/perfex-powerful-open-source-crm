@@ -145,7 +145,7 @@
 <?php if(count($tags) > 0){ ?>
 <div class="clearfix"></div>
 <div class="tags-read-only-custom project-overview-tags">
-   <hr class="hr-panel-heading project-area-separation" />
+   <hr class="hr-panel-heading project-area-separation hr-10" />
    <?php echo '<p class="font-size-14"><b><i class="fa fa-tag" aria-hidden="true"></i> ' . _l('tags') . ':</b></p>'; ?>
    <input type="text" class="tagsinput read-only" id="tags" name="tags" value="<?php echo prep_tags_input($tags); ?>" data-role="tagsinput">
 </div>
@@ -341,7 +341,7 @@
             foreach($members as $member){
               array_push($selected,$member['staff_id']);
            }
-           echo render_select('project_members[]',$staff,array('staffid',array('firstname','lastname')),'project_members',$selected,array('multiple'=>true));
+           echo render_select('project_members[]',$staff,array('staffid',array('firstname','lastname')),'project_members',$selected,array('multiple'=>true,'data-actions-box'=>true),array(),'','',false);
            ?>
         </div>
         <div class="modal-footer">

@@ -314,6 +314,16 @@ function get_permission_conditions()
             'create' => true,
             'delete' => true,
         ),
+        'leads' => array(
+            'view' => true,
+            'view_own' => false,
+            'edit' => false,
+            'create' => false,
+            'delete' => true,
+            'help' => _l('help_leads_permission_view'),
+            'help_create' => _l('help_leads_create_permission'),
+            'help_edit' => _l('help_leads_edit_permission'),
+        ),
         'tasks' => array(
             'view' => true,
             'view_own' => false,
@@ -491,7 +501,6 @@ function render_admin_js_variables()
         'app_maximum_allowed_ticket_attachments' => get_option('maximum_allowed_ticket_attachments'),
         'app_show_setup_menu_item_only_on_hover' => get_option('show_setup_menu_item_only_on_hover'),
         'app_calendar_events_limit' => get_option('calendar_events_limit'),
-        'app_auto_check_for_new_notifications' => get_option('auto_check_for_new_notifications'),
         'app_tables_pagination_limit' => get_option('tables_pagination_limit'),
         'app_newsfeed_maximum_files_upload' => get_option('newsfeed_maximum_files_upload'),
         'app_time_format' => get_option('time_format'),
@@ -551,6 +560,8 @@ function render_admin_js_variables()
         'note'=>_l('note'),
         'search_tasks'=>_l('search_tasks'),
         'confirm'=>_l('confirm'),
+        'showing_billable_tasks_from_project'=>_l('showing_billable_tasks_from_project'),
+        'invoice_task_item_project_tasks_not_included'=>_l('invoice_task_item_project_tasks_not_included'),
         'credit_amount_bigger_then_invoice_balance'=>_l('credit_amount_bigger_then_invoice_balance'),
         'credit_amount_bigger_then_credit_note_remaining_credits'=>_l('credit_amount_bigger_then_credit_note_remaining_credits'),
     );
@@ -756,18 +767,18 @@ function get_weekdays_between_dates($start_time, $end_time)
 function render_leads_status_select($statuses, $selected = '', $lang_key = '', $name = 'status', $select_attrs = array())
 {
     if (is_admin() || get_option('staff_members_create_inline_lead_status') == '1') {
-        return render_select_with_input_group($name, $statuses, array('id', 'name'), $lang_key, $selected, '<a href="#" onclick="new_lead_status_inline();return false;" class="inline-field-new"><i class="fa fa-plus"></i></a>',$select_attrs);
+        return render_select_with_input_group($name, $statuses, array('id', 'name'), $lang_key, $selected, '<a href="#" onclick="new_lead_status_inline();return false;" class="inline-field-new"><i class="fa fa-plus"></i></a>', $select_attrs);
     } else {
-        return render_select($name, $statuses, array('id', 'name'), $lang_key, $selected,$select_attrs);
+        return render_select($name, $statuses, array('id', 'name'), $lang_key, $selected, $select_attrs);
     }
 }
 
 function render_leads_source_select($sources, $selected = '', $lang_key = '', $name = 'source', $select_attrs = array())
 {
     if (is_admin() || get_option('staff_members_create_inline_lead_source') == '1') {
-        echo render_select_with_input_group($name, $sources, array('id', 'name'), $lang_key, $selected, '<a href="#" onclick="new_lead_source_inline();return false;" class="inline-field-new"><i class="fa fa-plus"></i></a>',$select_attrs);
+        echo render_select_with_input_group($name, $sources, array('id', 'name'), $lang_key, $selected, '<a href="#" onclick="new_lead_source_inline();return false;" class="inline-field-new"><i class="fa fa-plus"></i></a>', $select_attrs);
     } else {
-        echo render_select($name, $sources, array('id', 'name'), $lang_key, $selected,$select_attrs);
+        echo render_select($name, $sources, array('id', 'name'), $lang_key, $selected, $select_attrs);
     }
 }
 

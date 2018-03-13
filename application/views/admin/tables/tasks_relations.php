@@ -2,12 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 $hasPermissionEdit = has_permission('tasks', '', 'edit');
-$bulkActions = $this->_instance->input->get('bulk_actions');
+$bulkActions = $this->ci->input->get('bulk_actions');
 
 $aColumns = array(
     'name',
     'startdate',
     'duedate',
+    '(SELECT GROUP_CONCAT(name SEPARATOR ",") FROM tbltags_in JOIN tbltags ON tbltags_in.tag_id = tbltags.id WHERE rel_id = tblstafftasks.id and rel_type="task" ORDER by tag_order ASC) as tags',
      get_sql_select_task_asignees_full_names().' as assignees',
     'priority',
     'status',
@@ -23,11 +24,11 @@ $sTable       = 'tblstafftasks';
 $where = array();
 include_once(APPPATH.'views/admin/tables/includes/tasks_filter.php');
 
-if (!$this->_instance->input->post('tasks_related_to')) {
+if (!$this->ci->input->post('tasks_related_to')) {
     array_push($where, 'AND rel_id="' . $rel_id . '" AND rel_type="' . $rel_type . '"');
 } else {
     // Used in the customer profile filters
-    $tasks_related_to = explode(',', $this->_instance->input->post('tasks_related_to'));
+    $tasks_related_to = explode(',', $this->ci->input->post('tasks_related_to'));
     $rel_to_query = 'AND (';
 
     $lastElement = end($tasks_related_to);
@@ -72,17 +73,16 @@ foreach ($custom_fields as $key => $field) {
     array_push($join, 'LEFT JOIN tblcustomfieldsvalues as ctable_' . $key . ' ON tblstafftasks.id = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
 }
 
+$aColumns = do_action('tasks_related_table_sql_columns', $aColumns);
+
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
-
-$aColumns = do_action('tasks_related_table_sql_columns', $aColumns);
 
 $result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'tblstafftasks.id',
     'billed',
-    '(SELECT GROUP_CONCAT(name SEPARATOR ",") FROM tbltags_in JOIN tbltags ON tbltags_in.tag_id = tbltags.id WHERE rel_id = tblstafftasks.id and rel_type="task" ORDER by tag_order ASC) as tags',
     '(SELECT staffid FROM tblstafftaskassignees WHERE taskid=tblstafftasks.id AND staffid='.get_staff_user_id().') as is_assigned',
      get_sql_select_task_assignees_ids() .' as assignees_ids',
      '(SELECT MAX(id) FROM tbltaskstimers WHERE task_id=tblstafftasks.id and staff_id='.get_staff_user_id().' and end_time IS NULL) as not_finished_timer_by_current_staff',
@@ -95,19 +95,19 @@ foreach ($rResult as $aRow) {
 
     $row = array();
 
-    if ($this->_instance->input->get('bulk_actions')) {
+    if ($this->ci->input->get('bulk_actions')) {
         $row[] = '<div class="checkbox"><input type="checkbox" value="'.$aRow['id'].'"><label></label></div>';
     }
 
     $outputName = '<a href="'.admin_url('tasks/view/'.$aRow['id']).'" class="display-block main-tasks-table-href-name" onclick="init_task_modal(' . $aRow['id'] . '); return false;">' . $aRow['name'] . '</a>';
-
-    $outputName .= '<span class="hide">'.PHP_EOL._l('tags').': </span> <div class="tags-in-table-row">' . render_tags($aRow['tags']) .'</div>';
 
     $row[] = $outputName;
 
     $row[] = _d($aRow['startdate']);
 
     $row[] = _d($aRow['duedate']);
+
+    $row[] = render_tags($aRow['tags']);
 
     $row[] = format_members_by_ids_and_names($aRow['assignees_ids'],$aRow['assignees']);
 

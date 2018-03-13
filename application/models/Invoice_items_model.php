@@ -87,6 +87,11 @@ class Invoice_items_model extends CRM_Model
             $data['group_id'] = 0;
         }
 
+        if (isset($data['custom_fields'])) {
+            $custom_fields = $data['custom_fields'];
+            unset($data['custom_fields']);
+        }
+
         $columns = $this->db->list_fields('tblitems');
         $this->load->dbforge();
 
@@ -94,7 +99,7 @@ class Invoice_items_model extends CRM_Model
             if(!in_array($column,$columns) && strpos($column,'rate_currency_') !== FALSE){
                 $field = array(
                         $column => array(
-                            'type' =>'decimal(11,'.get_decimal_places().')',
+                            'type' =>'decimal(15,'.get_decimal_places().')',
                             'null'=>true,
                         )
                 );
@@ -105,6 +110,9 @@ class Invoice_items_model extends CRM_Model
         $this->db->insert('tblitems', $data);
         $insert_id = $this->db->insert_id();
         if ($insert_id) {
+            if (isset($custom_fields)) {
+                handle_custom_fields_post($insert_id, $custom_fields, true);
+            }
             logActivity('New Invoice Item Added [ID:' . $insert_id . ', ' . $data['description'] . ']');
 
             return $insert_id;
@@ -135,6 +143,11 @@ class Invoice_items_model extends CRM_Model
              $data['tax2'] = NULL;
         }
 
+        if (isset($data['custom_fields'])) {
+            $custom_fields = $data['custom_fields'];
+            unset($data['custom_fields']);
+        }
+
         $columns = $this->db->list_fields('tblitems');
         $this->load->dbforge();
 
@@ -142,7 +155,7 @@ class Invoice_items_model extends CRM_Model
             if(!in_array($column,$columns) && strpos($column,'rate_currency_') !== FALSE){
                 $field = array(
                         $column => array(
-                            'type' =>'decimal(11,'.get_decimal_places().')',
+                            'type' =>'decimal(15,'.get_decimal_places().')',
                             'null'=>true,
                         )
                 );
@@ -150,14 +163,20 @@ class Invoice_items_model extends CRM_Model
             }
         }
 
+        $affectedRows = 0;
         $this->db->where('id', $itemid);
         $this->db->update('tblitems', $data);
         if ($this->db->affected_rows() > 0) {
             logActivity('Invoice Item Updated [ID: ' . $itemid . ', ' . $data['description'] . ']');
-            return true;
+            $affectedRows++;
         }
 
-        return false;
+        if(isset($custom_fields)) {
+            if(handle_custom_fields_post($itemid, $custom_fields, true)) {
+                $affectedRows++;
+            }
+        }
+        return $affectedRows > 0 ? true : false;
     }
 
     public function search($q){
@@ -186,7 +205,13 @@ class Invoice_items_model extends CRM_Model
         $this->db->where('id', $id);
         $this->db->delete('tblitems');
         if ($this->db->affected_rows() > 0) {
+
+            $this->db->where('relid',$id);
+            $this->db->where('fieldto','items_pr');
+            $this->db->delete('tblcustomfieldsvalues');
+
             logActivity('Invoice Item Deleted [ID: ' . $id . ']');
+
             return true;
         }
 

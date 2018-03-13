@@ -12,6 +12,32 @@ $(function() {
         }
     });
 
+    $('#ticket_no_contact').on('click',function(e){
+        e.preventDefault();
+        $('#name, #email').prop('disabled',false);
+        $('#name').val('').rules('add',{required:true});
+        $('#email').val('').rules('add',{required:true});
+
+        $(this).addClass('hide');
+        $('#contactid').rules('remove','required');
+        $('#contactid').selectpicker('val','');
+        $('input[name="userid"]').val('');
+
+        $('#ticket_to_contact').removeClass('hide');
+        $('#ticket_contact_w').addClass('hide');
+    });
+
+    $('#ticket_to_contact').on('click',function(e){
+        e.preventDefault();
+        $('#name, #email').prop('disabled',true);
+        $('#ticket_no_contact').removeClass('hide');
+        $('#contactid').rules('add',{required:true});
+        $('#name').rules('remove','required');
+        $('#email').rules('remove','required');
+        $('#ticket_no_contact, #ticket_contact_w').removeClass('hide');
+        $(this).addClass('hide');
+    });
+
     $('.block-sender').on('click', function() {
         var sender = $(this).data('sender');
         if (sender == '') {
@@ -42,10 +68,71 @@ $(function() {
     $('.save_changes_settings_single_ticket').on('click', function(e) {
         e.preventDefault();
         var data = {};
+
+        var $settingsArea = $('#settings');
+        var errors = false;
+
+        if ($settingsArea.find('input[name="subject"]').val() == '') {
+            errors = true;
+            $settingsArea.find('input[name="subject"]').parents('.form-group').addClass('has-error');
+        } else {
+            $settingsArea.find('input[name="subject"]').parents('.form-group').removeClass('has-error');
+        }
+
+        var selectRequired = ['department', 'priority'];
+
+        if($('#contactid').data('no-contact') != true) {
+            selectRequired.push('contactid');
+        }
+
+        for (var i = 0; i < selectRequired.length; i++) {
+            var $select = $settingsArea.find('select[name="' + selectRequired[i] + '"]');
+            if ($select.selectpicker('val') == '') {
+                errors = true;
+                $select.parents('.form-group').addClass('has-error');
+            } else {
+                $select.parents('.form-group').removeClass('has-error');
+            }
+        }
+
+        var cf_required = $settingsArea.find('[data-custom-field-required="1"]');
+
+        $.each(cf_required, function() {
+            var cf_field = $(this);
+            var parent = cf_field.parents('.form-group');
+            if (cf_field.is(':checkbox')) {
+                var checked = parent.find('input[type="checkbox"]:checked');
+                if(checked.length == 0) {
+                    errors = true;
+                    parent.addClass('has-error');
+                } else {
+                    parent.removeClass('has-error');
+                }
+            } else if (cf_field.is('input') || cf_field.is('textarea')) {
+                if(cf_field.val() === '') {
+                    errors = true;
+                    parent.addClass('has-error');
+                } else {
+                    parent.removeClass('has-error');
+                }
+            } else if (cf_field.is('select')) {
+                if(cf_field.selectpicker('val') == '') {
+                    errors = true;
+                    parent.addClass('has-error');
+                } else {
+                    parent.removeClass('has-error');
+                }
+            }
+        });
+
+        if (errors == true) {
+            return;
+        }
+
         data = $('#settings *').serialize();
         data += '&ticketid=' + $('input[name="ticketid"]').val();
         if (typeof(csrfData) !== 'undefined') {
-            data += '&'+csrfData['token_name'] +'='+ csrfData['hash'];
+            data += '&' + csrfData['token_name'] + '=' + csrfData['hash'];
         }
         $.post(admin_url + 'tickets/update_single_ticket_settings', data).done(function(response) {
             response = JSON.parse(response);
@@ -103,7 +190,7 @@ $(function() {
             }).done(function(response) {
                 response = JSON.parse(response);
                 if (response.contact_data) {
-                    $('input[name="to"]').val(response.contact_data.firstname + ' ' + response.contact_data.lastname);
+                    $('input[name="name"]').val(response.contact_data.firstname + ' ' + response.contact_data.lastname);
                     $('input[name="email"]').val(response.contact_data.email);
                     $('input[name="userid"]').val(response.contact_data.userid);
                 }
@@ -118,7 +205,7 @@ $(function() {
                 }
             });
         } else {
-            $('input[name="to"]').val('');
+            $('input[name="name"]').val('');
             $('input[name="email"]').val('');
             $('input[name="contactid"]').val('');
             if (!projectAutoSelected) {

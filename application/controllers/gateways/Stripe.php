@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Stripe extends CI_Controller
+class Stripe extends CRM_Controller
 {
     public function __construct()
     {
@@ -19,7 +19,7 @@ class Stripe extends CI_Controller
             load_client_language($invoice->clientid);
 
             $data['amount']      = $total;
-            $data['description'] = $this->stripe_gateway->getSetting('description_dashboard') . ' - ' . format_invoice_number($invoice->id);
+            $data['description'] = str_replace('{invoice_number}', format_invoice_number($invoice->id) , $this->stripe_gateway->getSetting('description_dashboard'));
 
             $data['currency']    = $invoice->currency_name;
             $data['clientid']    = $invoice->clientid;
@@ -60,6 +60,9 @@ class Stripe extends CI_Controller
         $invoice      = $this->invoices_model->get($this->input->get('invoiceid'));
         load_client_language($invoice->clientid);
         $data['invoice']      = $invoice;
+        if(is_client_logged_in()){
+            $data['contact'] = $this->clients_model->get_contact(get_contact_user_id());
+        }
         $data['total']        = $this->input->get('total');
         echo $this->get_view($data);
     }
@@ -96,6 +99,8 @@ class Stripe extends CI_Controller
                                 data-name="' . get_option('companyname') . '"
                                 data-description=" '. _l('payment_for_invoice') . ' ' . format_invoice_number($data['invoice']->id) . '";
                                 data-locale="auto"
+                                '.(is_client_logged_in() ? 'data-email="'.$data['contact']->email.'"' : '').'
+                                '.($this->stripe_gateway->getSetting('bitcoin_enabled') == 1 ? 'data-bitcoin="true"': '').'
                                 data-currency="'.$data['invoice']->currency_name.'"
                                 >
                             </script>

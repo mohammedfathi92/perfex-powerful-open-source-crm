@@ -15,8 +15,9 @@ class Departments extends Admin_controller
     public function index()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('departments');
+            $this->app->get_table_data('departments');
         }
+        $data['email_exist_as_staff'] = $this->email_exist_as_staff();
         $data['title'] = _l('departments');
         $this->load->view('admin/departments/manage', $data);
     }
@@ -44,6 +45,7 @@ class Departments extends Admin_controller
                 echo json_encode(array(
                     'success' => $success,
                     'message' => $message,
+                    'email_exist_as_staff'=>$this->email_exist_as_staff(),
                 ));
             } else {
                 $id   = $data['id'];
@@ -55,6 +57,7 @@ class Departments extends Admin_controller
                 echo json_encode(array(
                     'success' => $success,
                     'message' => $message,
+                    'email_exist_as_staff'=>$this->email_exist_as_staff(),
                 ));
             }
             die;
@@ -137,5 +140,9 @@ class Departments extends Admin_controller
                 'message' => $imap->getError(),
             ));
         }
+    }
+
+    private function email_exist_as_staff() {
+        return total_rows('tbldepartments','email IN (SELECT email FROM tblstaff)') > 0;
     }
 }

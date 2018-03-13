@@ -1,25 +1,19 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-/**
- * Elfinder function to check accessing the files
- * This function is used for the MEDIA feature
- * @param  string $attr
- * @param  string $path
- * @param  string $data
- * @param  string $volume
- * @return mixed
- */
-function access_control_media($attr, $path, $data, $volume)
+
+function access_control_media($attr, $path, $data, $volume, $isDir, $relpath)
 {
     $basename = basename($path);
     if ($basename == 'index.html') {
         return true;
     }
 
-    return strpos($basename, '.') === 0 // if file/folder begins with '.' (dot)
-        ? !($attr == 'read' || $attr == 'write') // set read+write to false, other (locked+hidden) set to true
-        : null; // else elFinder decide it itself
+    return $basename[0] === '.'                  // if file/folder begins with '.' (dot)
+                     && strlen($relpath) !== 1           // but with out volume root
+                ? !($attr == 'read' || $attr == 'write') // set read+write to false, other (locked+hidden) set to true
+                :  null;                                 // else elFinder decide it itself
 }
+
 /**
  * Copy directory and all contents
  * @since  Version 1.0.2

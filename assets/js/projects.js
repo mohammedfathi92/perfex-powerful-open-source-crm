@@ -227,8 +227,32 @@
           timesheet_rules[name] = 'required';
       });
 
-      timesheet_rules['start_time'] = 'required';
-      timesheet_rules['end_time'] = 'required';
+      var validation_timesheet_duration = {
+          required: {
+              depends: function(element) {
+                  if ($('.timesheet-date-toggler-text').is(':visible')) {
+                      return false;
+                  }
+                  var label = $('label[for="timesheet_duration"]');
+                  if (label.length > 0 && label.find('.req').length == 0) {
+                      label.prepend('<small class="req text-danger">* </small>');
+                  }
+                  return true;
+              }
+          }
+      }
+      timesheet_rules['start_time'] = validation_timesheet_duration;
+      timesheet_rules['end_time'] = validation_timesheet_duration;
+      timesheet_rules['timesheet_duration'] = {
+          required: {
+              depends: function(element) {
+                  if (!$('.timesheet-date-toggler-text').is(':visible')) {
+                      return false;
+                  }
+                  return true;
+              }
+          }
+      }
       _validate_form($('#timesheet_form'), timesheet_rules, manage_timesheets);
 
       $('#discussion').on('hidden.bs.modal', function(event) {
@@ -258,6 +282,7 @@
           $t.find('select[name="timesheet_staff_id"]').selectpicker('refresh');
           $t.find('select[name="timesheet_task_id"]').selectpicker('val', '');
           $t.find('textarea[name="note"]').val('');
+          $t.find('#timesheet_duration').val('');
           $t.find('#tags').tagit('removeAll');
           $('input[name="timer_id"]').val('');
       });

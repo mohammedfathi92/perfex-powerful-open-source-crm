@@ -222,6 +222,7 @@ class Estimates_model extends CRM_Model
         }
         $new_invoice_data['allowed_payment_modes'] = $temp_modes;
         $new_invoice_data['newitems']              = array();
+        $custom_fields_items = get_custom_fields('items');
         $key                                       = 1;
         foreach ($_estimate->items as $item) {
             $new_invoice_data['newitems'][$key]['description']      = $item['description'];
@@ -236,6 +237,13 @@ class Estimates_model extends CRM_Model
             }
             $new_invoice_data['newitems'][$key]['rate']  = $item['rate'];
             $new_invoice_data['newitems'][$key]['order'] = $item['item_order'];
+            foreach ($custom_fields_items as $cf) {
+                $new_invoice_data['newitems'][$key]['custom_fields']['items'][$cf['id']] = get_custom_field_value($item['id'], $cf['id'], 'items', false);
+
+                if (!defined('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST')) {
+                    define('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST', true);
+                }
+            }
             $key++;
         }
         $this->load->model('invoices_model');
@@ -328,6 +336,7 @@ class Estimates_model extends CRM_Model
         $new_estimate_data['clientnote']                = $_estimate->clientnote;
         $new_estimate_data['adminnote']                 = '';
         $new_estimate_data['newitems']                  = array();
+        $custom_fields_items = get_custom_fields('items');
         $key                                            = 1;
         foreach ($_estimate->items as $item) {
             $new_estimate_data['newitems'][$key]['description']      = $item['description'];
@@ -342,6 +351,15 @@ class Estimates_model extends CRM_Model
             }
             $new_estimate_data['newitems'][$key]['rate']  = $item['rate'];
             $new_estimate_data['newitems'][$key]['order'] = $item['item_order'];
+            foreach($custom_fields_items as $cf) {
+
+                $new_estimate_data['newitems'][$key]['custom_fields']['items'][$cf['id']] = get_custom_field_value($item['id'],$cf['id'],'items',false);
+
+                if(!defined('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST')) {
+                    define('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST',true);
+                }
+
+            }
             $key++;
         }
         $id = $this->add($new_estimate_data);
@@ -445,7 +463,6 @@ class Estimates_model extends CRM_Model
      */
     public function add($data)
     {
-
         $data['datecreated'] = date('Y-m-d H:i:s');
 
         $data['addedfrom']   = get_staff_user_id();
@@ -684,6 +701,12 @@ class Estimates_model extends CRM_Model
                         $item['long_description'],
                     )));
                 $affectedRows++;
+            }
+
+            if (isset($item['custom_fields'])) {
+                if (handle_custom_fields_post($item['itemid'], $item['custom_fields'])) {
+                    $affectedRows++;
+                }
             }
 
             if (!isset($item['taxname']) || (isset($item['taxname']) && count($item['taxname']) == 0)) {
@@ -964,6 +987,11 @@ class Estimates_model extends CRM_Model
                     'date_converted' => null,
                 ));
             }
+
+            $this->db->where('relid IN (SELECT id from tblitems_in WHERE rel_type="estimate" AND rel_id="'.$id.'")');
+            $this->db->where('fieldto', 'items');
+            $this->db->delete('tblcustomfieldsvalues');
+
             $this->db->where('rel_id', $id);
             $this->db->where('rel_type', 'estimate');
             $this->db->delete('tblnotes');
@@ -1052,6 +1080,15 @@ class Estimates_model extends CRM_Model
         $pdf             = estimate_pdf($estimate);
         $attach          = $pdf->Output($estimate_number . '.pdf', 'S');
         $emails_sent     = array();
+        $sms_sent = false;
+        $sms_reminder_log = array();
+
+         // For all cases update this to prevent sending multiple reminders eq on fail
+        $this->db->where('id', $id);
+        $this->db->update('tblestimates', array(
+            'is_expiry_notified' => 1,
+        ));
+
         $contacts        = $this->clients_model->get_contacts($estimate->clientid, array('active'=>1, 'estimate_emails'=>1));
         $this->load->model('emails_model');
 
@@ -1067,19 +1104,31 @@ class Estimates_model extends CRM_Model
             $merge_fields = array();
             $merge_fields = array_merge($merge_fields, get_client_contact_merge_fields($estimate->clientid, $contact['id']));
             $merge_fields = array_merge($merge_fields, get_estimate_merge_fields($estimate->id));
+
             if ($this->emails_model->send_email_template('estimate-expiry-reminder', $contact['email'], $merge_fields)) {
                 array_push($emails_sent, $contact['email']);
             }
+
+            if(can_send_sms_based_on_creation_date($estimate->datecreated)
+                && $this->sms->trigger(SMS_TRIGGER_ESTIMATE_EXP_REMINDER, $contact['phonenumber'], $merge_fields)) {
+                $sms_sent = true;
+                array_push($sms_reminder_log,$contact['firstname'] . ' ('.$contact['phonenumber'].')');
+            }
         }
 
-        if (count($emails_sent) > 0) {
-            $this->db->where('id', $id);
-            $this->db->update('tblestimates', array(
-                'is_expiry_notified' => 1,
-            ));
-            $this->log_estimate_activity($id, 'not_expiry_reminder_sent', false, serialize(array(
-                '<custom_data>' . implode(', ', $emails_sent) . '</custom_data>',
-            )));
+        if (count($emails_sent) > 0 || $sms_sent) {
+
+            if(count($emails_sent) > 0){
+                $this->log_estimate_activity($id, 'not_expiry_reminder_sent', false, serialize(array(
+                    '<custom_data>' . implode(', ', $emails_sent) . '</custom_data>',
+                )));
+            }
+
+            if($sms_sent) {
+                $this->log_estimate_activity($id, 'sms_reminder_sent_to', false, serialize(array(
+                   implode(', ', $sms_reminder_log)
+                )));
+            }
 
             return true;
         }
@@ -1113,7 +1162,7 @@ class Estimates_model extends CRM_Model
 
 
         $emails_sent         = array();
-        $send                = false;
+        $sent                = false;
         $sent_to             = $this->input->post('sent_to');
         if ($manually === true) {
             $sent_to  = array();
@@ -1177,7 +1226,7 @@ class Estimates_model extends CRM_Model
                         $cc = '';
                     }
                     if ($this->emails_model->send_email_template($template, $contact->email, $merge_fields, '', $cc)) {
-                        $send = true;
+                        $sent = true;
                         array_push($emails_sent, $contact->email);
                     }
                 }
@@ -1186,7 +1235,7 @@ class Estimates_model extends CRM_Model
         } else {
             return false;
         }
-        if ($send) {
+        if ($sent) {
             $this->set_estimate_sent($id, $emails_sent);
             do_action('estimate_sent', $id);
 

@@ -11,7 +11,7 @@
                         <?php $attrs = (isset($goal) ? array() : array('autofocus'=>true)); ?>
                         <?php $value = (isset($goal) ? $goal->subject : ''); ?>
                         <?php echo render_input('subject','goal_subject',$value,'text',$attrs); ?>
-                        <div class="form-group">
+                        <div class="form-group select-placeholder">
                             <label for="goal_type" class="control-label"><?php echo _l('goal_type'); ?></label>
                             <select name="goal_type" class="selectpicker" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                 <option value=""></option>

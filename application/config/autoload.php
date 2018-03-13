@@ -58,7 +58,7 @@ $autoload['packages'] = array();
 |
 |   $autoload['libraries'] = array('user_agent' => 'ua');
 */
-$autoload['libraries'] = array( 'database', 'user_agent', 'image_lib', 'encryption', 'object_cache', 'email', 'encoding_lib', 'perfex_base', 'gateways/app_gateway' );
+$autoload['libraries'] = array( 'database', 'user_agent', 'image_lib', 'encryption', 'object_cache', 'email', 'app', 'gateways/app_gateway', 'sms' );
 
 $CI = &get_instance();
 
@@ -129,6 +129,7 @@ $autoload['helper'] = array(
         'theme_style',
         'pre_query_data_formatters',
         'widgets',
+        'sms',
         'deprecated',
     );
 

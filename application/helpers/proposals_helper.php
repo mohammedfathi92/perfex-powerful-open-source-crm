@@ -20,6 +20,22 @@ function check_proposal_restrictions($id, $hash)
     }
 }
 
+/**
+ * Check if proposal email template for expiry reminders is enabled
+ * @return boolean
+ */
+function is_proposals_email_expiry_reminder_enabled(){
+    return total_rows('tblemailtemplates',array('slug'=>'proposal-expiry-reminder','active'=>1)) > 0;
+}
+
+/**
+ * Check if there are sources for sending proposal expiry reminders
+ * Will be either email or SMS
+ * @return boolean
+ */
+function is_proposals_expiry_reminders_enabled(){
+    return is_proposals_email_expiry_reminder_enabled() || is_sms_trigger_active(SMS_TRIGGER_PROPOSAL_EXP_REMINDER);
+}
 
 /**
  * Return proposal status color class based on twitter bootstrap

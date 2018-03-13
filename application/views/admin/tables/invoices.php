@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-$project_id = $this->_instance->input->post('project_id');
+$project_id = $this->ci->input->post('project_id');
 
 $aColumns = array(
     'number',
@@ -11,10 +11,10 @@ $aColumns = array(
     'date',
     get_sql_select_client_company(),
     'tblprojects.name as project_name',
+    '(SELECT GROUP_CONCAT(name SEPARATOR ",") FROM tbltags_in JOIN tbltags ON tbltags_in.tag_id = tbltags.id WHERE rel_id = tblinvoices.id and rel_type="invoice" ORDER by tag_order ASC) as tags',
     'duedate',
     'tblinvoices.status',
     );
-
 
 $sIndexColumn = "id";
 $sTable       = 'tblinvoices';
@@ -38,20 +38,20 @@ foreach ($custom_fields as $key => $field) {
 $where = array();
 $filter = array();
 
-if ($this->_instance->input->post('not_sent')) {
+if ($this->ci->input->post('not_sent')) {
     array_push($filter, 'AND sent = 0 AND tblinvoices.status NOT IN(2,5)');
 }
-if ($this->_instance->input->post('not_have_payment')) {
+if ($this->ci->input->post('not_have_payment')) {
     array_push($filter, 'AND tblinvoices.id NOT IN(SELECT invoiceid FROM tblinvoicepaymentrecords) AND tblinvoices.status != 5');
 }
-if ($this->_instance->input->post('recurring')) {
+if ($this->ci->input->post('recurring')) {
     array_push($filter, 'AND recurring > 0');
 }
 
-$statuses = $this->_instance->invoices_model->get_statuses();
+$statuses = $this->ci->invoices_model->get_statuses();
 $statusIds = array();
 foreach ($statuses as $status) {
-    if ($this->_instance->input->post('invoices_'.$status)) {
+    if ($this->ci->input->post('invoices_'.$status)) {
         array_push($statusIds, $status);
     }
 }
@@ -59,10 +59,10 @@ if (count($statusIds) > 0) {
     array_push($filter, 'AND tblinvoices.status IN (' . implode(', ', $statusIds) . ')');
 }
 
-$agents = $this->_instance->invoices_model->get_sale_agents();
+$agents = $this->ci->invoices_model->get_sale_agents();
 $agentsIds = array();
 foreach ($agents as $agent) {
-    if ($this->_instance->input->post('sale_agent_'.$agent['sale_agent'])) {
+    if ($this->ci->input->post('sale_agent_'.$agent['sale_agent'])) {
         array_push($agentsIds, $agent['sale_agent']);
     }
 }
@@ -72,7 +72,7 @@ if (count($agentsIds) > 0) {
 
 $modesIds = array();
 foreach ($data['payment_modes'] as $mode) {
-    if ($this->_instance->input->post('invoice_payments_by_'.$mode['id'])) {
+    if ($this->ci->input->post('invoice_payments_by_'.$mode['id'])) {
         array_push($modesIds, $mode['id']);
     }
 }
@@ -80,10 +80,10 @@ if (count($modesIds) > 0) {
     array_push($where, 'AND tblinvoices.id IN (SELECT invoiceid FROM tblinvoicepaymentrecords WHERE paymentmode IN ("'. implode('", "', $modesIds) .'"))');
 }
 
-$years = $this->_instance->invoices_model->get_invoices_years();
+$years = $this->ci->invoices_model->get_invoices_years();
 $yearArray = array();
 foreach ($years as $year) {
-    if ($this->_instance->input->post('year_'.$year['year'])) {
+    if ($this->ci->input->post('year_'.$year['year'])) {
         array_push($yearArray, $year['year']);
     }
 }
@@ -108,6 +108,11 @@ if (!has_permission('invoices', '', 'view')) {
 }
 
 $aColumns = do_action('invoices_table_sql_columns', $aColumns);
+
+// Fix for big queries. Some hosting have max_join_limit
+if (count($custom_fields) > 4) {
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
+}
 
 $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'tblinvoices.id',
@@ -143,6 +148,8 @@ foreach ($rResult as $aRow) {
     $row[] = '<a href="' . admin_url('clients/client/' . $aRow['clientid']) . '">' . $aRow['company'] . '</a>';
 
     $row[] = '<a href="'.admin_url('projects/view/'.$aRow['project_id']).'">'.$aRow['project_name'].'</a>';;
+
+    $row[] = render_tags($aRow['tags']);
 
     $row[] = _d($aRow['duedate']);
 

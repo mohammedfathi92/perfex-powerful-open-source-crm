@@ -25,8 +25,8 @@
                 <label for="not_visible_to_client"><?php echo _l('contract_not_visible_to_client'); ?></label>
               </div>
             </div>
-            <div class="form-group">
-              <label for="clientid"><span class="text-danger">* </span><?php echo _l('contract_client_string'); ?></label>
+            <div class="form-group select-placeholder">
+              <label for="clientid" class="control-label"><span class="text-danger">* </span><?php echo _l('contract_client_string'); ?></label>
               <select id="clientid" name="client" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                 <?php $selected = (isset($contract) ? $contract->client : '');
                 if($selected == ''){
@@ -341,7 +341,7 @@
      fontsize_formats: '8pt 10pt 12pt 14pt 18pt 24pt 36pt',
      plugins: [
      'advlist pagebreak autolink autoresize lists link image charmap hr anchor',
-     'searchreplace wordcount visualblocks visualchars code fullscreen',
+     'searchreplace wordcount visualblocks visualchars code',
      'media nonbreaking save table contextmenu directionality',
      'paste textcolor colorpicker'
      ],

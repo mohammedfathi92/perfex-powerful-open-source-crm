@@ -28,7 +28,7 @@
             <tbody>
                 <?php foreach($invoices as $invoice){ ?>
                 <tr>
-                    <td data-order="<?php echo $invoice['number']; ?>"><a href="<?php echo site_url('viewinvoice/' . $invoice['id'] . '/' . $invoice['hash']); ?>"><?php echo format_invoice_number($invoice['id']); ?></a></td>
+                    <td data-order="<?php echo $invoice['number']; ?>"><a href="<?php echo site_url('viewinvoice/' . $invoice['id'] . '/' . $invoice['hash']); ?>" class="invoice-number"><?php echo format_invoice_number($invoice['id']); ?></a></td>
                     <td data-order="<?php echo $invoice['date']; ?>"><?php echo _d($invoice['date']); ?></td>
                     <td data-order="<?php echo $invoice['duedate']; ?>"><?php echo _d($invoice['duedate']); ?></td>
                     <td data-order="<?php echo $invoice['total']; ?>"><?php echo format_money($invoice['total'], $invoice['symbol']);; ?></td>

@@ -8,7 +8,7 @@
                         <h4 class="no-margin"><?php echo $title; ?></h4>
                         <hr class="hr-panel-heading" />
                         <?php echo form_open($this->uri->uri_string()); ?>
-                        <div class="form-group">
+                        <div class="form-group select-placeholder">
                             <label for="export_type"><?php echo _l('bulk_pdf_export_select_type'); ?></label>
                             <select name="export_type" id="export_type" class="selectpicker" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                 <option value=""></option>

@@ -33,13 +33,17 @@
 
 <div class="tab-content">
   <div role="tabpanel" class="tab-pane active" id="set_invoice">
+    <?php if(!is_invoices_overdue_reminders_enabled()){ ?>
+    <div class="alert alert-warning">
+      The system was not able to find sources to send overdue notices, if you want overdue notices to be sent, make sure that in <a href="<?php echo admin_url('emails'); ?>">email templates</a> the overdue notice email for invoices is enabled or at least you have configured <a href="<?php echo admin_url('settings?group=sms'); ?>">SMS</a> overdue notice.
+    </div>
+    <?php } ?>
     <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('inv_hour_of_day_perform_auto_operations_help'); ?>"></i>
     <?php echo render_input('settings[invoice_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('invoice_auto_operations_hour'),'number',array('data-toggle'=>'tooltip','data-title'=>_l('hour_of_day_perform_auto_operations_format'),'max'=>23)); ?>
     <hr />
-    <?php render_yes_no_option('cron_send_invoice_overdue_reminder','settings_cron_send_overdue_reminder','settings_cron_send_overdue_reminder_tooltip'); ?>
 
     <?php echo render_input('settings[automatically_send_invoice_overdue_reminder_after]','automatically_send_invoice_overdue_reminder_after',get_option('automatically_send_invoice_overdue_reminder_after'),'number'); ?>
-
+    <hr />
     <?php echo render_input('settings[automatically_resend_invoice_overdue_reminder_after]','automatically_resend_invoice_overdue_reminder_after',get_option('automatically_resend_invoice_overdue_reminder_after'),'number'); ?>
     <hr />
     <h4 class="mbot20 font-medium"><?php echo _l('invoices_list_recurring'); ?></h4>
@@ -66,8 +70,7 @@
  <div role="tabpanel" class="tab-pane" id="contracts">
       <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('hour_of_day_perform_auto_operations_format'); ?>"></i>
    <?php echo render_input('settings[contracts_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('contracts_auto_operations_hour'),'number',array('max'=>23)); ?>
-   <hr />
-  <?php render_yes_no_option('contract_expiry_reminder_enabled','expiry_reminder_enabled'); ?>
+
   <hr />
    <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('settings_reminders_contracts_tooltip'); ?>"></i>
    <?php echo render_input('settings[contract_expiration_before]','send_expiry_reminder_before',get_option('contract_expiration_before'),'number'); ?>
@@ -77,19 +80,26 @@
   <?php echo render_input('settings[autoclose_tickets_after]','auto_close_ticket_after',get_option('autoclose_tickets_after'),'number'); ?>
 </div>
 <div role="tabpanel" class="tab-pane" id="estimates">
+      <?php if(!is_estimates_expiry_reminders_enabled()){ ?>
+    <div class="alert alert-warning">
+      The system was not able to find sources to send expiry reminders, if you want expiry reminders to be sent, make sure that in <a href="<?php echo admin_url('emails'); ?>">email templates</a> the expiry reminder email for estimates is enabled or at least you have configured <a href="<?php echo admin_url('settings?group=sms'); ?>">SMS</a> expiry reminder.
+    </div>
+    <?php } ?>
     <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('hour_of_day_perform_auto_operations_format'); ?>"></i>
    <?php echo render_input('settings[estimates_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('estimates_auto_operations_hour'),'number',array('max'=>23)); ?>
    <hr />
- <?php render_yes_no_option('estimate_expiry_reminder_enabled','expiry_reminder_enabled'); ?>
- <hr />
  <?php echo render_input('settings[send_estimate_expiry_reminder_before]','send_expiry_reminder_before',get_option('send_estimate_expiry_reminder_before'),'number'); ?>
 </div>
 <div role="tabpanel" class="tab-pane" id="proposals">
+    <?php if(!is_proposals_expiry_reminders_enabled()){ ?>
+    <div class="alert alert-warning">
+      The system was not able to find sources to send expiry reminders, if you want expiry reminders to be sent, make sure that in <a href="<?php echo admin_url('emails'); ?>">email templates</a> the expiry reminder email for proposals is enabled or at least you have configured <a href="<?php echo admin_url('settings?group=sms'); ?>">SMS</a> expiry reminder.
+    </div>
+    <?php } ?>
    <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('hour_of_day_perform_auto_operations_format'); ?>"></i>
    <?php echo render_input('settings[proposals_auto_operations_hour]','hour_of_day_perform_auto_operations',get_option('proposals_auto_operations_hour'),'number',array('max'=>23)); ?>
    <hr />
- <?php render_yes_no_option('proposal_expiry_reminder_enabled','expiry_reminder_enabled'); ?>
- <hr />
+
  <?php echo render_input('settings[send_proposal_expiry_reminder_before]','send_expiry_reminder_before',get_option('send_proposal_expiry_reminder_before'),'number'); ?>
 </div>
 <div role="tabpanel" class="tab-pane" id="surveys">

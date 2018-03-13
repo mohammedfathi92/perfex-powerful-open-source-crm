@@ -217,6 +217,7 @@ class Payments_model extends CRM_Model
                     if ($sent) {
                         array_push($emails_sent, $contact['email']);
                     }
+                    $this->sms->trigger(SMS_TRIGGER_PAYMENT_RECORDED, $contact['phonenumber'], $merge_fields);
                 }
 
                 if (count($emails_sent) > 0) {

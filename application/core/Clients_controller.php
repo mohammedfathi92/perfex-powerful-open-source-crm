@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-define('CLIENTS_AREA',true);
+define('CLIENTS_AREA', true);
 
 class Clients_controller extends CRM_Controller
 {
@@ -48,16 +48,14 @@ class Clients_controller extends CRM_Controller
 
         if (get_option('services') == 1) {
             $_auto_loaded_vars['services'] = $this->tickets_model->get_service();
-
         }
 
         $this->load->model('knowledge_base_model');
 
         if (is_client_logged_in()) {
-
             $contact = $this->clients_model->get_contact(get_contact_user_id());
 
-            if(!$contact || $contact->active == 0){
+            if (!$contact || $contact->active == 0) {
                 $this->load->model('authentication_model');
                 $this->authentication_model->logout(true);
                 redirect(site_url());

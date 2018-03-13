@@ -1,10 +1,9 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-use Omnipay\Omnipay;
 
-require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
+// require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
 
-class Two_checkout extends CI_Controller
+class Two_checkout extends CRM_Controller
 {
     public function __construct()
     {
@@ -270,7 +269,6 @@ class Two_checkout extends CI_Controller
              var errorCallback = function(data) {
                 // Retry the token request if ajax call fails
                 if (data.errorCode === 200) {
-                     console.log('failed');
                      tokenRequest();
                      // This error code indicates that the ajax call failed. We recommend that you retry the token request.
                  } else {

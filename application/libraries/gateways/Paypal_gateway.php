@@ -3,7 +3,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 use Omnipay\Omnipay;
 
-require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
+// require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
 
 class Paypal_gateway extends App_gateway
 {
@@ -50,7 +50,7 @@ class Paypal_gateway extends App_gateway
                 'name' => 'description_dashboard',
                 'label' => 'settings_paymentmethod_description',
                 'type'=>'textarea',
-                'default_value'=>'Payment for Invoice'
+                'default_value'=>'Payment for Invoice {invoice_number}',
             ),
             array(
                 'name'=>'currencies',
@@ -96,7 +96,7 @@ class Paypal_gateway extends App_gateway
             'returnUrl' => site_url('gateways/paypal/complete_purchase?hash=' . $data['invoice']->hash . '&invoiceid=' . $data['invoiceid']),
             'cancelUrl' => site_url('viewinvoice/' . $data['invoiceid'] . '/' . $data['invoice']->hash),
             'currency' => $data['invoice']->currency_name,
-            'description' =>$this->getSetting('description_dashboard') . ' - ' . format_invoice_number($data['invoiceid']),
+            'description' =>str_replace('{invoice_number}', format_invoice_number($data['invoice']->id) , $this->getSetting('description_dashboard')),
             );
         try {
             $response = $gateway->purchase($request_data)->send();

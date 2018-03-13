@@ -115,6 +115,7 @@ class Clients extends Clients_controller
     public function project($id)
     {
         if (!is_client_logged_in()) {
+            redirect_after_login_to_current_url();
             redirect(site_url('clients/login'));
         }
         if (!has_contact_permission('projects')) {
@@ -122,7 +123,7 @@ class Clients extends Clients_controller
             redirect(site_url());
         }
         $project = $this->projects_model->get($id, array(
-            'clientid' => get_client_user_id()
+            'clientid' => get_client_user_id(),
         ));
 
         $data['project'] = $project;
@@ -341,21 +342,21 @@ class Clients extends Clients_controller
                 $total_tasks = total_rows('tblstafftasks', array(
             'rel_id' => $id,
             'rel_type' => 'project',
-            'visible_to_client' => 1
+            'visible_to_client' => 1,
         ));
 
                 $data['tasks_not_completed'] = total_rows('tblstafftasks', array(
             'status !=' => 5,
             'rel_id' => $id,
             'rel_type' => 'project',
-            'visible_to_client' => 1
+            'visible_to_client' => 1,
         ));
 
                 $data['tasks_completed'] = total_rows('tblstafftasks', array(
             'status' => 5,
             'rel_id' => $id,
             'rel_type' => 'project',
-            'visible_to_client' => 1
+            'visible_to_client' => 1,
         ));
 
                 $data['total_tasks']                  = $total_tasks;
@@ -388,7 +389,7 @@ class Clients extends Clients_controller
                 if (has_contact_permission('invoices')) {
                     $data['invoices'] = $this->invoices_model->get('', array(
                             'clientid' => get_client_user_id(),
-                            'project_id' => $id
+                            'project_id' => $id,
                         ));
                 }
             } elseif ($group == 'project_tickets') {
@@ -396,7 +397,7 @@ class Clients extends Clients_controller
                 if (has_contact_permission('support')) {
                     $where_tickets = array(
                         'tbltickets.userid' => get_client_user_id(),
-                        'project_id' => $id
+                        'project_id' => $id,
                     );
 
                     if (!is_primary_contact() && get_option('only_show_contact_tickets') == 1) {
@@ -410,7 +411,7 @@ class Clients extends Clients_controller
                 if (has_contact_permission('estimates')) {
                     $data['estimates'] = $this->estimates_model->get('', array(
                             'clientid' => get_client_user_id(),
-                            'project_id' => $id
+                            'project_id' => $id,
                         ));
                 }
             } elseif ($group == 'project_timesheets') {
@@ -420,7 +421,7 @@ class Clients extends Clients_controller
             if ($this->input->get('taskid')) {
                 $data['view_task'] = $this->tasks_model->get($this->input->get('taskid'), array(
                     'rel_id' => $project->id,
-                    'rel_type' => 'project'
+                    'rel_type' => 'project',
                 ));
 
                 $data['title'] = $data['view_task']->name;
@@ -430,7 +431,7 @@ class Clients extends Clients_controller
                     'rel_id' => $project->id,
                     'rel_type' => 'project',
                     'addedfrom'=>get_contact_user_id(),
-                    'is_added_from_contact'=>1
+                    'is_added_from_contact'=>1,
                 ));
         }
 
@@ -519,7 +520,7 @@ class Clients extends Clients_controller
             redirect(site_url('clients/login'));
         }
         echo json_encode(array(
-            'success' => $this->tasks_model->remove_comment($id)
+            'success' => $this->tasks_model->remove_comment($id),
         ));
     }
 
@@ -537,7 +538,7 @@ class Clients extends Clients_controller
                 set_alert('success', _l('task_comment_updated'));
             }
             echo json_encode(array(
-                'success' => $success
+                'success' => $success,
             ));
         }
     }
@@ -554,7 +555,7 @@ class Clients extends Clients_controller
         }
 
         $where = array(
-            'tbltickets.userid' => get_client_user_id()
+            'tbltickets.userid' => get_client_user_id(),
         );
 
         if (!is_primary_contact() && get_option('only_show_contact_tickets') == 1) {
@@ -646,7 +647,7 @@ class Clients extends Clients_controller
             $number_word_lang_rel_id = $proposal->rel_id;
         }
         $this->load->library('numberword', array(
-            'clientid' => $number_word_lang_rel_id
+            'clientid' => $number_word_lang_rel_id,
         ));
 
         $this->use_footer     = false;
@@ -716,7 +717,7 @@ class Clients extends Clients_controller
             $this->form_validation->set_rules('priority', _l('priority'), 'required');
             $custom_fields = get_custom_fields('tickets', array(
                 'show_on_client_portal' => 1,
-                'required' => 1
+                'required' => 1,
             ));
             foreach ($custom_fields as $field) {
                 $field_name = 'custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']';
@@ -744,6 +745,7 @@ class Clients extends Clients_controller
     public function ticket($id)
     {
         if (!is_client_logged_in()) {
+            redirect_after_login_to_current_url();
             redirect(site_url('clients/login'));
         }
         if (!has_contact_permission('support')) {
@@ -787,7 +789,7 @@ class Clients extends Clients_controller
         $data['contracts'] = $this->contracts_model->get('', array(
             'client' => get_client_user_id(),
             'not_visible_to_client' => 0,
-            'trash' => 0
+            'trash' => 0,
         ));
 
         $data['contracts_by_type_chart'] = json_encode($this->contracts_model->get_contracts_types_chart_data());
@@ -812,7 +814,7 @@ class Clients extends Clients_controller
         $contract = $this->contracts_model->get($id, array(
             'client' => get_client_user_id(),
             'not_visible_to_client' => 0,
-            'trash' => 0
+            'trash' => 0,
         ));
 
         try {
@@ -835,7 +837,7 @@ class Clients extends Clients_controller
             redirect(site_url());
         }
         $where = array(
-            'clientid' => get_client_user_id()
+            'clientid' => get_client_user_id(),
         );
         if (is_numeric($status)) {
             $where['status'] = $status;
@@ -863,6 +865,9 @@ class Clients extends Clients_controller
     {
         check_invoice_restrictions($id, $hash);
         $invoice = $this->invoices_model->get($id);
+
+        $invoice = do_action('before_client_view_invoice', $invoice);
+
         if (!is_client_logged_in()) {
             load_client_language($invoice->clientid);
         }
@@ -904,7 +909,7 @@ class Clients extends Clients_controller
             die;
         }
         $this->load->library('numberword', array(
-            'clientid' => $invoice->clientid
+            'clientid' => $invoice->clientid,
         ));
         $this->load->model('payment_modes_model');
         $this->load->model('payments_model');
@@ -951,39 +956,39 @@ class Clients extends Clients_controller
         $data['period_today'] = json_encode(
                      array(
                      _d(date('Y-m-d')),
-                     _d(date('Y-m-d'))
+                     _d(date('Y-m-d')),
                      )
         );
         $data['period_this_week'] = json_encode(
                      array(
                      _d(date('Y-m-d', strtotime('monday this week'))),
-                     _d(date('Y-m-d', strtotime('sunday this week')))
+                     _d(date('Y-m-d', strtotime('sunday this week'))),
                      )
         );
         $data['period_this_month'] = json_encode(
                      array(
                      _d(date('Y-m-01')),
-                     _d(date('Y-m-t'))
+                     _d(date('Y-m-t')),
                      )
         );
 
         $data['period_last_month'] = json_encode(
                      array(
                      _d(date('Y-m-01', strtotime("-1 MONTH"))),
-                     _d(date('Y-m-t', strtotime('-1 MONTH')))
+                     _d(date('Y-m-t', strtotime('-1 MONTH'))),
                      )
         );
 
         $data['period_this_year'] = json_encode(
                      array(
                      _d(date('Y-m-d', strtotime(date('Y-01-01')))),
-                     _d(date('Y-m-d', strtotime(date('Y-12-'.date('d', strtotime('last day of this year'))))))
+                     _d(date('Y-m-d', strtotime(date('Y-12-31')))),
                      )
         );
         $data['period_last_year'] = json_encode(
                      array(
                      _d(date('Y-m-d', strtotime(date(date('Y', strtotime('last year')).'-01-01')))),
-                     _d(date('Y-m-d', strtotime(date(date('Y', strtotime('last year')). '-12-'.date('d', strtotime('last day of last year'))))))
+                     _d(date('Y-m-d', strtotime(date(date('Y', strtotime('last year')). '-12-31')))),
                      )
         );
 
@@ -1086,7 +1091,7 @@ class Clients extends Clients_controller
             die();
         }
         $this->load->library('numberword', array(
-            'clientid' => $estimate->clientid
+            'clientid' => $estimate->clientid,
         ));
 
         $data['title']        = format_estimate_number($estimate->id);
@@ -1117,7 +1122,7 @@ class Clients extends Clients_controller
             redirect(site_url());
         }
         $where = array(
-            'clientid' => get_client_user_id()
+            'clientid' => get_client_user_id(),
         );
         if (is_numeric($status)) {
             $where['status'] = $status;
@@ -1202,10 +1207,15 @@ class Clients extends Clients_controller
                 $this->form_validation->set_rules('company', _l('clients_company'), 'required');
             }
 
+            if (active_clients_theme() == 'perfex') {
+                // Fix for custom fields checkboxes validation
+                $this->form_validation->set_rules('company_form', '', 'required');
+            }
+
             $custom_fields = get_custom_fields('customers', array(
                 'show_on_client_portal' => 1,
                 'required' => 1,
-                'disalow_client_to_edit' => 0
+                'disalow_client_to_edit' => 0,
             ));
 
             foreach ($custom_fields as $field) {
@@ -1217,6 +1227,11 @@ class Clients extends Clients_controller
             }
             if ($this->form_validation->run() !== false) {
                 $data    = $this->input->post();
+
+                if (isset($data['company_form'])) {
+                    unset($data['company_form']);
+                }
+
                 $success = $this->clients_model->update_company_details($data, get_client_user_id());
                 if ($success == true) {
                     set_alert('success', _l('clients_profile_updated'));
@@ -1241,7 +1256,7 @@ class Clients extends Clients_controller
             $custom_fields = get_custom_fields('contacts', array(
                 'show_on_client_portal' => 1,
                 'required' => 1,
-                'disalow_client_to_edit' => 0
+                'disalow_client_to_edit' => 0,
             ));
             foreach ($custom_fields as $field) {
                 $field_name = 'custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']';
@@ -1286,7 +1301,7 @@ class Clients extends Clients_controller
                     $data['task_emails'] = $contact->task_emails;
                 }
                 // For all cases
-                if(isset($data['password'])) {
+                if (isset($data['password'])) {
                     unset($data['password']);
                 }
                 $success = $this->clients_model->update_contact($data, get_contact_user_id(), true);
@@ -1301,7 +1316,7 @@ class Clients extends Clients_controller
             $this->form_validation->set_rules('newpassword', _l('clients_edit_profile_new_password'), 'required');
             $this->form_validation->set_rules('newpasswordr', _l('clients_edit_profile_new_password_repeat'), 'required|matches[newpassword]');
             if ($this->form_validation->run() !== false) {
-                $success = $this->clients_model->change_contact_password($this->input->post(null,false));
+                $success = $this->clients_model->change_contact_password($this->input->post(null, false));
                 if (is_array($success) && isset($success['old_password_not_match'])) {
                     set_alert('danger', _l('client_old_password_incorrect'));
                 } elseif ($success == true) {
@@ -1327,7 +1342,7 @@ class Clients extends Clients_controller
         }
         $this->db->where('id', get_contact_user_id());
         $this->db->update('tblcontacts', array(
-            'profile_image' => null
+            'profile_image' => null,
         ));
         if ($this->db->affected_rows() > 0) {
             redirect(site_url('clients/profile'));
@@ -1354,12 +1369,12 @@ class Clients extends Clients_controller
 
         $custom_fields = get_custom_fields('customers', array(
             'show_on_client_portal' => 1,
-            'required' => 1
+            'required' => 1,
         ));
 
         $custom_fields_contacts = get_custom_fields('contacts', array(
             'show_on_client_portal' => 1,
-            'required' => 1
+            'required' => 1,
         ));
 
         foreach ($custom_fields as $field) {
@@ -1387,7 +1402,7 @@ class Clients extends Clients_controller
                 if ($clientid) {
                     do_action('after_client_register', $clientid);
                     $this->load->model('authentication_model');
-                    $logged_in = $this->authentication_model->login($this->input->post('email'), $this->input->post('password',false), false, false);
+                    $logged_in = $this->authentication_model->login($this->input->post('email'), $this->input->post('password', false), false, false);
 
                     $redUrl = site_url();
 
@@ -1464,15 +1479,15 @@ class Clients extends Clients_controller
             if ($this->form_validation->run() !== false) {
                 do_action('before_user_reset_password', array(
                     'staff' => $staff,
-                    'userid' => $userid
+                    'userid' => $userid,
                 ));
-                $success = $this->Authentication_model->reset_password(0, $userid, $new_pass_key, $this->input->post('passwordr',false));
+                $success = $this->Authentication_model->reset_password(0, $userid, $new_pass_key, $this->input->post('passwordr', false));
                 if (is_array($success) && $success['expired'] == true) {
                     set_alert('danger', _l('password_reset_key_expired'));
                 } elseif ($success == true) {
                     do_action('after_user_reset_password', array(
                         'staff' => $staff,
-                        'userid' => $userid
+                        'userid' => $userid,
                     ));
                     set_alert('success', _l('password_reset_message'));
                 } else {
@@ -1559,7 +1574,7 @@ class Clients extends Clients_controller
         }
         if ($this->form_validation->run() !== false) {
             $this->load->model('Authentication_model');
-            $success = $this->Authentication_model->login($this->input->post('email'), $this->input->post('password',false), $this->input->post('remember'), false);
+            $success = $this->Authentication_model->login($this->input->post('email'), $this->input->post('password', false), $this->input->post('remember'), false);
             if (is_array($success) && isset($success['memberinactive'])) {
                 set_alert('danger', _l('inactive_account'));
                 redirect(site_url('clients/login'));
@@ -1567,6 +1582,9 @@ class Clients extends Clients_controller
                 set_alert('danger', _l('client_invalid_username_or_password'));
                 redirect(site_url('clients/login'));
             }
+
+            maybe_redirect_to_previous_url();
+
             do_action('after_contact_login');
             redirect(site_url());
         }
@@ -1595,6 +1613,7 @@ class Clients extends Clients_controller
         if ($email == '') {
             $email = $this->input->post('email');
         }
+
         $this->db->where('email', $email);
         $total_rows = $this->db->count_all_results('tblcontacts');
         if ($this->input->post() && $this->input->is_ajax_request()) {
@@ -1641,7 +1660,7 @@ class Clients extends Clients_controller
                 1,
                 2,
                 4,
-                3
+                3,
             );
             $months          = array();
             $months_original = array();
@@ -1651,7 +1670,7 @@ class Clients extends Clients_controller
             }
             $chart = array(
                 'labels' => $months,
-                'datasets' => array()
+                'datasets' => array(),
             );
             foreach ($statuses as $status) {
                 $this->db->select('total as amount, date');
@@ -1698,7 +1717,7 @@ class Clients extends Clients_controller
                     'borderColor' => $borderColor,
                     'borderWidth' => 1,
                     'tension' => false,
-                    'data' => $data['total']
+                    'data' => $data['total'],
                 ));
             }
             echo json_encode($chart);

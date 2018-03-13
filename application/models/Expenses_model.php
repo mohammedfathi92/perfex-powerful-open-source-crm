@@ -186,7 +186,7 @@ class Expenses_model extends CRM_Model
             } else {
                 if (total_rows('tblexpenses', array(
                     'currency' => $base_currency,
-                    'clientid' => $data['customer_id']
+                    'clientid' => $data['customer_id'],
                 ))) {
                     $currency_switcher = true;
                 }
@@ -197,7 +197,7 @@ class Expenses_model extends CRM_Model
         } else {
             $currencyid = $base_currency;
             if (total_rows('tblexpenses', array(
-                'currency !=' => $base_currency
+                'currency !=' => $base_currency,
             ))) {
                 $currency_switcher = true;
             }
@@ -257,20 +257,20 @@ class Expenses_model extends CRM_Model
             foreach ($all_expenses as $expense) {
                 $_total = $expense['amount'];
                 if ($expense['tax'] != 0) {
-                    if(!isset($cached_taxes[$expense['tax']])){
-                         $tax = get_tax_by_id($expense['tax']);
-                         $cached_taxes[$expense['tax']] = $tax;
+                    if (!isset($cached_taxes[$expense['tax']])) {
+                        $tax = get_tax_by_id($expense['tax']);
+                        $cached_taxes[$expense['tax']] = $tax;
                     } else {
-                         $tax = $cached_taxes[$expense['tax']];
+                        $tax = $cached_taxes[$expense['tax']];
                     }
                     $_total += ($_total / 100 * $tax->taxrate);
                 }
                 if ($expense['tax2'] != 0) {
-                     if(!isset($cached_taxes[$expense['tax2']])){
-                         $tax = get_tax_by_id($expense['tax2']);
-                         $cached_taxes[$expense['tax2']] = $tax;
+                    if (!isset($cached_taxes[$expense['tax2']])) {
+                        $tax = get_tax_by_id($expense['tax2']);
+                        $cached_taxes[$expense['tax2']] = $tax;
                     } else {
-                         $tax = $cached_taxes[$expense['tax2']];
+                        $tax = $cached_taxes[$expense['tax2']];
                     }
                     $_total += ($expense['amount'] / 100 * $tax->taxrate);
                 }
@@ -415,7 +415,7 @@ class Expenses_model extends CRM_Model
         $_expense = $this->get($id);
         if ($_expense->invoiceid !== null) {
             return array(
-                'invoiced' => true
+                'invoiced' => true,
             );
         }
         $this->db->where('id', $id);
@@ -434,6 +434,9 @@ class Expenses_model extends CRM_Model
             }
 
             $this->delete_expense_attachment($id);
+
+            $this->db->where('recurring_from', $id);
+            $this->db->update('tblexpenses', array('recurring_from'=>null));
 
             $this->db->where('rel_type', 'expense');
             $this->db->where('rel_id', $id);
@@ -467,10 +470,13 @@ class Expenses_model extends CRM_Model
         }
         $new_invoice_data['clientid'] = $expense->clientid;
         $new_invoice_data['number']   = get_option('next_invoice_number');
-        $new_invoice_data['date']     = _d(date('Y-m-d'));
+        $invoice_date = (isset($params['invoice_date']) ? $params['invoice_date'] : date('Y-m-d'));
+        $new_invoice_data['date']     =  _d($invoice_date);
+
         if (get_option('invoice_due_after') != 0) {
-            $new_invoice_data['duedate'] = _d(date('Y-m-d', strtotime('+' . get_option('invoice_due_after') . ' DAY', strtotime(date('Y-m-d')))));
+            $new_invoice_data['duedate'] = _d(date('Y-m-d', strtotime('+' . get_option('invoice_due_after') . ' DAY', strtotime($invoice_date))));
         }
+
         $new_invoice_data['show_quantity_as'] = 1;
         $new_invoice_data['terms']            = get_option('predefined_terms_invoice');
         $new_invoice_data['clientnote']       = get_option('predefined_clientnote_invoice');
@@ -485,7 +491,7 @@ class Expenses_model extends CRM_Model
         if ($expense->tax != 0) {
             $total += ($expense->amount / 100 * $expense->taxrate);
         }
-        if($expense->tax2 != 0){
+        if ($expense->tax2 != 0) {
             $total += ($expense->amount / 100 * $expense->taxrate2);
         }
 
@@ -514,7 +520,7 @@ class Expenses_model extends CRM_Model
 
         $this->load->model('payment_modes_model');
         $modes      = $this->payment_modes_model->get('', array(
-            'expenses_only !=' => 1
+            'expenses_only !=' => 1,
         ));
         $temp_modes = array();
         foreach ($modes as $mode) {
@@ -525,7 +531,7 @@ class Expenses_model extends CRM_Model
         }
 
         $new_invoice_data['billed_expenses'][1]              = array(
-            $expense->expenseid
+            $expense->expenseid,
         );
         $new_invoice_data['allowed_payment_modes']           = $temp_modes;
         $new_invoice_data['newitems'][1]['description']      = _l('item_as_expense') . ' ' . $expense->name;
@@ -557,10 +563,10 @@ class Expenses_model extends CRM_Model
         if ($invoiceid) {
             $this->db->where('id', $expense->expenseid);
             $this->db->update('tblexpenses', array(
-                'invoiceid' => $invoiceid
+                'invoiceid' => $invoiceid,
             ));
 
-            logActivity('Expense Converted To Invoice [ExpenseID' . $expense->expenseid . ', InvoiceID: ' . $invoiceid . ']');
+            logActivity('Expense Converted To Invoice [ExpenseID: ' . $expense->expenseid . ', InvoiceID: ' . $invoiceid . ']');
 
             do_action('expense_converted_to_invoice', array('expense_id'=>$expense->expenseid, 'invoice_id'=>$invoiceid));
 
@@ -606,7 +612,7 @@ class Expenses_model extends CRM_Model
                     'relid' => $insert_id,
                     'fieldid' => $field['id'],
                     'fieldto' => 'expenses',
-                    'value' => $value
+                    'value' => $value,
                 ));
             }
             logActivity('Expense Copied [ExpenseID' . $id . ', NewExpenseID: ' . $insert_id . ']');
@@ -705,7 +711,7 @@ class Expenses_model extends CRM_Model
     {
         if (is_reference_in_table('category', 'tblexpenses', $id)) {
             return array(
-                'referenced' => true
+                'referenced' => true,
             );
         }
         $this->db->where('id', $id);

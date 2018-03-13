@@ -169,7 +169,7 @@
 </div>
 <div class="modal-footer">
    <button type="button" class="btn btn-default" onclick="init_lead(<?php echo $lead->id; ?>); return false;" data-dismiss="modal"><?php echo _l('back_to_lead'); ?></button>
-   <button type="submit" class="btn btn-info"><?php echo _l('submit'); ?></button>
+   <button type="submit" data-form="#lead_to_client_form" autocomplete="off" data-loading-text="<?php echo _l('wait_text'); ?>" class="btn btn-info"><?php echo _l('submit'); ?></button>
 </div>
 </div>
 <?php echo form_close(); ?>

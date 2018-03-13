@@ -1,6 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-class Download extends CI_Controller
+
+class Download extends CRM_Controller
 {
     public function __construct()
     {
@@ -151,6 +152,11 @@ class Download extends CI_Controller
             }
             $path = get_upload_path_by_type('task') . $attachment->rel_id . '/' . $attachment->file_name;
         } elseif ($folder_indicator == 'sales_attachment') {
+
+            if(!is_staff_logged_in()) {
+                $this->db->where('visible_to_customer',1);
+            }
+
             $this->db->where('attachment_key', $attachmentid);
             $attachment = $this->db->get('tblfiles')->row();
             if (!$attachment) {

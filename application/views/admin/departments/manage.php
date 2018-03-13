@@ -3,6 +3,11 @@
     <div class="content">
         <div class="row">
             <div class="col-md-12">
+                <?php if($email_exist_as_staff){ ?>
+                <div class="alert alert-danger">
+                   Some of the departments email is used as staff member email, according to the docs, the support department email must be unique email in the system, you must change the staff email or the support department email in order all the features to work properly.
+                </div>
+                <?php } ?>
                 <div class="panel_s">
                     <div class="panel-body">
                      <div class="_buttons">
@@ -123,6 +128,9 @@
                 response = JSON.parse(response);
                 if(response.success == true){
                     alert_float('success',response.message);
+                }
+                if(response.email_exist_as_staff == true) {
+                    window.location.reload();
                 }
                 $('.table-departments').DataTable().ajax.reload();
                 $('#department').modal('hide');

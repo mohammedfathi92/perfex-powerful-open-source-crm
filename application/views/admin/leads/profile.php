@@ -1,67 +1,88 @@
 <div class="lead-wrapper" <?php if(isset($lead) && ($lead->junk == 1 || $lead->lost == 1)){ echo 'lead-is-junk-or-lost';} ?>>
    <?php if(isset($lead)){ ?>
    <div class="btn-group pull-left lead-actions-left">
-      <a href="#" lead-edit class="mright10 font-medium-xs pull-left<?php if($lead_locked == true){echo ' hide';} ?>"><?php echo _l('edit'); ?> <i class="fa fa-pencil-square-o"></i></a>
+      <a href="#" lead-edit class="mright10 font-medium-xs pull-left<?php if($lead_locked == true){echo ' hide';} ?>">
+         <?php echo _l('edit'); ?>
+         <i class="fa fa-pencil-square-o"></i>
+      </a>
       <a href="#" class="font-medium-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-      <?php echo _l('more'); ?> <span class="caret"></span>
+      <?php echo _l('more'); ?>
+      <span class="caret"></span>
       </a>
       <ul class="dropdown-menu dropdown-menu-left">
-         <?php if($lead->junk == 0){ ?>
-         <?php if($lead->lost == 0 && (total_rows('tblclients',array('leadid'=>$lead->id)) == 0)){ ?>
+         <?php if($lead->junk == 0){
+         if($lead->lost == 0 && (total_rows('tblclients',array('leadid'=>$lead->id)) == 0)){ ?>
          <li>
-            <a href="#" onclick="lead_mark_as_lost(<?php echo $lead->id; ?>); return false;"><i class="fa fa-mars"></i> <?php echo _l('lead_mark_as_lost'); ?></a>
+            <a href="#" onclick="lead_mark_as_lost(<?php echo $lead->id; ?>); return false;">
+              <i class="fa fa-mars"></i>
+              <?php echo _l('lead_mark_as_lost'); ?>
+            </a>
          </li>
          <?php } else if($lead->lost == 1){ ?>
          <li>
-            <a href="#" onclick="lead_unmark_as_lost(<?php echo $lead->id; ?>); return false;"><i class="fa fa-smile-o"></i> <?php echo _l('lead_unmark_as_lost'); ?></a>
+            <a href="#" onclick="lead_unmark_as_lost(<?php echo $lead->id; ?>); return false;">
+              <i class="fa fa-smile-o"></i>
+              <?php echo _l('lead_unmark_as_lost'); ?>
+            </a>
          </li>
          <?php } ?>
          <?php } ?>
          <!-- mark as junk -->
-         <?php if($lead->lost == 0){ ?>
-         <?php if($lead->junk == 0 && (total_rows('tblclients',array('leadid'=>$lead->id)) == 0)){ ?>
+         <?php if($lead->lost == 0){
+         if($lead->junk == 0 && (total_rows('tblclients',array('leadid'=>$lead->id)) == 0)){ ?>
          <li>
-            <a href="#" onclick="lead_mark_as_junk(<?php echo $lead->id; ?>); return false;"><i class="fa fa fa-times"></i> <?php echo _l('lead_mark_as_junk'); ?></a>
+            <a href="#" onclick="lead_mark_as_junk(<?php echo $lead->id; ?>); return false;">
+              <i class="fa fa fa-times"></i>
+              <?php echo _l('lead_mark_as_junk'); ?>
+            </a>
          </li>
          <?php } else if($lead->junk == 1){ ?>
          <li>
-            <a href="#" onclick="lead_unmark_as_junk(<?php echo $lead->id; ?>); return false;"><i class="fa fa-smile-o"></i> <?php echo _l('lead_unmark_as_junk'); ?></a>
+            <a href="#" onclick="lead_unmark_as_junk(<?php echo $lead->id; ?>); return false;">
+              <i class="fa fa-smile-o"></i>
+              <?php echo _l('lead_unmark_as_junk'); ?>
+            </a>
          </li>
          <?php } ?>
          <?php } ?>
-         <?php if((is_lead_creator($lead->id) && $lead_locked == false) || is_admin()){ ?>
+         <?php if(((is_lead_creator($lead->id) || has_permission('leads','','delete')) && $lead_locked == false) || is_admin()){ ?>
          <li>
-            <a href="<?php echo admin_url('leads/delete/'.$lead->id); ?>" class="text-danger delete-text _delete" data-toggle="tooltip" title=""><i class="fa fa-remove"></i> <?php echo _l('lead_edit_delete_tooltip'); ?></a>
+            <a href="<?php echo admin_url('leads/delete/'.$lead->id); ?>" class="text-danger delete-text _delete" data-toggle="tooltip" title="">
+              <i class="fa fa-remove"></i>
+              <?php echo _l('lead_edit_delete_tooltip'); ?>
+            </a>
          </li>
          <?php } ?>
       </ul>
    </div>
-   <?php
-      $client = false;
-      $convert_to_client_tooltip_email_exists = '';
-      if(total_rows('tblcontacts',array('email'=>$lead->email)) > 0 && total_rows('tblclients',array('leadid'=>$lead->id)) == 0){
-       $convert_to_client_tooltip_email_exists = _l('lead_email_already_exists');
-       $text = _l('lead_convert_to_client');
-      } else if (total_rows('tblclients',array('leadid'=>$lead->id))){
-       $client = true;
-      } else {
-       $text = _l('lead_convert_to_client');
-      }
+       <?php
+           $client = false;
+           $convert_to_client_tooltip_email_exists = '';
+           if(total_rows('tblcontacts',array('email'=>$lead->email)) > 0 && total_rows('tblclients',array('leadid'=>$lead->id)) == 0){
+             $convert_to_client_tooltip_email_exists = _l('lead_email_already_exists');
+             $text = _l('lead_convert_to_client');
+          } else if (total_rows('tblclients',array('leadid'=>$lead->id))){
+             $client = true;
+          } else {
+             $text = _l('lead_convert_to_client');
+          }
       ?>
       <?php if($lead_locked == false){ ?>
       <div class="lead-edit<?php if(isset($lead)){echo ' hide';} ?>">
-         <button type="button" class="btn btn-info pull-right mleft5 lead-top-btn lead-save-btn" onclick="document.getElementById('lead-form-submit').click();"><?php echo _l('submit'); ?></button>
+         <button type="button" class="btn btn-info pull-right mleft5 lead-top-btn lead-save-btn" onclick="document.getElementById('lead-form-submit').click();">
+              <?php echo _l('submit'); ?>
+          </button>
       </div>
       <?php } ?>
-
-   <?php if($client && (has_permission('customers','','view') || is_customer_admin(get_client_id_by_lead_id($lead->id)))){ ?>
+      <?php if($client && (has_permission('customers','','view') || is_customer_admin(get_client_id_by_lead_id($lead->id)))){ ?>
       <a data-toggle="tooltip" class="btn btn-success pull-right lead-top-btn lead-view" data-placement="left" title="<?php echo _l('lead_converted_edit_client_profile'); ?>" href="<?php echo admin_url('clients/client/'.get_client_id_by_lead_id($lead->id)); ?>">
       <i class="fa fa-user-o"></i>
       </a>
    <?php } ?>
    <?php if(total_rows('tblclients',array('leadid'=>$lead->id)) == 0){ ?>
       <a href="#" data-toggle="tooltip" data-title="<?php echo $convert_to_client_tooltip_email_exists; ?>" class="btn btn-success pull-right lead-convert-to-customer lead-top-btn lead-view" onclick="convert_lead_to_customer(<?php echo $lead->id; ?>); return false;">
-            <i class="fa fa-user-o"></i> <?php echo $text; ?>
+            <i class="fa fa-user-o"></i>
+            <?php echo $text; ?>
       </a>
    <?php } ?>
    <?php } ?>
@@ -73,9 +94,13 @@
    <div class="alert alert-warning hide mtop20" role="alert" id="lead_proposal_warning">
       <?php echo _l('proposal_warning_email_change',array(_l('lead_lowercase'),_l('lead_lowercase'),_l('lead_lowercase'))); ?>
       <hr />
-      <a href="#" onclick="update_all_proposal_emails_linked_to_lead(<?php echo $lead->id; ?>); return false;"><?php echo _l('update_proposal_email_yes'); ?></a>
+      <a href="#" onclick="update_all_proposal_emails_linked_to_lead(<?php echo $lead->id; ?>); return false;">
+        <?php echo _l('update_proposal_email_yes'); ?>
+        </a>
       <br />
-      <a href="#" onclick="init_lead_modal_data(<?php echo $lead->id; ?>); return false;"><?php echo _l('update_proposal_email_no'); ?></a>
+      <a href="#" onclick="init_lead_modal_data(<?php echo $lead->id; ?>); return false;">
+        <?php echo _l('update_proposal_email_no'); ?>
+      </a>
    </div>
    <?php } ?>
    <?php echo form_open((isset($lead) ? admin_url('leads/lead/'.$lead->id) : admin_url('leads/lead')),array('id'=>'lead_form')); ?>
@@ -147,15 +172,15 @@
             <p class="text-muted lead-field-heading"><?php echo _l('lead_public'); ?></p>
             <p class="bold font-medium-xs mbot15">
                <?php if(isset($lead)){
-                  if($lead->is_public == 1){
-                   echo _l('lead_is_public_yes');
+                    if($lead->is_public == 1){
+                      echo _l('lead_is_public_yes');
+                    } else {
+                      echo _l('lead_is_public_no');
+                    }
                   } else {
-                   echo _l('lead_is_public_no');
+                    echo '-';
                   }
-                  } else {
-                  echo '-';
-                  }
-                  ?>
+               ?>
             </p>
             <?php if(isset($lead) && $lead->from_form_id != 0){ ?>
             <p class="text-muted lead-field-heading"><?php echo _l('web_to_lead_form'); ?></p>
@@ -170,14 +195,13 @@
                </h4>
             </div>
             <?php
-               $custom_fields = get_custom_fields('leads');
-               foreach ($custom_fields as $field) {
+            $custom_fields = get_custom_fields('leads');
+            foreach ($custom_fields as $field) {
                 $value = get_custom_field_value($lead->id, $field['id'], 'leads'); ?>
-            <p class="text-muted lead-field-heading no-mtop"><?php echo $field['name']; ?></p>
-            <p class="bold font-medium-xs"><?php echo ($value != '' ? $value : '-') ?></p>
-            <?php
-               }
-               } ?>
+                <p class="text-muted lead-field-heading no-mtop"><?php echo $field['name']; ?></p>
+                <p class="bold font-medium-xs"><?php echo ($value != '' ? $value : '-') ?></p>
+            <?php } ?>
+            <?php } ?>
          </div>
          <div class="clearfix"></div>
          <div class="col-md-12">
@@ -187,22 +211,21 @@
       </div>
       <div class="clearfix"></div>
       <div class="lead-edit<?php if(isset($lead)){echo ' hide';} ?>">
-
          <div class="col-md-4 mtop15">
-            <?php
-               $selected = '';
-               if(isset($lead)){
-                 $selected = $lead->status;
-               } else if(isset($status_id)){
-                 $selected = $status_id;
-               }
-               foreach($statuses as $key => $status) {
-                  if($status['isdefault'] == 1) {
-                   $statuses[$key]['option_attributes'] = array('data-subtext'=>_l('leads_converted_to_client'));
-                }
-             }
-               echo render_leads_status_select($statuses, $selected,'lead_add_edit_status');
-               ?>
+          <?php
+            $selected = '';
+            if(isset($lead)){
+              $selected = $lead->status;
+            } else if(isset($status_id)){
+              $selected = $status_id;
+            }
+            foreach($statuses as $key => $status) {
+              if($status['isdefault'] == 1) {
+                $statuses[$key]['option_attributes'] = array('data-subtext'=>_l('leads_converted_to_client'));
+              }
+            }
+            echo render_leads_status_select($statuses, $selected,'lead_add_edit_status');
+          ?>
          </div>
          <div class="col-md-4 mtop15">
             <?php
@@ -214,7 +237,12 @@
             <?php
                $assigned_attrs = array();
                $selected = (isset($lead) ? $lead->assigned : get_staff_user_id());
-               if(isset($lead) && $lead->assigned == get_staff_user_id() && $lead->addedfrom != get_staff_user_id() && !is_admin($lead->assigned)){
+               if(isset($lead)
+                  && $lead->assigned == get_staff_user_id()
+                  && $lead->addedfrom != get_staff_user_id()
+                  && !is_admin($lead->assigned)
+                  && !has_permission('leads','','view')
+               ){
                  $assigned_attrs['disabled'] = true;
                }
                echo render_select('assigned',$members,array('staffid',array('firstname','lastname')),'lead_add_edit_assigned',$selected,$assigned_attrs); ?>
@@ -246,7 +274,11 @@
                <div class="input-group">
                   <input type="text" name="website" id="website" value="<?php echo $lead->website; ?>" class="form-control">
                   <div class="input-group-addon">
-                     <span><a href="<?php echo maybe_add_http($lead->website); ?>" target="_blank" tabindex="-1"><i class="fa fa-globe"></i></a></span>
+                     <span>
+                      <a href="<?php echo maybe_add_http($lead->website); ?>" target="_blank" tabindex="-1">
+                        <i class="fa fa-globe"></i>
+                      </a>
+                    </span>
                   </div>
                </div>
             </div>
@@ -276,7 +308,7 @@
                <label for="default_language" class="control-label"><?php echo _l('localization_default_language'); ?></label>
                <select name="default_language" data-live-search="true" id="default_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                   <option value=""><?php echo _l('system_default_string'); ?></option>
-                  <?php foreach($this->perfex_base->get_available_languages() as $language){
+                  <?php foreach($this->app->get_available_languages() as $language){
                      $selected = '';
                      if(isset($lead)){
                        if($lead->default_language == $language){
@@ -291,9 +323,8 @@
             <?php } ?>
          </div>
          <div class="col-md-12">
-              <?php $value = (isset($lead) ? $lead->description : ''); ?>
+            <?php $value = (isset($lead) ? $lead->description : ''); ?>
             <?php echo render_textarea('description','lead_description',$value); ?>
-
             <div class="row">
                <div class="col-md-12">
                   <?php if(!isset($lead)){ ?>
@@ -303,7 +334,7 @@
                   <?php } else { ?>
                      <?php echo render_datetime_input('lastcontact','leads_dt_last_contact',_dt($lead->lastcontact),array('data-date-end-date'=>date('Y-m-d'))); ?>
                   <?php } ?>
-                  <div class="checkbox-inline checkbox checkbox-primary<?php if(isset($lead)){echo ' hide';} ?><?php if(isset($lead) && (is_lead_creator($lead->id) || is_admin())){echo ' lead-edit';} ?>">
+                  <div class="checkbox-inline checkbox checkbox-primary<?php if(isset($lead)){echo ' hide';} ?><?php if(isset($lead) && (is_lead_creator($lead->id) || has_permission('leads','','edit'))){echo ' lead-edit';} ?>">
                   <input type="checkbox" name="is_public" <?php if(isset($lead)){if($lead->is_public == 1){echo 'checked';}}; ?> id="lead_public">
                   <label for="lead_public"><?php echo _l('lead_public'); ?></label>
                </div>
@@ -343,12 +374,12 @@
 </div>
 <?php if(isset($lead) && $lead_locked == true){ ?>
 <script>
-  $(function(){
+  $(function() {
       // Set all fields to disabled if lead is locked
-      var lead_fields = $('.lead-wrapper').find('input,select,textarea');
-      $.each(lead_fields,function(){
-         $(this).attr('disabled',true);
+      var lead_fields = $('.lead-wrapper').find('input, select, textarea');
+      $.each(lead_fields, function() {
+          $(this).attr('disabled', true);
       });
-   });
+  });
 </script>
 <?php } ?>

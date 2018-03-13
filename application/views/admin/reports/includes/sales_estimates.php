@@ -26,7 +26,7 @@
       <?php } ?>
    </div>
    <div class="clearfix"></div>
-      <table class="table table-striped table-estimates-report scroll-responsive">
+      <table class="table table-estimates-report scroll-responsive">
          <thead>
           <tr>
             <th><?php echo _l('estimate_dt_table_heading_number'); ?></th>

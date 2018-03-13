@@ -1,11 +1,12 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
-class Authentication extends CI_Controller
+
+class Authentication extends CRM_Controller
 {
     public function __construct()
     {
         parent::__construct();
-        if ($this->misc_model->is_db_upgrade_required()) {
+        if ($this->app->is_db_upgrade_required()) {
             redirect(admin_url());
         }
         load_admin_language();
@@ -69,7 +70,7 @@ class Authentication extends CI_Controller
                     redirect(site_url('authentication/admin'));
                 } else {
                     // is logged in
-                    $this->_url_redirect_after_login();
+                    maybe_redirect_to_previous_url();
                 }
                 do_action('after_staff_login');
                 redirect(admin_url());
@@ -92,7 +93,7 @@ class Authentication extends CI_Controller
                     $user = $this->Authentication_model->get_user_by_two_factor_auth_code($code);
                     $this->Authentication_model->clear_two_factor_auth_code($user->staffid);
                     $this->Authentication_model->two_factor_auth_login($user);
-                    $this->_url_redirect_after_login();
+                    maybe_redirect_to_previous_url();
                     do_action('after_staff_login');
                     redirect(admin_url());
                 } else {
@@ -219,17 +220,5 @@ class Authentication extends CI_Controller
         }
 
         return true;
-    }
-    /**
-     * Check if user accessed url while not logged in to redirect after login
-     * @return null
-     */
-     private function _url_redirect_after_login(){
-            // This is only working for staff members
-        if ($this->session->has_userdata('red_url')) {
-            $red_url = $this->session->userdata('red_url');
-            $this->session->unset_userdata('red_url');
-            redirect($red_url);
-        }
     }
 }

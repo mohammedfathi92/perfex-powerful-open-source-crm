@@ -19,19 +19,11 @@
          <?php } ?>
       </select>
       <?php } ?>
-      <?php if(count($invoices_years) > 1){
-         $currentYear = date('Y');
-      ?>
-      <select data-none-selected-text="<?php echo $currentYear; ?>" data-current-year="<?php echo $currentYear; ?>" data-width="auto" class="selectpicker" name="invoices_total_years" onchange="init_invoices_total();" multiple="true" id="invoices_total_years">
-         <?php
-         $selectedYears = $this->input->post('years');
-         if(!in_array_multidimensional($invoices_years,'year',$currentYear)){
-            echo '<option value="'.$currentYear.'"'.($selectedYears && in_array($currentYear,$selectedYears) || !$selectedYears ? ' selected': '').'>'.$currentYear.'</option>';
-         }
-         foreach($invoices_years as $year){ ?>
-         <option value="<?php echo $year['year']; ?>"<?php if($selectedYears && in_array($year['year'], $selectedYears) || !$selectedYears && date('Y') == $year['year']){echo ' selected'; } ?>><?php echo $year['year']; ?></option>
+      <?php if(count($invoices_years) > 1){ ?>
+      <select data-none-selected-text="<?php echo date('Y'); ?>" data-width="auto" class="selectpicker" name="invoices_total_years" onchange="init_invoices_total();" multiple="true" id="invoices_total_years">
+         <?php foreach($invoices_years as $year){ ?>
+         <option value="<?php echo $year['year']; ?>"<?php if($this->input->post('years') && in_array($year['year'], $this->input->post('years')) || !$this->input->post('years') && date('Y') == $year['year']){echo ' selected'; } ?>><?php echo $year['year']; ?></option>
          <?php } ?>
-
       </select>
       <?php } ?>
    </div>

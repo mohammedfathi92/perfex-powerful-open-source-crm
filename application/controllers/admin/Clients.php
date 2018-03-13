@@ -2,12 +2,14 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Clients extends Admin_controller
 {
-    private $not_importable_clients_fields = array('userid', 'id', 'is_primary', 'password', 'datecreated', 'last_ip', 'last_login', 'last_password_change', 'active', 'new_pass_key', 'new_pass_key_requested', 'leadid', 'default_currency', 'profile_image', 'default_language', 'direction', 'show_primary_contact', 'invoice_emails', 'estimate_emails', 'project_emails', 'task_emails', 'contract_emails', 'credit_note_emails');
+    private $not_importable_clients_fields;
     public $pdf_zip;
 
     public function __construct()
     {
         parent::__construct();
+        $this->not_importable_clients_fields = do_action('not_importable_clients_fields',array('userid', 'id', 'is_primary', 'password', 'datecreated', 'last_ip', 'last_login', 'last_password_change', 'active', 'new_pass_key', 'new_pass_key_requested', 'leadid', 'default_currency', 'profile_image', 'default_language', 'direction', 'show_primary_contact', 'invoice_emails', 'estimate_emails', 'project_emails', 'task_emails', 'contract_emails', 'credit_note_emails','addedfrom','last_active_time'));
+        // last_active_time is from Chattr plugin, causing issue
     }
 
     /* List all clients */
@@ -45,6 +47,8 @@ class Clients extends Admin_controller
 
         $data['contacts_logged_in_today'] = $this->clients_model->get_contacts('', 'last_login LIKE "'.date('Y-m-d').'%"'.$whereContactsLoggedIn);
 
+        $data['countries'] = $this->clients_model->get_clients_distinct_countries();
+
         $this->load->view('admin/clients/manage', $data);
     }
 
@@ -56,13 +60,13 @@ class Clients extends Admin_controller
             }
         }
 
-        $this->perfex_base->get_table_data('clients');
+        $this->app->get_table_data('clients');
     }
 
     public function all_contacts()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('all_contacts');
+            $this->app->get_table_data('all_contacts');
         }
         $data['title'] = _l('customer_contacts');
         $this->load->view('admin/clients/all_contacts', $data);
@@ -303,6 +307,7 @@ class Clients extends Admin_controller
                     'success' => $success,
                     'message' => $message,
                     'has_primary_contact'=>(total_rows('tblcontacts', array('userid'=>$customer_id, 'is_primary'=>1)) > 0 ? true : false),
+                    'is_individual'=>is_empty_customer_company($customer_id) && total_rows('tblcontacts',array('userid'=>$customer_id)) == 1,
                 ));
                 die;
             } else {
@@ -376,7 +381,7 @@ class Clients extends Admin_controller
             $title = $data['contact']->firstname . ' ' . $data['contact']->lastname;
         }
 
-        $data['customer_permissions'] = $this->perfex_base->get_contact_permissions();
+        $data['customer_permissions'] = get_contact_permissions();
         $data['title']                = $title;
         $this->load->view('admin/clients/modals/contact', $data);
     }
@@ -504,7 +509,7 @@ class Clients extends Admin_controller
 
     public function contacts($client_id)
     {
-        $this->perfex_base->get_table_data('contacts', array(
+        $this->app->get_table_data('contacts', array(
             'client_id' => $client_id,
         ));
     }
@@ -956,8 +961,12 @@ class Clients extends Admin_controller
                                         $row[$i] = 0;
                                     }
                                 }
+                                if($row[$i] === 'NULL' || $row[$i] === 'null') {
+                                    $row[$i] = '';
+                                }
                                 $insert[$db_fields[$i]] = $row[$i];
                             }
+
 
                             if ($duplicate == true) {
                                 continue;
@@ -1036,7 +1045,7 @@ class Clients extends Admin_controller
                                     $insert = array();
                                     foreach ($custom_fields as $field) {
                                         if (!$this->input->post('simulate')) {
-                                            if ($row[$i] != '') {
+                                            if ($row[$i] != '' && $row[$i] !== 'NULL' && $row[$i] !== 'null') {
                                                 $this->db->insert('tblcustomfieldsvalues', array(
                                                     'relid' => $clientid,
                                                     'fieldid' => $field['id'],
@@ -1082,7 +1091,7 @@ class Clients extends Admin_controller
             access_denied('Customer Groups');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('customers_groups');
+            $this->app->get_table_data('customers_groups');
         }
         $data['title'] = _l('customer_groups');
         $this->load->view('admin/clients/groups_manage', $data);

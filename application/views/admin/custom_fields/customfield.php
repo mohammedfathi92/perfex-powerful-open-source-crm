@@ -25,6 +25,9 @@
                                 '<a href="'.admin_url('settings?group=clients#settings[customer_info_format]').'" target="_blank">'.admin_url('settings?group=clients').'</a>'
                                 )); ?>
                             </div>
+                             <div class="items_field_info mbot25 alert alert-warning<?php if(isset($custom_field) && $custom_field->fieldto != 'items' || !isset($custom_field)){echo ' hide';} ?>">
+                                Custom fields for items can't be included in calculation of totals.
+                            </div>
                             <div class="proposal_field_info mbot25 alert alert-info<?php if(isset($custom_field) && $custom_field->fieldto != 'proposal' || !isset($custom_field)){echo ' hide';} ?>">
                                 <?php echo _l('custom_field_info_format_embed_info',array(
                                     _l('proposals'),
@@ -41,7 +44,8 @@
                                 }
                             }
                             ?>
-                            <label for="fieldto"><?php echo _l('custom_field_add_edit_belongs_top'); ?></label>
+                          <div class="select-placeholder">
+                                <label for="fieldto"><?php echo _l('custom_field_add_edit_belongs_top'); ?></label>
                             <select name="fieldto" id="fieldto" class="selectpicker" data-width="100%" <?php echo $disable; ?> data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                 <option value=""></option>
                                 <option value="company" <?php if(isset($custom_field) && $custom_field->fieldto == 'company'){echo 'selected';} ?>><?php echo _l('custom_field_company'); ?></option>
@@ -53,17 +57,20 @@
                                 <option value="tasks" <?php if(isset($custom_field) && $custom_field->fieldto == 'tasks'){echo 'selected';} ?>><?php echo _l('custom_field_tasks'); ?></option>
                                 <option value="expenses" <?php if(isset($custom_field) && $custom_field->fieldto == 'expenses'){echo 'selected';} ?>><?php echo _l('custom_field_expenses'); ?></option>
                                 <option value="invoice" <?php if(isset($custom_field) && $custom_field->fieldto == 'invoice'){echo 'selected';} ?>><?php echo _l('custom_field_invoice'); ?></option>
+                                <option value="items" <?php if(isset($custom_field) && $custom_field->fieldto == 'items'){echo 'selected';} ?>><?php echo _l('items'); ?></option>
                                 <option value="credit_note" <?php if(isset($custom_field) && $custom_field->fieldto == 'credit_note'){echo 'selected';} ?>><?php echo _l('credit_note'); ?></option>
                                 <option value="estimate" <?php if(isset($custom_field) && $custom_field->fieldto == 'estimate'){echo 'selected';} ?>><?php echo _l('custom_field_estimate'); ?></option>
                                 <option value="proposal" <?php if(isset($custom_field) && $custom_field->fieldto == 'proposal'){echo 'selected';} ?>><?php echo _l('proposal'); ?></option>
                                 <option value="projects" <?php if(isset($custom_field) && $custom_field->fieldto == 'projects'){echo 'selected';} ?>><?php echo _l('projects'); ?></option>
                                 <option value="tickets" <?php if(isset($custom_field) && $custom_field->fieldto == 'tickets'){echo 'selected';} ?>><?php echo _l('tickets'); ?></option>
                             </select>
+                          </div>
                             <div class="clearfix mbot15"></div>
                             <?php $value = (isset($custom_field) ? $custom_field->name : ''); ?>
                             <?php echo render_input('name','custom_field_name',$value); ?>
-                            <label for="type"><?php echo _l('custom_field_add_edit_type'); ?></label>
-                            <select name="type" id="type" class="selectpicker"<?php if(isset($custom_field) && total_rows('tblcustomfieldsvalues',array('fieldid'=>$custom_field->id,'fieldto'=>$custom_field->fieldto)) > 0 && ($custom_field->type == 'checkbox' || $custom_field->type == 'select' || $custom_field->type == 'multiselect')){echo ' disabled';} ?> data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
+                           <div class="select-placeholder">
+                                <label for="type"><?php echo _l('custom_field_add_edit_type'); ?></label>
+                            <select name="type" id="type" class="selectpicker"<?php if(isset($custom_field) && total_rows('tblcustomfieldsvalues',array('fieldid'=>$custom_field->id,'fieldto'=>$custom_field->fieldto)) > 0){echo ' disabled';} ?> data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>" data-hide-disabled="true">
                                 <option value=""></option>
                                 <option value="input" <?php if(isset($custom_field) && $custom_field->type == 'input'){echo 'selected';} ?>>Input</option>
                                 <option value="number" <?php if(isset($custom_field) && $custom_field->type == 'number'){echo 'selected';} ?>>Number</option>
@@ -74,8 +81,9 @@
                                 <option value="date_picker" <?php if(isset($custom_field) && $custom_field->type == 'date_picker'){echo 'selected';} ?>>Date Picker</option>
                                 <option value="date_picker_time" <?php if(isset($custom_field) && $custom_field->type == 'date_picker_time'){echo 'selected';} ?>>Datetime Picker</option>
                                 <option value="colorpicker" <?php if(isset($custom_field) && $custom_field->type == 'colorpicker'){echo 'selected';} ?>>Color Picker</option>
-                                <option value="link" <?php if(isset($custom_field) && $custom_field->type == 'link'){echo 'selected';} ?>>Hyperlink</option>
+                                <option value="link" <?php if(isset($custom_field) && $custom_field->type == 'link'){echo 'selected';} ?><?php if(isset($custom_field) && $custom_field->fieldto == 'items'){echo 'disabled';} ?>>Hyperlink</option>
                             </select>
+                           </div>
                             <div class="clearfix mbot15"></div>
                             <div id="options_wrapper" class="<?php if(!isset($custom_field) || isset($custom_field) && $custom_field->type != 'select' && $custom_field->type != 'checkbox' && $custom_field->type != 'multiselect'){echo 'hide';} ?>">
                                 <span class="pull-left fa fa-question-circle" data-toggle="tooltip" title="<?php echo _l('custom_field_add_edit_options_tooltip'); ?>"></span>
@@ -100,7 +108,7 @@
                                 <label for="display_inline"><?php echo _l('display_inline'); ?></label>
                             </div>
                             <div class="checkbox checkbox-primary">
-                                <input type="checkbox" name="only_admin" id="only_admin" <?php if(isset($custom_field) && $custom_field->only_admin == 1){echo 'checked';} ?> <?php if(isset($custom_field) && $custom_field->fieldto == 'company'){echo 'disabled';} ?>>
+                                <input type="checkbox" name="only_admin" id="only_admin" <?php if(isset($custom_field) && $custom_field->only_admin == 1){echo 'checked';} ?> <?php if(isset($custom_field) && ($custom_field->fieldto == 'company' || $custom_field->fieldto == 'items')){echo 'disabled';} ?>>
                                 <label for="only_admin"><?php echo _l('custom_field_only_admin'); ?></label>
                             </div>
                             <div class="checkbox checkbox-primary disalow_client_to_edit <?php if(!isset($custom_field) || (isset($custom_field) && !in_array($custom_field->fieldto,$client_portal_fields)) || (isset($custom_field) && !in_array($custom_field->fieldto,$client_editable_fields))){echo 'hide';} ?>">
@@ -113,11 +121,11 @@
                             </div>
                             <p class="bold text-info"><?php echo _l('custom_field_visibility'); ?></p>
                             <div class="checkbox checkbox-primary">
-                                <input type="checkbox" name="show_on_table" id="show_on_table" <?php if(isset($custom_field) && $custom_field->show_on_table == 1){echo 'checked';} ?> <?php if(isset($custom_field) && $custom_field->fieldto == 'company'){echo 'disabled';} ?>>
+                                <input type="checkbox" name="show_on_table" id="show_on_table" <?php if(isset($custom_field) && $custom_field->show_on_table == 1){echo 'checked';} ?> <?php if(isset($custom_field) && ($custom_field->fieldto == 'company' || $custom_field->fieldto == 'items')){echo 'disabled';} ?>>
                                 <label for="show_on_table"><?php echo _l('custom_field_show_on_table'); ?></label>
                             </div>
                             <div class="checkbox checkbox-primary show-on-pdf <?php if(!isset($custom_field) || (isset($custom_field) && !in_array($custom_field->fieldto,$pdf_fields))){echo 'hide';} ?>">
-                                <input type="checkbox" name="show_on_pdf" id="show_on_pdf" <?php if(isset($custom_field) && $custom_field->show_on_pdf == 1){echo 'checked';} ?> <?php if(isset($custom_field) && $custom_field->fieldto == 'company'){echo 'disabled';} ?>>
+                                <input type="checkbox" name="show_on_pdf" id="show_on_pdf" <?php if(isset($custom_field) && $custom_field->show_on_pdf == 1){echo 'checked';} ?> <?php if(isset($custom_field) && ($custom_field->fieldto == 'company' || $custom_field->fieldto == 'items')){echo 'disabled';} ?>>
                                 <label for="show_on_pdf"><i class="fa fa-question-circle" data-toggle="tooltip" data-title="<?php echo _l('custom_field_pdf_html_help'); ?>"></i> <?php echo _l('custom_field_show_on_pdf'); ?></label>
                             </div>
                             <div class="checkbox checkbox-primary show-on-client-portal <?php if(!isset($custom_field) || (isset($custom_field) && !in_array($custom_field->fieldto,$client_portal_fields))){echo 'hide';} ?>">
@@ -138,112 +146,126 @@
         </div>
     </div>
     <?php init_tail(); ?>
-    <script>
-        var pdf_fields = <?php echo json_encode($pdf_fields); ?>;
-        var client_portal_fields = <?php echo json_encode($client_portal_fields); ?>;
-        var client_editable_fields = <?php echo json_encode($client_editable_fields); ?>;
-        $(function(){
-          _validate_form($('form'), {
-            fieldto: 'required',
-            name: 'required',
-            type: 'required',
-            bs_column: 'required',
-            options: {
-                required: {
-                    depends:function(element){
-                        var type = $('#type').val();
-                        return type == 'select' || type == 'checkbox' || type == 'multiselect';
-                    }
+<script>
+var pdf_fields = <?php echo json_encode($pdf_fields); ?>;
+var client_portal_fields = <?php echo json_encode($client_portal_fields); ?>;
+var client_editable_fields = <?php echo json_encode($client_editable_fields); ?>;
+$(function () {
+    _validate_form($('form'), {
+        fieldto: 'required',
+        name: 'required',
+        type: 'required',
+        bs_column: 'required',
+        options: {
+            required: {
+                depends: function (element) {
+                    var type = $('#type').val();
+                    return type == 'select' || type == 'checkbox' || type == 'multiselect';
                 }
             }
-        });
-          $('form').on('submit',function(){
-            $('#fieldto,#type').removeAttr('disabled');
-            return true;
-        });
-         $('select[name="fieldto"]').on('change', function() {
-            var field = $(this).val();
-         if ($.inArray(field, pdf_fields) !== -1) {
-              $('.show-on-pdf').removeClass('hide');
-          } else {
-              $('.show-on-pdf').addClass('hide');
-          }
+        }
+    });
+    $('form').on('submit', function () {
+        $('#fieldto,#type').removeAttr('disabled');
+        return true;
+    });
+    $('select[name="fieldto"]').on('change', function () {
+        var field = $(this).val();
+        if ($.inArray(field, pdf_fields) !== -1) {
+            $('.show-on-pdf').removeClass('hide');
+        } else {
+            $('.show-on-pdf').addClass('hide');
+        }
 
-          if ($.inArray(field, client_portal_fields) !== -1) {
-              $('.show-on-client-portal').removeClass('hide');
-              $('.disalow_client_to_edit').removeClass('hide');
+        if ($.inArray(field, client_portal_fields) !== -1) {
+            $('.show-on-client-portal').removeClass('hide');
+            $('.disalow_client_to_edit').removeClass('hide');
 
-            if($.inArray(field,client_editable_fields) !== -1){
+            if ($.inArray(field, client_editable_fields) !== -1) {
                 $('.disalow_client_to_edit').removeClass('hide');
             } else {
                 $('.disalow_client_to_edit').addClass('hide');
-                $('.disalow_client_to_edit input').prop('checked',false);
+                $('.disalow_client_to_edit input').prop('checked', false);
             }
-          } else {
-              $('.show-on-client-portal').addClass('hide');
-              $('.disalow_client_to_edit').addClass('hide');
-          }
-            if(field == 'tickets'){
-                $('.show-on-ticket-form').removeClass('hide');
-            } else {
-                $('.show-on-ticket-form').addClass('hide');
-                $('.show-on-ticket-form input').prop('checked',false);
-            }
+        } else {
+            $('.show-on-client-portal').addClass('hide');
+            $('.disalow_client_to_edit').addClass('hide');
+        }
+        if (field == 'tickets') {
+            $('.show-on-ticket-form').removeClass('hide');
+        } else {
+            $('.show-on-ticket-form').addClass('hide');
+            $('.show-on-ticket-form input').prop('checked', false);
+        }
 
-    if(field == 'customers'){
+        if (field == 'customers') {
             $('.customers_field_info').removeClass('hide');
         } else {
-         $('.customers_field_info').addClass('hide');
-     }
-     if(field == 'proposal'){
-        $('.proposal_field_info').removeClass('hide');
-    } else {
-     $('.proposal_field_info').addClass('hide');
- }
+            $('.customers_field_info').addClass('hide');
+        }
 
-     if(field == 'company'){
-        $('input[name="only_admin"]').attr('disabled',true).prop('checked',false);
-        $('input[name="disalow_client_to_edit"]').attr('disabled',true);
-        $('input[name="required"]').attr('disabled',true).prop('checked',false);
-        $('input[name="show_on_table"]').attr('disabled',true).prop('checked',false);
-        $('input[name="show_on_table"]').attr('checked',true);
-        $('input[name="show_on_pdf"]').attr('checked',true).prop('checked',true);
-        $('input[name="show_on_client_portal"]').attr('disabled',true).prop('checked',true);
-        $('.company_field_info').removeClass('hide');
-    } else {
-        $('.company_field_info').addClass('hide');
-        $('input[name="only_admin"]').attr('disabled',false);
-        $('input[name="disalow_client_to_edit"]').attr('disabled',false);
-        $('input[name="required"]').attr('disabled',false);
-        $('input[name="show_on_table"]').attr('disabled',false);
-        $('input[name="show_on_client_portal"]').attr('disabled',false);
-    }
-});
-          $('select[name="type"]').on('change', function() {
-              var type = $(this).val();
-              var options_wrapper = $('#options_wrapper');
-              var display_inline = $('.display-inline-checkbox')
-              if (type == 'select' || type == 'checkbox' || type == 'multiselect') {
-                options_wrapper.removeClass('hide');
-                if(type == 'checkbox'){
-                    display_inline.removeClass('hide');
-                } else {
-                    display_inline.addClass('hide');
-                    display_inline.find('input').prop('checked',false);
-                }
+        if (field == 'items') {
+            $('.items_field_info').removeClass('hide');
+        } else {
+            $('.items_field_info').addClass('hide');
+        }
+
+        if (field == 'company') {
+            $('.company_field_info').removeClass('hide');
+        } else {
+            $('.company_field_info').addClass('hide');
+        }
+
+        if (field == 'proposal') {
+            $('.proposal_field_info').removeClass('hide');
+        } else {
+            $('.proposal_field_info').addClass('hide');
+        }
+
+        if (field == 'company') {
+            $('#only_admin').prop('disabled', true).prop('checked', false);
+            $('input[name="required"]').prop('disabled', true).prop('checked', false);
+            $('#show_on_table').prop('disabled', true).prop('checked', false);
+            $('#show_on_client_portal').prop('disabled', true).prop('checked', true);
+        } else if(field =='items'){
+            $('#type option[value="link"]').prop('disabled', true);
+            $('#show_on_table').prop('disabled', true).prop('checked', true);
+            $('#show_on_pdf').prop('disabled', true).prop('checked', true);
+            $('#only_admin').prop('disabled', true).prop('checked', false);
+        } else {
+            $('#only_admin').prop('disabled', false).prop('checked',false);
+            $('input[name="required"]').prop('disabled', false).prop('checked',false);
+            $('#show_on_table').prop('disabled', false).prop('checked',false);
+            $('#show_on_client_portal').prop('disabled', false).prop('checked',false);
+            $('#show_on_pdf').prop('disabled', false).prop('checked',false);
+            $('#type option[value="link"]').prop('disabled', false);
+        }
+        $('#type').selectpicker('refresh');
+    });
+    $('select[name="type"]').on('change', function () {
+        var type = $(this).val();
+        var options_wrapper = $('#options_wrapper');
+        var display_inline = $('.display-inline-checkbox')
+        if (type == 'select' || type == 'checkbox' || type == 'multiselect') {
+            options_wrapper.removeClass('hide');
+            if (type == 'checkbox') {
+                display_inline.removeClass('hide');
             } else {
-                options_wrapper.addClass('hide');
                 display_inline.addClass('hide');
-                display_inline.find('input').prop('checked',false);
+                display_inline.find('input').prop('checked', false);
             }
-        });
+        } else {
+            options_wrapper.addClass('hide');
+            display_inline.addClass('hide');
+            display_inline.find('input').prop('checked', false);
+        }
+    });
 
-          $('body').on('change','input[name="only_admin"]',function(){
-              $('#show_on_client_portal').prop('disabled',$(this).prop('checked')).prop('checked',false);
-              $('#disalow_client_to_edit').prop('disabled',$(this).prop('checked')).prop('checked',false);
-          });
-
-      });
-  </script>
+    $('body').on('change', 'input[name="only_admin"]', function () {
+        $('#show_on_client_portal').prop('disabled', $(this).prop('checked')).prop('checked', false);
+        $('#disalow_client_to_edit').prop('disabled', $(this).prop('checked')).prop('checked', false);
+    });
+});
+</script>
 </body>
 </html>

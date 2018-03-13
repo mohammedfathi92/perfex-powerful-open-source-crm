@@ -373,7 +373,6 @@ class Newsfeed extends Admin_controller
     /* Add post attachments */
     public function add_post_attachments($id)
     {
-        $this->load->helper('perfex_upload');
         handle_newsfeed_post_attachments($id);
     }
     /* Staff click like button*/

@@ -15,7 +15,7 @@ class Roles extends Admin_controller
             access_denied('roles');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('roles');
+            $this->app->get_table_data('roles');
         }
         $data['title'] = _l('all_roles');
         $this->load->view('admin/roles/manage', $data);

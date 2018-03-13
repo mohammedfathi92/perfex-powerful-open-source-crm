@@ -16,7 +16,7 @@ class Goals extends Admin_controller
             access_denied('goals');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('goals');
+            $this->app->get_table_data('goals');
         }
         $data['circle_progress_asset'] = true;
         $data['title']                 = _l('goals_tracking');

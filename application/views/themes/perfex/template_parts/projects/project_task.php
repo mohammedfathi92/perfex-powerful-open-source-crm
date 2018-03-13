@@ -2,8 +2,8 @@
    <div class="row">
       <div class="col-md-12">
          <div class="row">
-            <div class="col-md-7">
-               <h3 class="mtop5 bold pull-left">
+            <div class="col-md-9">
+               <h3 class="no-mbot bold pull-left">
                   <?php if($project->settings->edit_tasks == 1 && $view_task->is_added_from_contact == 1 && $view_task->addedfrom == get_contact_user_id()){ ?>
                   <a href="<?php echo site_url('clients/project/'.$project->id.'?group=edit_task&taskid='.$view_task->id); ?>">
                   <small><i class="fa fa-pencil-square-o"></i></small>
@@ -11,41 +11,42 @@
                   <?php } ?> <?php echo $view_task->name; ?>
                </h3>
                <div class="clearfix"></div>
-               <?php if($project->settings->view_task_total_logged_time == 1){ ?>
-               <p class="pull-left no-mbot"><?php echo _l('task_total_logged_time'); ?>
-                  <?php echo seconds_to_time_format($this->tasks_model->calc_task_total_time($view_task->id)); ?>
-               </p>
-               <?php } ?>
-               <?php if($view_task->billed == 1){ ?>
-               <div class="clearfix"></div>
-               <p class="text-success"><?php echo _l('task_is_billed',format_invoice_number($view_task->invoice_id)); ?></p>
-               <?php } ?>
-            </div>
-            <div class="col-md-5">
-               <div class="task-info pull-right">
+               <div class="task-info pull-left no-p-left">
                   <h5 class="no-margin"><i class="fa fa-bolt"></i>
                      <?php echo _l('task_single_priority'); ?>: <?php echo task_priority($view_task->priority); ?>
                   </h5>
                </div>
-               <div class="task-info pull-right <?php if(!$view_task->status != 5){echo ' text-danger'; }else{echo 'text-info';} ?><?php if(!$view_task->duedate){ echo ' hide';} ?>">
-                  <h5 class="no-margin"><i class="fa fa-hourglass-end"></i>
-                     <?php echo _l('task_single_due_date'); ?>: <?php echo _d($view_task->duedate); ?>
-                  </h5>
-               </div>
-               <div class="text-success task-info pull-right">
+               <div class="text-success task-info pull-left">
                   <h5 class="no-margin"><i class="fa fa-hourglass-start"></i>
                      <?php echo _l('task_single_start_date'); ?>: <?php echo _d($view_task->startdate); ?>
                   </h5>
                </div>
+                 <div class="task-info pull-left <?php if(!$view_task->status != 5){echo ' text-danger'; }else{echo 'text-info';} ?><?php if(!$view_task->duedate){ echo ' hide';} ?>">
+                  <h5 class="no-margin"><i class="fa fa-hourglass-end"></i>
+                     <?php echo _l('task_single_due_date'); ?>: <?php echo _d($view_task->duedate); ?>
+                  </h5>
+               </div>
                <?php if($view_task->status == 5){ ?>
-               <div class="pull-right task-info text-success">
+               <div class="pull-left task-info text-success">
                   <h5 class="no-margin"><i class="fa fa-check"></i>
                      <?php echo _l('task_single_finished'); ?>: <?php echo _dt($view_task->datefinished); ?>
                   </h5>
                </div>
                <?php } ?>
+               <?php if($project->settings->view_task_total_logged_time == 1){ ?>
+                 <div class="pull-left task-info">
+                  <h5 class="no-margin"><i class="fa fa-clock-o"></i>
+                     <?php echo _l('task_total_logged_time'); ?> <?php echo seconds_to_time_format($this->tasks_model->calc_task_total_time($view_task->id)); ?>
+                  </h5>
+               </div>
+               <?php } ?>
+               <?php if($view_task->billed == 1){ ?>
                <div class="clearfix"></div>
-               <span class="task-single-status pull-right mright5"><?php echo format_task_status($view_task->status); ?></span>
+               <p class="no-mbot mtop15"><?php echo _l('task_is_billed',format_invoice_number($view_task->invoice_id)); ?></p>
+               <?php } ?>
+            </div>
+            <div class="col-md-3">
+               <span class="task-single-status pull-right mright5 mtop15"><?php echo format_task_status($view_task->status); ?></span>
             </div>
          </div>
          <?php if($project->settings->view_team_members == 1){ ?>
@@ -53,7 +54,7 @@
          <hr />
          <div class="row mbot20">
             <div class="col-md-3">
-               <i class="fa fa-users"></i> <span class="bold"><?php echo _l('task_single_assignees'); ?></span>
+               <i class="fa fa-user-o"></i> <span class="bold"><?php echo _l('task_single_assignees'); ?></span>
             </div>
             <div class="col-md-9" id="assignees">
                <?php

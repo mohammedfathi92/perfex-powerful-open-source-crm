@@ -8,7 +8,7 @@
 <?php if(count($invoices_to_merge) > 0){ ?>
 <div class="panel_s no-padding mbot5">
    <div class="panel-body">
-      <h4 class="no-margin"><?php echo _l('invoices_available_for_merging'); ?></h4>
+      <h4 class="font-medium bold no-mtop mbot15"><?php echo _l('invoices_available_for_merging'); ?></h4>
       <hr class="hr-panel-heading hr-10"/>
       <?php foreach($invoices_to_merge as $_inv){ ?>
       <p>
@@ -135,7 +135,7 @@
                      <ul class="dropdown-menu dropdown-menu-right">
                         <li><a href="<?php echo site_url('viewinvoice/' . $invoice->id . '/' .  $invoice->hash) ?>" target="_blank"><?php echo _l('view_invoice_as_customer_tooltip'); ?></a></li>
                         <li>
-                           <?php if($invoice->status == 4 || ($invoice->status == 3 && $invoice->duedate && date('Y-m-d') > date('Y-m-d',strtotime(to_sql_date($invoice->duedate))))){ ?>
+                           <?php if($invoice->status == 4 || ($invoice->status == 3 && !empty($invoice->duedate) && $invoice->duedate && date('Y-m-d') > date('Y-m-d',strtotime(to_sql_date($invoice->duedate)))) && is_invoices_overdue_reminders_enabled()){ ?>
                            <a href="<?php echo admin_url('invoices/send_overdue_notice/'.$invoice->id); ?>"><?php echo _l('send_overdue_notice_tooltip'); ?></a>
                            <?php } ?>
                         </li>
@@ -166,7 +166,7 @@
                            <?php } ?>
                         </li>
                         <?php } ?>
-                        <?php if(!in_array($invoice->status, array(2,5,6)) && has_permission('invoices','','edit') && get_option('cron_send_invoice_overdue_reminder') == 1 && $invoice->duedate){ ?>
+                        <?php if(!in_array($invoice->status, array(2,5,6)) && has_permission('invoices','','edit') && $invoice->duedate && is_invoices_overdue_reminders_enabled()){ ?>
                         <li>
                            <?php if($invoice->cancel_overdue_reminders == 1) { ?>
                            <a href="<?php echo admin_url('invoices/resume_overdue_reminders/'.$invoice->id); ?>"><?php echo _l('resume_overdue_reminders'); ?></a>
@@ -249,6 +249,12 @@
                      <?php } ?>
                      <div class="col-md-6">
                         <h4 class="bold">
+                            <?php
+                              $tags = get_tags_in($invoice->id,'invoice');
+                              if(count($tags) > 0){
+                                echo '<i class="fa fa-tag" aria-hidden="true" data-toggle="tooltip" data-title="'.implode(', ',$tags).'"></i>';
+                              }
+                              ?>
                            <a href="<?php echo admin_url('invoices/invoice/'.$invoice->id); ?>">
                            <span id="invoice-number">
                            <?php echo format_invoice_number($invoice->id); ?>
@@ -313,9 +319,13 @@
                            <table class="table items invoice-items-preview">
                               <thead>
                                  <tr>
-                                    <th>#</th>
-                                    <th class="description" width="50%"><?php echo _l('invoice_table_item_heading'); ?></th>
+                                    <th align="center">#</th>
+                                    <th class="description" width="50%" align="left"><?php echo _l('invoice_table_item_heading'); ?></th>
                                     <?php
+                                       $custom_fields = get_items_custom_fields_for_table_html($invoice->id,'invoice');
+                                       foreach($custom_fields as $cf){
+                                         echo '<th class="custom_field" align="left">' . $cf['name'] . '</th>';
+                                       }
                                        $qty_heading = _l('invoice_table_quantity_heading');
                                        if($invoice->show_quantity_as == 2){
                                          $qty_heading = _l('invoice_table_hours_heading');
@@ -323,12 +333,12 @@
                                          $qty_heading = _l('invoice_table_quantity_heading') .'/'._l('invoice_table_hours_heading');
                                        }
                                        ?>
-                                    <th><?php echo $qty_heading; ?></th>
-                                    <th><?php echo _l('invoice_table_rate_heading'); ?></th>
+                                    <th align="right"><?php echo $qty_heading; ?></th>
+                                    <th align="right"><?php echo _l('invoice_table_rate_heading'); ?></th>
                                     <?php if(get_option('show_tax_per_item') == 1){ ?>
-                                    <th><?php echo _l('invoice_table_tax_heading'); ?></th>
+                                    <th align="right"><?php echo _l('invoice_table_tax_heading'); ?></th>
                                     <?php } ?>
-                                    <th><?php echo _l('invoice_table_amount_heading'); ?></th>
+                                    <th align="right"><?php echo _l('invoice_table_amount_heading'); ?></th>
                                  </tr>
                               </thead>
                               <tbody>
@@ -336,7 +346,7 @@
                                     $items_data = get_table_items_and_taxes($invoice->items,'invoice',true);
                                     $taxes = $items_data['taxes'];
                                     echo $items_data['html'];
-                                    ?>
+                                 ?>
                               </tbody>
                            </table>
                         </div>
@@ -351,25 +361,24 @@
                                     <?php echo format_money($invoice->subtotal,$invoice->symbol); ?>
                                  </td>
                               </tr>
-                              <?php if($invoice->discount_percent != 0){ ?>
+                              <?php if(is_sale_discount_applied($invoice)){ ?>
                               <tr>
                                  <td>
-                                    <span class="bold"><?php echo _l('invoice_discount'); ?> (<?php echo _format_number($invoice->discount_percent,true); ?>%)</span>
+                                    <span class="bold"><?php echo _l('invoice_discount'); ?>
+                                       <?php if(is_sale_discount($invoice,'percent')){ ?>
+                                       (<?php echo _format_number($invoice->discount_percent,true); ?>%)
+                                       <?php } ?></span>
                                  </td>
                                  <td class="discount">
                                     <?php echo '-' . format_money($invoice->discount_total,$invoice->symbol); ?>
                                  </td>
                               </tr>
                               <?php } ?>
-                              <?php foreach($taxes as $tax){
-                                 $total = array_sum($tax['total']);
-                                 if($invoice->discount_percent != 0 && $invoice->discount_type == 'before_tax'){
-                                  $total_tax_calculated = ($total * $invoice->discount_percent) / 100;
-                                  $total = ($total - $total_tax_calculated);
+                              <?php
+                                 foreach($taxes as $tax){
+                                    echo '<tr class="tax-area"><td class="bold">'.$tax['taxname'].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($tax['total_tax'], $invoice->symbol).'</td></tr>';
                                  }
-                                 $_tax_name = explode('|',$tax['tax_name']);
-                                 echo '<tr class="tax-area"><td class="bold">'.$_tax_name[0].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($total,$invoice->symbol).'</td></tr>';
-                                 } ?>
+                              ?>
                               <?php if((int)$invoice->adjustment != 0){ ?>
                               <tr>
                                  <td>

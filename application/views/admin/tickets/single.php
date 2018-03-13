@@ -264,9 +264,9 @@
 								<div class="row">
 									<div class="col-md-6">
 										<?php echo render_input('subject','ticket_settings_subject',$ticket->subject); ?>
-										<div class="form-group">
-											<label for="contactid"><?php echo _l('contact'); ?></label>
-											<select name="contactid" id="contactid" class="ajax-search" data-width="100%" data-live-search="true" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
+										<div class="form-group select-placeholder">
+											<label for="contactid" class="control-label"><?php echo _l('contact'); ?></label>
+											<select name="contactid" id="contactid" class="ajax-search" data-width="100%" data-live-search="true" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>"<?php if(!empty($ticket->from_name) && !empty($ticket->ticket_email)){echo ' data-no-contact="true"';} ?>>
 												<?php
 												$rel_data = get_relation_data('contact',$ticket->contactid);
 												$rel_val = get_relation_values($rel_data,'contact');
@@ -278,7 +278,7 @@
 
 										<div class="row">
 											<div class="col-md-6">
-												<?php echo render_input('to','ticket_settings_to',$ticket->submitter,'text',array('disabled'=>true)); ?>
+												<?php echo render_input('name','ticket_settings_to',$ticket->submitter,'text',array('disabled'=>true)); ?>
 											</div>
 											<div class="col-md-6">
 												<?php
@@ -298,7 +298,7 @@
 											<input type="text" class="tagsinput" id="tags" name="tags" value="<?php echo prep_tags_input(get_tags_in($ticket->ticketid,'ticket')); ?>" data-role="tagsinput">
 										</div>
 
-										<div class="form-group">
+										<div class="form-group select-placeholder">
 											<label for="assigned" class="control-label">
 												<?php echo _l('ticket_settings_assign_to'); ?>
 											</label>
@@ -329,7 +329,7 @@
 											</div>
 											<?php } ?>
 										</div>
-										<div class="form-group projects-wrapper<?php if($ticket->userid == 0){echo ' hide';} ?>">
+										<div class="form-group select-placeholder projects-wrapper<?php if($ticket->userid == 0){echo ' hide';} ?>">
 											<label for="project_id"><?php echo _l('project'); ?></label>
 											<div id="project_ajax_search_wrapper">
 												<select name="project_id" id="project_id" class="projects ajax-search" data-live-search="true" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
@@ -411,7 +411,7 @@
 							<?php echo check_for_links($ticket->message); ?>
 						</div><br />
 						<p>-----------------------------</p>
-						<?php if(filter_var($ticket->ip, FILTER_VALIDATE_IP)){ ?>
+						<?php if(filter_var($ticket->ip, FILTER_VALIDATE_IP) && $ticket->ip != '0.0.0.0'){ ?>
 						<p>IP: <?php echo $ticket->ip; ?></p>
 						<?php } ?>
 
@@ -426,7 +426,7 @@
 									echo '<div class="preview_image">';
 								}
 								?>
-								<a href="<?php echo site_url('download/file/ticket/'. $attachment['id']); ?>" class="display-block mbot5">
+								<a href="<?php echo site_url('download/file/ticket/'. $attachment['id']); ?>" class="display-block mbot5"<?php if($is_image){ ?> data-lightbox="attachment-ticket-<?php echo $ticket->ticketid; ?>" <?php } ?>>
 									<i class="<?php echo get_mime_class($attachment['filetype']); ?>"></i> <?php echo $attachment['file_name']; ?>
 									<?php if($is_image){ ?>
 									<img class="mtop5" src="<?php echo site_url('download/preview_image?path='.protected_file_url_by_path($path).'&type='.$attachment['filetype']); ?>">
@@ -496,7 +496,7 @@
 								<?php echo check_for_links($reply['message']); ?>
 							</div><br />
 							<p>-----------------------------</p>
-							<?php if(filter_var($reply['ip'], FILTER_VALIDATE_IP)){ ?>
+							<?php if(filter_var($reply['ip'], FILTER_VALIDATE_IP) && $reply['ip'] != '0.0.0.0'){ ?>
 							<p>IP: <?php echo $reply['ip']; ?></p>
 							<?php } ?>
 							<?php if(count($reply['attachments']) > 0){
@@ -509,7 +509,7 @@
 										echo '<div class="preview_image">';
 									}
 									?>
-									<a href="<?php echo site_url('download/file/ticket/'. $attachment['id']); ?>" class="display-block mbot5">
+									<a href="<?php echo site_url('download/file/ticket/'. $attachment['id']); ?>" class="display-block mbot5"<?php if($is_image){ ?> data-lightbox="attachment-reply-<?php echo $reply['id']; ?>" <?php } ?>>
 										<i class="<?php echo get_mime_class($attachment['filetype']); ?>"></i> <?php echo $attachment['file_name']; ?>
 										<?php if($is_image){ ?>
 										<img class="mtop5" src="<?php echo site_url('download/preview_image?path='.protected_file_url_by_path($path).'&type='.$attachment['filetype']); ?>">
@@ -633,7 +633,8 @@
 			} else {
 				_ticket_message = $('[data-reply-id="'+id+'"]').html();
 			}
-			new_task_from_relation(undefined,'ticket',<?php echo $ticket->ticketid; ?>);
+			var new_task_url = admin_url + 'tasks/task?rel_id=<?php echo $ticket->ticketid; ?>&rel_type=ticket&ticket_to_task=true';
+			new_task(new_task_url);
 		}
 		<?php } ?>
 

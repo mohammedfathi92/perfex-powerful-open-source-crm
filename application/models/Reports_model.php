@@ -358,12 +358,12 @@ class Reports_model extends CRM_Model
                 $custom_date_select = '(tblinvoicepaymentrecords.date BETWEEN "' .
                 date('Y-m-d',strtotime(date('Y-01-01'))) .
                 '" AND "' .
-                date('Y-m-d',strtotime(date('Y-12-'.date('d',strtotime('last day of this year'))))) . '")';
+                date('Y-m-d',strtotime(date('Y-12-31'))) . '")';
             } elseif($months_report == 'last_year'){
              $custom_date_select = '(tblinvoicepaymentrecords.date BETWEEN "' .
                 date('Y-m-d',strtotime(date(date('Y',strtotime('last year')).'-01-01'))) .
                 '" AND "' .
-                date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-'.date('d',strtotime('last day of last year'))))) . '")';
+                date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-31'))) . '")';
             } elseif ($months_report == 'custom') {
                 $from_date = to_sql_date($this->input->post('report_from'));
                 $to_date   = to_sql_date($this->input->post('report_to'));

@@ -16,7 +16,13 @@
       </div>
       <?php } ?>
       <?php if(isset($member)){ ?>
+
       <div class="col-md-12">
+         <?php if(total_rows('tbldepartments',array('email'=>$member->email)) > 0) { ?>
+            <div class="alert alert-danger">
+               The staff member email exists also as support department email, according to the docs, the support department email must be unique email in the system, you must change the staff email or the support department email in order all the features to work properly.
+            </div>
+         <?php } ?>
          <div class="panel_s">
             <div class="panel-body">
                <h4 class="no-margin"><?php echo $member->firstname . ' ' . $member->lastname; ?>
@@ -52,11 +58,13 @@
                </ul>
                <div class="tab-content">
                   <div role="tabpanel" class="tab-pane active" id="tab_staff_profile">
+                     <?php if(total_rows('tblemailtemplates',array('slug'=>'two-factor-authentication','active'=>0)) == 0){ ?>
                      <div class="checkbox checkbox-primary">
                         <input type="checkbox" value="1" name="two_factor_auth_enabled" id="two_factor_auth_enabled"<?php if(isset($member) && $member->two_factor_auth_enabled == 1){echo ' checked';} ?>>
                         <label for="two_factor_auth_enabled"><i class="fa fa-question-circle" data-toggle="tooltip" data-title="<?php echo _l('two_factor_authentication_info'); ?>"></i>
                         <?php echo _l('enable_two_factor_authentication'); ?></label>
                      </div>
+                     <?php } ?>
                      <div class="is-not-staff<?php if(isset($member) && $member->admin == 1){ echo ' hide'; }?>">
                         <div class="checkbox checkbox-primary">
                            <?php
@@ -121,11 +129,11 @@
                         <input type="text" class="form-control" name="skype" value="<?php if(isset($member)){echo $member->skype;} ?>">
                      </div>
                      <?php if(get_option('disable_language') == 0){ ?>
-                     <div class="form-group">
+                     <div class="form-group select-placeholder">
                         <label for="default_language" class="control-label"><?php echo _l('localization_default_language'); ?></label>
                         <select name="default_language" data-live-search="true" id="default_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                            <option value=""><?php echo _l('system_default_string'); ?></option>
-                           <?php foreach($this->perfex_base->get_available_languages() as $language){
+                           <?php foreach($this->app->get_available_languages() as $language){
                               $selected = '';
                               if(isset($member)){
                                if($member->default_language == $language){
@@ -138,10 +146,10 @@
                         </select>
                      </div>
                      <?php } ?>
-                     <i class="fa fa-question-circle" data-toggle="tooltip" data-title="<?php echo _l('staff_email_signature_help'); ?>"></i>
+                     <i class="fa fa-question-circle pull-left" data-toggle="tooltip" data-title="<?php echo _l('staff_email_signature_help'); ?>"></i>
                      <?php $value = (isset($member) ? $member->email_signature : ''); ?>
                      <?php echo render_textarea('email_signature','settings_email_signature',$value); ?>
-                     <div class="form-group">
+                     <div class="form-group select-placeholder">
                         <label for="direction"><?php echo _l('document_direction'); ?></label>
                         <select class="selectpicker" data-none-selected-text="<?php echo _l('system_default_string'); ?>" data-width="100%" name="direction" id="direction">
                            <option value="" <?php if(isset($member) && empty($member->direction)){echo 'selected';} ?>></option>
@@ -257,16 +265,18 @@
                            <tbody>
                               <?php
                                  if(isset($member)){
-                                  $is_admin = is_admin($member->staffid);
+                                    $is_admin = is_admin($member->staffid);
+                                    $is_staff_member = is_staff_member($member->staffid);
                                  }
                                  $conditions = get_permission_conditions();
                                  foreach($permissions as $permission){
+                                  if($permission['shortname'] == 'leads' && isset($is_staff_member) && !$is_staff_member) {
+                                       continue;
+                                  }
                                   $permission_condition = $conditions[$permission['shortname']];
                                   ?>
-                              <tr data-id="<?php echo $permission['permissionid']; ?>">
+                              <tr data-id="<?php echo $permission['permissionid']; ?>" data-name="<?php echo $permission['shortname']; ?>">
                                  <td>
-                                    <?php
-                                       ?>
                                     <?php echo $permission['name']; ?>
                                  </td>
                                  <td class="text-center">
@@ -303,16 +313,16 @@
                                        <label></label>
                                     </div>
                                     <?php } else if($permission['shortname'] == 'customers'){
-                                       echo '<i class="fa fa-question-circle mtop15" data-toggle="tooltip" data-title="'._l('permission_customers_based_on_admins').'"></i>';
+                                       echo '<i class="fa fa-question-circle mtop5" data-toggle="tooltip" data-title="'._l('permission_customers_based_on_admins').'"></i>';
                                        } else if($permission['shortname'] == 'projects'){
-                                       echo '<i class="fa fa-question-circle mtop25" data-toggle="tooltip" data-title="'._l('permission_projects_based_on_assignee').'"></i>';
+                                       echo '<i class="fa fa-question-circle mtop15" data-toggle="tooltip" data-title="'._l('permission_projects_based_on_assignee').'"></i>';
                                        } else if($permission['shortname'] == 'tasks'){
-                                       echo '<i class="fa fa-question-circle mtop25" data-toggle="tooltip" data-title="'._l('permission_tasks_based_on_assignee').'"></i>';
+                                       echo '<i class="fa fa-question-circle mtop15" data-toggle="tooltip" data-title="'._l('permission_tasks_based_on_assignee').'"></i>';
                                        } else if($permission['shortname'] == 'payments'){
-                                       echo '<i class="fa fa-question-circle mtop15" data-toggle="tooltip" data-title="'._l('permission_payments_based_on_invoices').'"></i>';
+                                       echo '<i class="fa fa-question-circle mtop5" data-toggle="tooltip" data-title="'._l('permission_payments_based_on_invoices').'"></i>';
                                        } ?>
                                  </td>
-                                 <td  class="text-center">
+                                 <td class="text-center">
                                     <?php if($permission_condition['create'] == true){
                                        $statement = '';
                                        if(isset($is_admin) && $is_admin){
@@ -326,6 +336,11 @@
                                        <label></label>
                                     </div>
                                     <?php } ?>
+                                     <?php
+                                       if(isset($permission_condition['help_create'])){
+                                         echo '<i class="fa fa-question-circle" data-toggle="tooltip" data-title="'.$permission_condition['help_create'].'"></i>';
+                                       }
+                                       ?>
                                  </td>
                                  <td  class="text-center">
                                     <?php if($permission_condition['edit'] == true){
@@ -341,6 +356,12 @@
                                        <label></label>
                                     </div>
                                     <?php } ?>
+                                     <?php
+                                       if(isset($permission_condition['help_edit'])){
+                                         echo '<i class="fa fa-question-circle" data-toggle="tooltip" data-title="'.$permission_condition['help_edit'].'"></i>';
+                                       }
+                                       ?>
+
                                  </td>
                                  <td  class="text-center">
                                     <?php if($permission_condition['delete'] == true){
@@ -439,13 +460,15 @@
                <?php echo form_hidden('filter','true'); ?>
                <div class="row">
                   <div class="col-md-6">
-                     <select name="range" id="range" class="selectpicker" data-width="100%">
-                        <option value="this_month" <?php if(!$this->input->get('range') || $this->input->get('range') == 'this_month'){echo 'selected';} ?>><?php echo _l('staff_stats_this_month_total_logged_time'); ?></option>
-                        <option value="last_month" <?php if($this->input->get('range') == 'last_month'){echo 'selected';} ?>><?php echo _l('staff_stats_last_month_total_logged_time'); ?></option>
-                        <option value="this_week" <?php if($this->input->get('range') == 'this_week'){echo 'selected';} ?>><?php echo _l('staff_stats_this_week_total_logged_time'); ?></option>
-                        <option value="last_week" <?php if($this->input->get('range') == 'last_week'){echo 'selected';} ?>><?php echo _l('staff_stats_last_week_total_logged_time'); ?></option>
-                        <option value="period" <?php if($this->input->get('range') == 'period'){echo 'selected';} ?>><?php echo _l('period_datepicker'); ?></option>
-                     </select>
+                     <div class="select-placeholder">
+                        <select name="range" id="range" class="selectpicker" data-width="100%">
+                           <option value="this_month" <?php if(!$this->input->get('range') || $this->input->get('range') == 'this_month'){echo 'selected';} ?>><?php echo _l('staff_stats_this_month_total_logged_time'); ?></option>
+                           <option value="last_month" <?php if($this->input->get('range') == 'last_month'){echo 'selected';} ?>><?php echo _l('staff_stats_last_month_total_logged_time'); ?></option>
+                           <option value="this_week" <?php if($this->input->get('range') == 'this_week'){echo 'selected';} ?>><?php echo _l('staff_stats_this_week_total_logged_time'); ?></option>
+                           <option value="last_week" <?php if($this->input->get('range') == 'last_week'){echo 'selected';} ?>><?php echo _l('staff_stats_last_week_total_logged_time'); ?></option>
+                           <option value="period" <?php if($this->input->get('range') == 'period'){echo 'selected';} ?>><?php echo _l('period_datepicker'); ?></option>
+                        </select>
+                     </div>
                      <div class="row mtop15">
                         <div class="col-md-12 period <?php if($this->input->get('range') != 'period'){echo 'hide';} ?>">
                            <?php echo render_date_input('period-from','',$this->input->get('period-from')); ?>
@@ -541,55 +564,67 @@
 </div>
 <?php init_tail(); ?>
 <script>
-   $(function(){
+   $(function() {
 
-    $('select[name="role"]').on('change', function() {
-      var roleid = $(this).val();
-      init_roles_permissions(roleid, true);
-    });
+       $('select[name="role"]').on('change', function() {
+           var roleid = $(this).val();
+           init_roles_permissions(roleid, true);
+       });
 
-    $('input[name="administrator"]').on('change',function(){
-      var checked = $(this).prop('checked');
-      var isNotStaffMember = $('.is-not-staff');
-      if(checked == true){
-        isNotStaffMember.addClass('hide');
-        $('.roles').find('input').prop('disabled',true).prop('checked',false);
-      } else {
-        isNotStaffMember.removeClass('hide');
-        isNotStaffMember.find('input').prop('checked',false);
-        $('.roles').find('input').prop('disabled',false);
-      }
-    });
+       $('input[name="administrator"]').on('change', function() {
+           var checked = $(this).prop('checked');
+           var isNotStaffMember = $('.is-not-staff');
+           if (checked == true) {
+               isNotStaffMember.addClass('hide');
+               $('.roles').find('input').prop('disabled', true).prop('checked', false);
+           } else {
+               isNotStaffMember.removeClass('hide');
+               isNotStaffMember.find('input').prop('checked', false);
+               $('.roles').find('input').prop('disabled', false);
+           }
+       });
 
-    init_roles_permissions();
-    _validate_form($('.staff-form'),{
-     firstname:'required',
-     lastname:'required',
-     username:'required',
-     password: {
-      required: {
-       depends: function(element){
-        return ($('input[name="isedit"]').length == 0) ? true : false
-      }
-    }
-   },
-   email: {
-    required:true,
-    email:true,
-    remote:{
-     url: site_url + "admin/misc/staff_email_exists",
-     type:'post',
-     data: {
-      email:function(){
-       return $('input[name="email"]').val();
-     },
-     memberid:function(){
-       return $('input[name="memberid"]').val();
-     }
-   }
-   }
-   }
-   });
+       $('#is_not_staff').on('change', function() {
+           var checked = $(this).prop('checked');
+           var row_permission_leads = $('tr[data-name="leads"]');
+           if (checked == true) {
+               row_permission_leads.addClass('hide');
+               row_permission_leads.find('input').prop('checked', false);
+           } else {
+               row_permission_leads.removeClass('hide');
+           }
+       });
+
+       init_roles_permissions();
+
+       _validate_form($('.staff-form'), {
+           firstname: 'required',
+           lastname: 'required',
+           username: 'required',
+           password: {
+               required: {
+                   depends: function(element) {
+                       return ($('input[name="isedit"]').length == 0) ? true : false
+                   }
+               }
+           },
+           email: {
+               required: true,
+               email: true,
+               remote: {
+                   url: site_url + "admin/misc/staff_email_exists",
+                   type: 'post',
+                   data: {
+                       email: function() {
+                           return $('input[name="email"]').val();
+                       },
+                       memberid: function() {
+                           return $('input[name="memberid"]').val();
+                       }
+                   }
+               }
+           }
+       });
    });
 
 </script>

@@ -123,9 +123,13 @@
                     <table class="table items">
                         <thead>
                             <tr>
-                                <th>#</th>
-                                <th class="description" width="50%"><?php echo _l('estimate_table_item_heading'); ?></th>
+                                <th align="center">#</th>
+                                <th class="description" width="50%" align="left"><?php echo _l('estimate_table_item_heading'); ?></th>
                                 <?php
+                                    $custom_fields = get_items_custom_fields_for_table_html($estimate->id,'estimate');
+                                    foreach($custom_fields as $cf){
+                                       echo '<th class="custom_field" align="left">' . $cf['name'] . '</th>';
+                                }
                                 $qty_heading = _l('estimate_table_quantity_heading');
                                 if($estimate->show_quantity_as == 2){
                                     $qty_heading = _l('estimate_table_hours_heading');
@@ -133,12 +137,12 @@
                                     $qty_heading = _l('estimate_table_quantity_heading') .'/'._l('estimate_table_hours_heading');
                                 }
                                 ?>
-                                <th><?php echo $qty_heading; ?></th>
-                                <th><?php echo _l('estimate_table_rate_heading'); ?></th>
+                                <th align="right"><?php echo $qty_heading; ?></th>
+                                <th align="right"><?php echo _l('estimate_table_rate_heading'); ?></th>
                                 <?php if(get_option('show_tax_per_item') == 1){ ?>
-                                <th><?php echo _l('estimate_table_tax_heading'); ?></th>
+                                <th align="right"><?php echo _l('estimate_table_tax_heading'); ?></th>
                                 <?php } ?>
-                                <th><?php echo _l('estimate_table_amount_heading'); ?></th>
+                                <th align="right"><?php echo _l('estimate_table_amount_heading'); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -162,26 +166,23 @@
                             <?php echo format_money($estimate->subtotal,$estimate->symbol); ?>
                         </td>
                     </tr>
-                    <?php if($estimate->discount_percent != 0){ ?>
-                    <tr>
-                        <td>
-                            <span class="bold"><?php echo _l('estimate_discount'); ?> (<?php echo _format_number($estimate->discount_percent,true); ?>%)</span>
-                        </td>
-                        <td class="discount">
+                     <?php if(is_sale_discount_applied($estimate)){ ?>
+                     <tr>
+                         <td>
+                            <span class="bold"><?php echo _l('estimate_discount'); ?>
+                             <?php if(is_sale_discount($estimate,'percent')){ ?>
+                             (<?php echo _format_number($estimate->discount_percent,true); ?>%)
+                             <?php } ?></span>
+                         </td>
+                         <td class="discount">
                             <?php echo '-' . format_money($estimate->discount_total,$estimate->symbol); ?>
-                        </td>
-                    </tr>
+                         </td>
+                     </tr>
                     <?php } ?>
                     <?php
-                    foreach($taxes as $tax){
-                        $total = array_sum($tax['total']);
-                        if($estimate->discount_percent != 0 && $estimate->discount_type == 'before_tax'){
-                            $total_tax_calculated = ($total * $estimate->discount_percent) / 100;
-                            $total = ($total - $total_tax_calculated);
+                        foreach($taxes as $tax){
+                            echo '<tr class="tax-area"><td class="bold">'.$tax['taxname'].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($tax['total_tax'], $estimate->symbol).'</td></tr>';
                         }
-                        $_tax_name = explode('|',$tax['tax_name']);
-                        echo '<tr class="tax-area"><td class="bold">'.$_tax_name[0].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($total,$estimate->symbol).'</td></tr>';
-                    }
                     ?>
                     <?php if((int)$estimate->adjustment != 0){ ?>
                     <tr>
@@ -203,7 +204,6 @@
                 </tbody>
             </table>
         </div>
-
         <?php
         if(get_option('total_to_words_enabled') == 1){ ?>
         <div class="col-md-12 text-center">
@@ -216,7 +216,7 @@
         <p class="bold mbot15 font-medium"><?php echo _l('estimate_files'); ?></p>
     </div>
     <?php foreach($estimate->attachments as $attachment){
-                        // Do not show hidden attachments to customer
+        // Do not show hidden attachments to customer
         if($attachment['visible_to_customer'] == 0){continue;}
         $attachment_url = site_url('download/file/sales_attachment/'.$attachment['attachment_key']);
         if(!empty($attachment['external'])){

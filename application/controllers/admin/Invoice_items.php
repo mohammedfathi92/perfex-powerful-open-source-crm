@@ -32,7 +32,7 @@ class Invoice_items extends Admin_controller
         if (!has_permission('items', '', 'view')) {
             ajax_access_denied();
         }
-        $this->perfex_base->get_table_data('invoice_items');
+        $this->app->get_table_data('invoice_items');
     }
     /* Edit or update items / ajax request /*/
     public function manage()
@@ -138,6 +138,20 @@ class Invoice_items extends Admin_controller
         if ($this->input->is_ajax_request()) {
             $item                   = $this->invoice_items_model->get($id);
             $item->long_description = nl2br($item->long_description);
+            $item->custom_fields_html = render_custom_fields('items',$id,array(),array('items_pr'=>true));
+            $item->custom_fields = array();
+
+            $cf = get_custom_fields('items');
+
+            foreach($cf as $custom_field) {
+                $val = get_custom_field_value($id,$custom_field['id'],'items_pr');
+                if($custom_field['type'] == 'textarea') {
+                    $val = clear_textarea_breaks($val);
+                }
+                $custom_field['value'] = $val;
+                $item->custom_fields[] = $custom_field;
+            }
+
             echo json_encode($item);
         }
     }

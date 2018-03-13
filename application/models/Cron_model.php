@@ -73,9 +73,9 @@ class Cron_model extends CRM_Model
             $last_email_queue_retry = get_option('last_email_queue_retry');
 
             // Retry queue failed emails every 10 minutes
-            if ($last_email_queue_retry == '' || (time() > ($last_email_queue_retry + do_action('cron_retry_email_queue_seconds',600)))) {
+            if ($last_email_queue_retry == '' || (time() > ($last_email_queue_retry + do_action('cron_retry_email_queue_seconds', 600)))) {
                 $this->email->retry_queue();
-                update_option('last_email_queue_retry',time());
+                update_option('last_email_queue_retry', time());
             }
         }
     }
@@ -185,9 +185,9 @@ class Cron_model extends CRM_Model
         }
 
         $this->db->select('ticketid,lastreply,date,userid,contactid,email');
-        $this->db->where('status !=', 5);
-        $this->db->where('status !=', 4);
-        $this->db->where('status !=', 2);
+        $this->db->where('status !=', 5); // Closed
+        $this->db->where('status !=', 4); // On Hold
+        $this->db->where('status !=', 2); // In Progress
         $tickets = $this->db->get('tbltickets')->result_array();
         foreach ($tickets as $ticket) {
             $close_ticket = false;
@@ -231,11 +231,11 @@ class Cron_model extends CRM_Model
         }
 
         $hour_now = date('G');
-        if ($hour_now < $contracts_auto_operations_hour && $this->manually == false) {
+        if ($hour_now < $contracts_auto_operations_hour && $this->manually === false) {
             return;
         }
 
-        $this->db->select('id,client,dateend,subject,addedfrom,not_visible_to_client');
+        $this->db->select('id,client,dateend,subject,addedfrom,not_visible_to_client,dateadded');
         $this->db->where('isexpirynotified', 0);
         $this->db->where('dateend is NOT NULL');
         $this->db->where('trash', 0);
@@ -250,7 +250,7 @@ class Cron_model extends CRM_Model
             if ($contract['dateend'] > date('Y-m-d')) {
                 $dateend = new DateTime($contract['dateend']);
                 $diff    = $dateend->diff($now)->format("%a");
-                if ($diff <= get_option('contract_expiration_before') && get_option('contract_expiry_reminder_enabled') == 1) {
+                if ($diff <= get_option('contract_expiration_before')) {
                     $merge_fields = array();
                     $merge_fields = array_merge($merge_fields, get_client_contact_merge_fields($contract['client']));
                     $merge_fields = array_merge($merge_fields, get_contract_merge_fields($contract['id']));
@@ -281,8 +281,13 @@ class Cron_model extends CRM_Model
                             $merge_fields = array_merge($merge_fields, get_client_contact_merge_fields($contract['client'], $contact['id']));
                             $merge_fields = array_merge($merge_fields, get_contract_merge_fields($contract['id']));
                             $this->emails_model->send_email_template('contract-expiration', $contact['email'], $merge_fields);
+
+                            if(can_send_sms_based_on_creation_date($contract['dateadded'])){
+                                $this->sms->trigger(SMS_TRIGGER_CONTRACT_EXP_REMINDER, $contact['phonenumber'], $merge_fields);
+                            }
                         }
                     }
+
                     $this->db->where('id', $contract['id']);
                     $this->db->update('tblcontracts', array(
                         'isexpirynotified' => 1,
@@ -296,10 +301,9 @@ class Cron_model extends CRM_Model
 
     public function recurring_tasks()
     {
-        $this->db->select('id,addedfrom,recurring_ends_on,recurring_type,repeat_every,last_recurring_date,startdate');
+        $this->db->select('id,addedfrom,recurring_ends_on,recurring_type,repeat_every,last_recurring_date,startdate,duedate');
         $this->db->where('recurring', 1);
         $recurring_tasks = $this->db->get('tblstafftasks')->result_array();
-
 
         foreach ($recurring_tasks as $task) {
             if (!is_null($task['recurring_ends_on'])) {
@@ -322,14 +326,15 @@ class Cron_model extends CRM_Model
                 $last_recurring_date = date('Y-m-d', strtotime($last_recurring_date));
             }
 
-            $calculated_date_difference = date('Y-m-d', strtotime('+' . $repeat_every . ' ' . strtoupper($type), strtotime($last_recurring_date)));
+            $re_create_at = date('Y-m-d', strtotime('+' . $repeat_every . ' ' . strtoupper($type), strtotime($last_recurring_date)));
 
-            if (date('Y-m-d') >= $calculated_date_difference) {
+            if (date('Y-m-d') >= $re_create_at) {
                 $copy_task_data['copy_task_followers']       = 'true';
                 $copy_task_data['copy_task_checklist_items'] = 'true';
                 $copy_task_data['copy_from']                 = $task['id'];
 
-                $newTaskID = $this->tasks_model->copy($copy_task_data, array(
+                $overwrite_params = array(
+                    'startdate' => $re_create_at,
                     'status' => do_action('recurring_task_status', 1),
                     'recurring_type' => null,
                     'repeat_every' => 0,
@@ -337,11 +342,21 @@ class Cron_model extends CRM_Model
                     'recurring_ends_on' => null,
                     'custom_recurring' => 0,
                     'last_recurring_date' => null,
-                ));
+                );
+
+                if (!empty($task['duedate'])) {
+                    $dStart                    = new DateTime($task['startdate']);
+                    $dEnd                      = new DateTime($task['duedate']);
+                    $dDiff                     = $dStart->diff($dEnd);
+                    $overwrite_params['duedate'] = date('Y-m-d', strtotime('+'.$dDiff->days.' days', strtotime($re_create_at)));
+                }
+
+                $newTaskID = $this->tasks_model->copy($copy_task_data, $overwrite_params);
+
                 if ($newTaskID) {
                     $this->db->where('id', $task['id']);
                     $this->db->update('tblstafftasks', array(
-                        'last_recurring_date' => date('Y-m-d'),
+                        'last_recurring_date' => $re_create_at,
                     ));
                     $this->db->where('taskid', $task['id']);
                     $assigned = $this->db->get('tblstafftaskassignees')->result_array();
@@ -364,12 +379,14 @@ class Cron_model extends CRM_Model
     private function recurring_expenses()
     {
         $expenses_hour_auto_operations = get_option('expenses_auto_operations_hour');
+
         if ($expenses_hour_auto_operations == '') {
             $expenses_hour_auto_operations = 9;
         }
 
         $hour_now = date('G');
-        if ($hour_now < $expenses_hour_auto_operations && $this->manually == false) {
+
+        if ($hour_now < $expenses_hour_auto_operations && $this->manually === false) {
             return;
         }
 
@@ -402,9 +419,9 @@ class Cron_model extends CRM_Model
             } else {
                 $last_recurring_date = date('Y-m-d', strtotime($last_recurring_date));
             }
-            $calculated_date_difference = date('Y-m-d', strtotime('+' . $repeat_every . ' ' . strtoupper($type), strtotime($last_recurring_date)));
+            $re_create_at = date('Y-m-d', strtotime('+' . $repeat_every . ' ' . strtoupper($type), strtotime($last_recurring_date)));
 
-            if (date('Y-m-d') >= $calculated_date_difference) {
+            if (date('Y-m-d') >= $re_create_at) {
                 // Ok we can repeat the expense now
                 $new_expense_data = array();
                 $expense_fields   = $this->db->list_fields('tblexpenses');
@@ -418,7 +435,7 @@ class Cron_model extends CRM_Model
                 }
 
                 $new_expense_data['dateadded']      = date('Y-m-d H:i:s');
-                $new_expense_data['date']           = date('Y-m-d');
+                $new_expense_data['date']           = $re_create_at;
                 $new_expense_data['recurring_from'] = $expense['id'];
                 $new_expense_data['addedfrom']      = $expense['addedfrom'];
 
@@ -448,12 +465,13 @@ class Cron_model extends CRM_Model
                     $total_renewed++;
                     $this->db->where('id', $expense['id']);
                     $this->db->update('tblexpenses', array(
-                        'last_recurring_date' => date('Y-m-d'),
+                        'last_recurring_date' => $re_create_at,
+                        // In case cron job is late use the date actually when the recurring supposed to happen
                     ));
                     $sent               = false;
                     $created_invoice_id = '';
-                    if ($expense['create_invoice_billable'] == 1) {
-                        $invoiceid = $this->expenses_model->convert_to_invoice($insert_id);
+                    if ($expense['create_invoice_billable'] == 1 && $expense['billable'] == 1) {
+                        $invoiceid = $this->expenses_model->convert_to_invoice($insert_id,false,array('invoice_date'=>$re_create_at));
                         if ($invoiceid) {
                             $created_invoice_id = $invoiceid;
                             if ($expense['send_invoice_to_customer'] == 1) {
@@ -482,16 +500,16 @@ class Cron_model extends CRM_Model
             // Get all active staff members
             $staff                              = $this->staff_model->get('', 1);
             foreach ($staff as $member) {
-                $send = false;
+                $sent = false;
                 load_admin_language($member['staffid']);
                 $recurring_expenses_email_data = _l('not_recurring_expense_cron_activity_heading') . ' - ' . $date . '<br /><br />';
                 foreach ($_renewals_ids_data as $data) {
                     if ($data['addedfrom'] == $member['staffid'] || is_admin($member['staffid'])) {
                         $unique_send = '[' . $member['staffid'] . '-' . $data['from'] . ']';
-                        $send        = true;
+                        $sent        = true;
                         // Prevent sending the email twice if the same staff is added is sale agent and is creator for this invoice.
                         if (in_array($unique_send, $email_send_to_by_staff_and_expense)) {
-                            $send = false;
+                            $sent = false;
                         }
                         $expense  = $this->expenses_model->get($data['from']);
                         $currency = $this->currencies_model->get($expense->currency);
@@ -516,7 +534,7 @@ class Cron_model extends CRM_Model
                         $recurring_expenses_email_data .= '<br /><br />';
                     }
                 }
-                if ($send == true) {
+                if ($sent == true) {
                     array_push($email_send_to_by_staff_and_expense, $unique_send);
                     $this->emails_model->send_simple_email($member['email'], _l('not_recurring_expense_cron_activity_heading'), $recurring_expenses_email_data);
                 }
@@ -528,12 +546,14 @@ class Cron_model extends CRM_Model
     private function recurring_invoices()
     {
         $invoice_hour_auto_operations = get_option('invoice_auto_operations_hour');
+
         if ($invoice_hour_auto_operations == '') {
             $invoice_hour_auto_operations = 9;
         }
+
         $hour_now = date('G');
-        if ($hour_now < $invoice_hour_auto_operations && $this->manually == false) {
-           return;
+        if ($hour_now < $invoice_hour_auto_operations && $this->manually === false) {
+          return;
         }
 
         $new_recurring_invoice_action = get_option('new_recurring_invoice_action');
@@ -570,16 +590,16 @@ class Cron_model extends CRM_Model
                 $invoice['recurring_type'] = 'MONTH';
             }
 
-            $calculated_date_difference = date('Y-m-d', strtotime('+' . $invoice['recurring'] . ' ' . strtoupper($invoice['recurring_type']), strtotime($last_recurring_date)));
+            $re_create_at = date('Y-m-d', strtotime('+' . $invoice['recurring'] . ' ' . strtoupper($invoice['recurring_type']), strtotime($last_recurring_date)));
 
-            if (date('Y-m-d') >= $calculated_date_difference) {
+            if (date('Y-m-d') >= $re_create_at) {
 
                 // Recurring invoice date is okey lets convert it to new invoice
                 $_invoice                     = $this->invoices_model->get($invoice['id']);
                 $new_invoice_data             = array();
                 $new_invoice_data['clientid'] = $_invoice->clientid;
                 $new_invoice_data['number']   = get_option('next_invoice_number');
-                $new_invoice_data['date']     = _d(date('Y-m-d'));
+                $new_invoice_data['date']     = _d($re_create_at);
                 $new_invoice_data['duedate'] = null;
 
                 if ($_invoice->duedate) {
@@ -588,10 +608,10 @@ class Cron_model extends CRM_Model
                     $dStart                      = new DateTime($invoice['date']);
                     $dEnd                        = new DateTime($invoice['duedate']);
                     $dDiff                       = $dStart->diff($dEnd);
-                    $new_invoice_data['duedate'] = _d(date('Y-m-d', strtotime(date('Y-m-d', strtotime('+' . $dDiff->days . 'DAY')))));
+                    $new_invoice_data['duedate'] = _d(date('Y-m-d', strtotime('+' . $dDiff->days.' DAY', strtotime($re_create_at))));
                 } else {
                     if (get_option('invoice_due_after') != 0) {
-                        $new_invoice_data['duedate'] = _d(date('Y-m-d', strtotime('+' . get_option('invoice_due_after') . ' DAY', strtotime(date('Y-m-d')))));
+                        $new_invoice_data['duedate'] = _d(date('Y-m-d', strtotime('+' . get_option('invoice_due_after') . ' DAY', strtotime($re_create_at))));
                     }
                 }
 
@@ -634,6 +654,7 @@ class Cron_model extends CRM_Model
                 $new_invoice_data['is_recurring_from']        = $_invoice->id;
                 $new_invoice_data['newitems']                 = array();
                 $key                                          = 1;
+                $custom_fields_items = get_custom_fields('items');
                 foreach ($_invoice->items as $item) {
                     $new_invoice_data['newitems'][$key]['description']      = $item['description'];
                     $new_invoice_data['newitems'][$key]['long_description'] = clear_textarea_breaks($item['long_description']);
@@ -647,6 +668,14 @@ class Cron_model extends CRM_Model
                     }
                     $new_invoice_data['newitems'][$key]['rate']  = $item['rate'];
                     $new_invoice_data['newitems'][$key]['order'] = $item['item_order'];
+
+                    foreach ($custom_fields_items as $cf) {
+                        $new_invoice_data['newitems'][$key]['custom_fields']['items'][$cf['id']] = get_custom_field_value($item['id'], $cf['id'], 'items', false);
+
+                        if (!defined('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST')) {
+                            define('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST', true);
+                        }
+                    }
                     $key++;
                 }
                 $id = $this->invoices_model->add($new_invoice_data);
@@ -657,6 +686,10 @@ class Cron_model extends CRM_Model
                         'sale_agent' => $_invoice->sale_agent,
                         'cancel_overdue_reminders' => $_invoice->cancel_overdue_reminders,
                     ));
+
+                    $tags = get_tags_in($_invoice->id, 'invoice');
+                    handle_tags_save($tags, $id, 'invoice');
+
                     // Get the old expense custom field and add to the new
                     $custom_fields = get_custom_fields('invoice');
                     foreach ($custom_fields as $field) {
@@ -675,7 +708,7 @@ class Cron_model extends CRM_Model
                     // Update last recurring date to this invoice
                     $this->db->where('id', $invoice['id']);
                     $this->db->update('tblinvoices', array(
-                        'last_recurring_date' => date('Y-m-d'),
+                        'last_recurring_date' => $re_create_at,
                     ));
 
                     if ($new_recurring_invoice_action == 'generate_and_send') {
@@ -700,22 +733,22 @@ class Cron_model extends CRM_Model
             // Get all active staff members
             $staff                              = $this->staff_model->get('', 1);
             foreach ($staff as $member) {
-                $send = false;
+                $sent = false;
                 load_admin_language($member['staffid']);
                 $recurring_invoices_email_data = _l('not_recurring_invoices_cron_activity_heading') . ' - ' . $date . '<br /><br />';
                 foreach ($_renewals_ids_data as $renewed_invoice_data) {
                     if ($renewed_invoice_data['addedfrom'] == $member['staffid'] || $renewed_invoice_data['sale_agent'] == $member['staffid'] || is_admin($member['staffid'])) {
                         $unique_send = '[' . $member['staffid'] . '-' . $renewed_invoice_data['from'] . ']';
-                        $send        = true;
+                        $sent        = true;
                         // Prevent sending the email twice if the same staff is added is sale agent and is creator for this invoice.
                         if (in_array($unique_send, $email_send_to_by_staff_and_invoice)) {
-                            $send = false;
+                            $sent = false;
                         }
                         $recurring_invoices_email_data .= _l('not_action_taken_from_recurring_invoice') . ' <a href="' . admin_url('invoices/list_invoices/' . $renewed_invoice_data['from']) . '">' . format_invoice_number($renewed_invoice_data['from']) . '</a><br />';
                         $recurring_invoices_email_data .= _l('not_invoice_renewed') . ' <a href="' . admin_url('invoices/list_invoices/' . $renewed_invoice_data['renewed']) . '">' . format_invoice_number($renewed_invoice_data['renewed']) . '</a> - <a href="'.admin_url('clients/client/'.$renewed_invoice_data['clientid']).'">'.get_company_name($renewed_invoice_data['clientid']).'</a><br /><br />';
                     }
                 }
-                if ($send == true) {
+                if ($sent == true) {
                     array_push($email_send_to_by_staff_and_invoice, $unique_send);
                     $this->emails_model->send_simple_email($member['email'], _l('not_recurring_invoices_cron_activity_heading'), $recurring_invoices_email_data);
                 }
@@ -788,7 +821,7 @@ class Cron_model extends CRM_Model
     private function surveys()
     {
         $last_survey_cron = get_option('last_survey_send_cron');
-        if ($last_survey_cron == '' || (time() > ($last_survey_cron + 3600))) {
+        if ($last_survey_cron == '' || (time() > ($last_survey_cron + 3600)) || $this->manually === true) {
             $found_emails = $this->db->count_all_results('tblsurveysemailsendcron');
             if ($found_emails > 0) {
                 $total_emails_per_cron = get_option('survey_send_emails_per_cron_run');
@@ -863,7 +896,7 @@ class Cron_model extends CRM_Model
 
     private function staff_reminders()
     {
-        $this->db->select('tblreminders.*, email');
+        $this->db->select('tblreminders.*, email, phonenumber');
         $this->db->join('tblstaff', 'tblstaff.staffid=tblreminders.staff');
         $this->db->where('isnotified', 0);
         $reminders = $this->db->get('tblreminders')->result_array();
@@ -871,6 +904,12 @@ class Cron_model extends CRM_Model
 
         foreach ($reminders as $reminder) {
             if (date('Y-m-d H:i:s') >= $reminder['date']) {
+
+                $this->db->where('id', $reminder['id']);
+                $this->db->update('tblreminders', array(
+                    'isnotified' => 1,
+                ));
+
                 $rel_data   = get_relation_data($reminder['rel_type'], $reminder['rel_id']);
                 $rel_values = get_relation_values($rel_data, $reminder['rel_type']);
 
@@ -891,17 +930,16 @@ class Cron_model extends CRM_Model
                     array_push($notifiedUsers, $reminder['staff']);
                 }
 
+                $merge_fields = array();
+                $merge_fields = array_merge($merge_fields, get_staff_merge_fields($reminder['staff']));
+                $merge_fields = array_merge($merge_fields, get_staff_reminder_merge_fields($reminder));
+
                 if ($reminder['notify_by_email'] == 1) {
-                    $merge_fields = array();
-                    $merge_fields = array_merge($merge_fields, get_staff_merge_fields($reminder['staff']));
-                    $merge_fields = array_merge($merge_fields, get_staff_reminder_merge_fields($reminder));
                     $this->emails_model->send_email_template('reminder-email-staff', $reminder['email'], $merge_fields);
                 }
 
-                $this->db->where('id', $reminder['id']);
-                $this->db->update('tblreminders', array(
-                    'isnotified' => 1,
-                ));
+                $this->sms->trigger(SMS_TRIGGER_STAFF_REMINDER, $reminder['phonenumber'], $merge_fields);
+
             }
         }
 
@@ -916,12 +954,11 @@ class Cron_model extends CRM_Model
         }
 
         $hour_now = date('G');
-        if ($hour_now < $invoice_auto_operations_hour && $this->manually == false) {
+        if ($hour_now < $invoice_auto_operations_hour && $this->manually === false) {
             return;
         }
 
         $this->load->model('invoices_model');
-        $send_invoice_overdue_reminder = get_option('cron_send_invoice_overdue_reminder');
         $this->db->select('id,date,status,last_overdue_reminder,duedate,cancel_overdue_reminders');
         $this->db->from('tblinvoices');
         $this->db->where('(duedate != "" AND duedate IS NOT NULL)'); // We dont need invoices with no duedate
@@ -934,7 +971,7 @@ class Cron_model extends CRM_Model
         foreach ($invoices as $invoice) {
             $statusid = update_invoice_status($invoice['id']);
 
-            if ($send_invoice_overdue_reminder == '1' && $invoice['cancel_overdue_reminders'] == 0) {
+            if ($invoice['cancel_overdue_reminders'] == 0 && is_invoices_overdue_reminders_enabled()) {
                 if ($invoice['status'] == '4' || $statusid == '4' || $invoice['status'] == 3) {
                     if ($invoice['status'] == 3) {
                         // Invoice is with status partialy paid and its not due
@@ -975,7 +1012,7 @@ class Cron_model extends CRM_Model
         }
 
         $hour_now = date('G');
-        if ($hour_now < $proposals_auto_operations_hour && $this->manually == false) {
+        if ($hour_now < $proposals_auto_operations_hour && $this->manually === false) {
             return;
         }
 
@@ -991,7 +1028,7 @@ class Cron_model extends CRM_Model
         foreach ($proposals as $proposal) {
             if ($proposal['open_till'] != null
                 && date('Y-m-d') < $proposal['open_till']
-                && get_option('proposal_expiry_reminder_enabled') == 1) {
+                && is_proposals_expiry_reminders_enabled()) {
                 $reminder_before        = get_option('send_proposal_expiry_reminder_before');
                 $open_till              = new DateTime($proposal['open_till']);
                 $diff                   = $open_till->diff($now)->format("%a");
@@ -1016,7 +1053,7 @@ class Cron_model extends CRM_Model
         }
 
         $hour_now = date('G');
-        if ($hour_now < $estimates_auto_operations_hour && $this->manually == false) {
+        if ($hour_now < $estimates_auto_operations_hour && $this->manually === false) {
             return;
         }
 
@@ -1042,7 +1079,7 @@ class Cron_model extends CRM_Model
                         $this->estimates_model->log_estimate_activity($estimate['id'], 'not_estimate_status_updated', false, $additional_activity);
                     }
                 } else {
-                    if (get_option('estimate_expiry_reminder_enabled') == 1) {
+                    if($estimate['is_expiry_notified'] == 0 && is_estimates_expiry_reminders_enabled()){
                         $reminder_before        = get_option('send_estimate_expiry_reminder_before');
                         $expirydate             = new DateTime($estimate['expirydate']);
                         $diff                   = $expirydate->diff($now)->format("%a");
@@ -1050,9 +1087,7 @@ class Cron_model extends CRM_Model
                         $expirydate             = strtotime($estimate['expirydate']);
                         $date_and_due_date_diff = $expirydate - $date;
                         $date_and_due_date_diff = floor($date_and_due_date_diff / (60 * 60 * 24));
-                        if ($estimate['is_expiry_notified'] == 0
-                            && $diff <= $reminder_before
-                            && $date_and_due_date_diff > $reminder_before) {
+                        if ($diff <= $reminder_before && $date_and_due_date_diff > $reminder_before) {
                             $this->estimates_model->send_expiry_reminder($estimate['id']);
                         }
                     }
@@ -1091,6 +1126,7 @@ class Cron_model extends CRM_Model
         if ($mail->active == 0) {
             return false;
         }
+
         require_once(APPPATH . 'third_party/php-imap/Imap.php');
 
         if (empty($mail->last_run) || (time() > $mail->last_run + ($mail->check_every * 60))) {
@@ -1130,7 +1166,7 @@ class Cron_model extends CRM_Model
                 $fromname  = preg_replace("/(.*)<(.*)>/", "\\1", $from);
                 $fromname  = trim(str_replace("\"", "", $fromname));
                 $fromemail = trim(preg_replace("/(.*)<(.*)>/", "\\2", $from));
-                $body = $this->prepare_imap_email_body_html($email['body']);
+                $body = do_action('leads_email_integration_email_body_for_database', $this->prepare_imap_email_body_html($email['body']));
                 // Okey everything good now let make some statements
                 // Check if this email exists in customers table first
                 $this->db->select('id,userid');
@@ -1141,13 +1177,12 @@ class Cron_model extends CRM_Model
                     // Set message to seen to in the next time we dont need to loop over this message
                     $imap->setUnseenMessage($email['uid']);
 
-                    if($mail->create_task_if_customer == '1'){
+                    if ($mail->create_task_if_customer == '1') {
+                        load_admin_language($mail->responsible);
 
-                    load_admin_language($mail->responsible);
+                        $body = '<b>'._l('leads_email_integration') .' (' . _l('existing_customer') . ')</b> - <a href="'.admin_url('clients/client/'.$contact->userid.'?contactid='.$contact->id).'" target="_blank"><b>' . get_company_name($contact->userid) .'</b></a><br /><br />'.$body;
 
-                    $body = '<b>'._l('leads_email_integration') .' (' . _l('existing_customer') . ')</b> - <a href="'.admin_url('clients/client/'.$contact->userid.'?contactid='.$contact->id).'" target="_blank"><b>' . get_company_name($contact->userid) .'</b></a><br /><br />'.$body;
-
-                    load_admin_language();
+                        load_admin_language();
 
                         $task_data = array(
                                         'name' => $fromname . ' - ' . $fromemail,
@@ -1183,6 +1218,13 @@ class Cron_model extends CRM_Model
                     $this->db->where('email', $fromemail);
                     $lead = $this->db->get('tblleads')->row();
 
+                    $hook_data = do_action('leads_email_integration_lead_check',array(
+                        'email'=>$email,
+                        'lead'=>$lead,
+                    ));
+
+                    $lead = $hook_data['lead'];
+
                     if ($lead) {
                         // Check if the lead uid is the same with the email uid
                         if ($lead->email_integration_uid == $email['uid']) {
@@ -1212,10 +1254,16 @@ class Cron_model extends CRM_Model
                             'dateadded' => date('Y-m-d H:i:s'),
                             'emailid' => $email['uid'],
                         ));
+                        $inserted_email_id = $this->db->insert_id();
                         // Set message to seen to in the next time we dont need to loop over this message
                         $imap->setUnseenMessage($email['uid']);
                         $this->_notification_lead_email_integration('not_received_one_or_more_messages_lead', $mail, $lead->id);
                         $this->_check_lead_email_integration_attachments($email, $lead->id, $imap);
+                        do_action('existing_lead_email_inserted_from_email_integration',array(
+                            'email'=>$email,
+                            'lead'=>$lead,
+                            'email_id'=>$inserted_email_id,
+                        ));
                         // Exists not need to do anything except to add the email
                         continue;
                     }
@@ -1326,6 +1374,7 @@ class Cron_model extends CRM_Model
                         $this->leads_model->log_lead_activity($insert_id, 'not_received_lead_imported_email_integration', true);
                         $this->_check_lead_email_integration_attachments($email, $insert_id, $imap);
                         do_action('lead_created', $insert_id);
+                        do_action('lead_created_from_email_integration', $insert_id);
                     }
                 }
             }
@@ -1465,7 +1514,7 @@ class Cron_model extends CRM_Model
     private function _notification_lead_email_integration($description, $mail, $leadid)
     {
         if (!empty($mail->notify_type)) {
-            if($mail->notify_type == 'assigned') {
+            if ($mail->notify_type == 'assigned') {
                 $ids = array($mail->responsible);
                 $field = 'staffid';
             } else {
@@ -1510,7 +1559,7 @@ class Cron_model extends CRM_Model
         if (isset($email['attachments'])) {
             foreach ($email['attachments'] as $key => $attachment) {
                 $email_attachment = $imap->getAttachment($email['uid'], $key);
-                if($task_id != false) {
+                if ($task_id != false) {
                     $path        = get_upload_path_by_type('task') . $task_id . '/';
                 } else {
                     $path        = get_upload_path_by_type('lead') . $leadid . '/';
@@ -1562,6 +1611,8 @@ class Cron_model extends CRM_Model
         $body = str_replace("&nbsp;", " ", $body);
         // Remove html tags - strips inline styles also
         $body = trim(strip_html_tags($body, "<br/>, <br>, <a>"));
+        // Once again do security
+        $body = $this->security->xss_clean($body);
         // Remove duplicate new lines
         $body = preg_replace("/[\r\n]+/", "\n", $body);
         // new lines with <br />

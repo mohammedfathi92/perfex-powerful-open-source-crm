@@ -16,7 +16,7 @@ foreach ($rResult as $aRow) {
     for ($i = 0; $i < count($aColumns); $i++) {
         $_data = $aRow[$aColumns[$i]];
         if ($aColumns[$i] == 'name') {
-            $role_permissions = $this->_instance->roles_model->get_role_permissions($aRow['roleid']);
+            $role_permissions = $this->ci->roles_model->get_role_permissions($aRow['roleid']);
             $_data            = '<a href="' . admin_url('roles/role/' . $aRow['roleid']) . '" class="mbot10 display-block">' . $_data . '</a>';
             $_data .= '<span class="mtop10 display-block">'._l('roles_total_users'). ' ' . total_rows('tblstaff', array(
                 'role' => $aRow['roleid']

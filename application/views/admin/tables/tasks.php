@@ -2,12 +2,13 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 
 $hasPermissionEdit = has_permission('tasks', '', 'edit');
-$bulkActions = $this->_instance->input->get('bulk_actions');
+$bulkActions = $this->ci->input->get('bulk_actions');
 
 $aColumns = array(
     'name',
     'startdate',
     'duedate',
+    '(SELECT GROUP_CONCAT(name SEPARATOR ",") FROM tbltags_in JOIN tbltags ON tbltags_in.tag_id = tbltags.id WHERE rel_id = tblstafftasks.id and rel_type="task" ORDER by tag_order ASC) as tags',
      get_sql_select_task_asignees_full_names().' as assignees',
     'priority',
     'status'
@@ -36,18 +37,17 @@ foreach ($custom_fields as $key => $field) {
     array_push($join, 'LEFT JOIN tblcustomfieldsvalues as ctable_' . $key . ' ON tblstafftasks.id = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
 }
 
+$aColumns = do_action('tasks_table_sql_columns', $aColumns);
+
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
-
-$aColumns = do_action('tasks_table_sql_columns', $aColumns);
 
 $result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
         'tblstafftasks.id',
         'rel_type',
         'rel_id',
-        '(SELECT GROUP_CONCAT(name SEPARATOR ",") FROM tbltags_in JOIN tbltags ON tbltags_in.tag_id = tbltags.id WHERE rel_id = tblstafftasks.id and rel_type="task" ORDER by tag_order ASC) as tags',
         tasks_rel_name_select_query() . ' as rel_name',
         'billed',
         '(SELECT staffid FROM tblstafftaskassignees WHERE taskid=tblstafftasks.id AND staffid='.get_staff_user_id().') as is_assigned',
@@ -77,13 +77,13 @@ foreach ($rResult as $aRow) {
 
     }
 
-    $outputName .= '<span class="hide">'.PHP_EOL._l('tags').': </span> <div class="tags-in-table-row">' . render_tags($aRow['tags']) .'</div>';
-
     $row[] = $outputName;
 
     $row[] = _d($aRow['startdate']);
 
     $row[] = _d($aRow['duedate']);
+
+    $row[] = render_tags($aRow['tags']);
 
     $row[] = format_members_by_ids_and_names($aRow['assignees_ids'],$aRow['assignees']);
 

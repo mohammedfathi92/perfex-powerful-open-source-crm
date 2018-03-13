@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-$project_id = $this->_instance->input->post('project_id');
+$project_id = $this->ci->input->post('project_id');
 
 $aColumns = array(
     'number',
@@ -38,20 +38,20 @@ foreach ($custom_fields as $key => $field) {
 $where                    = array();
 $filter = array();
 
-if ($this->_instance->input->post('not_sent')) {
+if ($this->ci->input->post('not_sent')) {
     array_push($filter, 'OR (sent= 0 AND tblestimates.status NOT IN (2,3,4))');
 }
-if ($this->_instance->input->post('invoiced')) {
+if ($this->ci->input->post('invoiced')) {
     array_push($filter, 'OR invoiceid IS NOT NULL');
 }
 
-if ($this->_instance->input->post('not_invoiced')) {
+if ($this->ci->input->post('not_invoiced')) {
     array_push($filter, 'OR invoiceid IS NULL');
 }
-$statuses = $this->_instance->estimates_model->get_statuses();
+$statuses = $this->ci->estimates_model->get_statuses();
 $statusIds = array();
 foreach ($statuses as $status) {
-    if ($this->_instance->input->post('estimates_'.$status)) {
+    if ($this->ci->input->post('estimates_'.$status)) {
         array_push($statusIds, $status);
     }
 }
@@ -59,10 +59,10 @@ if (count($statusIds) > 0) {
     array_push($filter, 'AND tblestimates.status IN (' . implode(', ', $statusIds) . ')');
 }
 
-$agents = $this->_instance->estimates_model->get_sale_agents();
+$agents = $this->ci->estimates_model->get_sale_agents();
 $agentsIds = array();
 foreach ($agents as $agent) {
-    if ($this->_instance->input->post('sale_agent_'.$agent['sale_agent'])) {
+    if ($this->ci->input->post('sale_agent_'.$agent['sale_agent'])) {
         array_push($agentsIds, $agent['sale_agent']);
     }
 }
@@ -70,10 +70,10 @@ if (count($agentsIds) > 0) {
     array_push($filter, 'AND sale_agent IN (' . implode(', ', $agentsIds) . ')');
 }
 
-$years = $this->_instance->estimates_model->get_estimates_years();
+$years = $this->ci->estimates_model->get_estimates_years();
 $yearsArray = array();
 foreach ($years as $year) {
-    if ($this->_instance->input->post('year_'.$year['year'])) {
+    if ($this->ci->input->post('year_'.$year['year'])) {
         array_push($yearsArray, $year['year']);
     }
 }
@@ -101,9 +101,8 @@ $aColumns = do_action('estimates_table_sql_columns', $aColumns);
 
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
-
 
 $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'tblestimates.id',

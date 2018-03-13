@@ -1,26 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 header('Content-Type: text/html; charset=utf-8');
-/**
-* Custom fields only where show on client portal is checked if:
-* Is client logged in
-* None is logged in
-* The format is for email sending, means that the client will get the format
-* The request is coming from clients area
-* The request is from cron job
-*/
-function is_custom_fields_for_customers_portal()
-{
-    if (is_client_logged_in()
-        || (!is_staff_logged_in() && !is_client_logged_in())
-        || defined('EMAIL_TEMPLATE_SEND')
-        || defined('CLIENTS_AREA')
-        || DEFINED('CRON')) {
-        return true;
-}
 
-return false;
-}
 /**
  * Check if the document should be RTL or LTR
  * The checking are performed in multiple ways eq Contact/Staff Direction from profile or from general settings *
@@ -33,6 +14,7 @@ function is_rtl($client_area = false)
     if (is_client_logged_in()) {
         $CI->db->select('direction')->from('tblcontacts')->where('id', get_contact_user_id());
         $direction = $CI->db->get()->row()->direction;
+
         if ($direction == 'rtl') {
             return true;
         } elseif ($direction == 'ltr') {
@@ -56,6 +38,7 @@ function is_rtl($client_area = false)
             $CI->db->select('direction')->from('tblstaff')->where('staffid', get_staff_user_id());
             $direction = $CI->db->get()->row()->direction;
         }
+
         if ($direction == 'rtl') {
             return true;
         } elseif ($direction == 'ltr') {
@@ -87,6 +70,29 @@ function generate_encryption_key()
     $key = bin2hex($CI->encryption->create_key(16));
 
     return $key;
+}
+
+/**
+ * Set current full url to for user to be redirected after login
+ * Check below function to see why is this
+ */
+function redirect_after_login_to_current_url() {
+    get_instance()->session->set_userdata(array(
+        'red_url' => current_full_url()
+    ));
+}
+/**
+* Check if user accessed url while not logged in to redirect after login
+* @return null
+*/
+function maybe_redirect_to_previous_url()
+{
+    $CI = &get_instance();
+    if ($CI->session->has_userdata('red_url')) {
+        $red_url = $CI->session->userdata('red_url');
+        $CI->session->unset_userdata('red_url');
+        redirect($red_url);
+    }
 }
 /**
  * Function used to validate all recaptcha from google reCAPTCHA feature
@@ -458,14 +464,14 @@ function _l($line, $label = '', $log_errors = true)
             $_line = htmlspecialchars($_line, ENT_COMPAT);
         }
 
-        return $CI->encoding_lib->toUTF8($_line);
+        return ForceUTF8\Encoding::toUTF8($_line);
     }
 
     if (mb_strpos($line, '_db_') !== false) {
         return 'db_translate_not_found';
     }
 
-    return $CI->encoding_lib->toUTF8($line);
+    return ForceUTF8\Encoding::toUTF8($line);
 }
 
 /**
@@ -681,8 +687,8 @@ function has_permission($permission, $staffid = '', $can = '')
      * Get permissions for this staff
      * Permissions will be cached in object cache upon first request
      */
-    if(!$permissions){
-        if(!class_exists('staff_model')) {
+    if (!$permissions) {
+        if (!class_exists('staff_model')) {
             $CI->load->model('staff_model');
         }
         $permissions = $CI->staff_model->get_staff_permissions($staffid);
@@ -786,10 +792,6 @@ function pusher_trigger_notification($users = array())
         return false;
     }
 
-    if (!class_exists('Pusher')) {
-        require_once(APPPATH.'libraries/Pusher.php');
-    }
-
     $app_key = get_option('pusher_app_key');
     $app_secret = get_option('pusher_app_secret');
     $app_id = get_option('pusher_app_id');
@@ -804,7 +806,7 @@ function pusher_trigger_notification($users = array())
         $pusher_options['cluster'] = get_option('pusher_cluster');
     }
 
-    $pusher = new Pusher(
+    $pusher = new Pusher\Pusher(
         $app_key,
         $app_secret,
         $app_id,
@@ -832,7 +834,8 @@ if (defined('APP_CSRF_PROTECTION')) {
  * Generate md5 hash
  * @return string
  */
-function app_generate_hash(){
+function app_generate_hash()
+{
     return md5(rand() . microtime() . time() . uniqid());
 }
 
@@ -867,6 +870,7 @@ function csrf_jquery_token()
         var csrfData = <?php echo json_encode($csrf); ?>;
 
         if (typeof(jQuery) == 'undefined') {
+
             window.deferAfterjQueryLoaded.push(function () {
                 csrf_jquery_ajax_setup();
             });
@@ -878,9 +882,9 @@ function csrf_jquery_token()
         }
 
         function csrf_jquery_ajax_setup() {
-            $.ajaxSetup({
-                data: csrfData.formatted
-            });
+                $.ajaxSetup({
+                    data: csrfData.formatted
+                });
         }
  </script>
  <?php

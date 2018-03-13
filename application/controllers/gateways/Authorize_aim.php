@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Authorize_aim extends CI_Controller
+class Authorize_aim extends CRM_Controller
 {
     public function __construct()
     {

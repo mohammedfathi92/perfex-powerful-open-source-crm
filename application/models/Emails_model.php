@@ -250,6 +250,8 @@ class Emails_model extends CRM_Model
      */
     public function send_email_template($template_slug, $email, $merge_fields, $ticketid = '', $cc = '')
     {
+        $email = do_action('send_email_template_to', $email);
+
         $template                     = get_email_template_for_sending($template_slug, $email);
         $staff_email_templates_slugs  = get_staff_email_templates_slugs();
         $client_email_templates_slugs = get_client_email_templates_slugs();
@@ -297,7 +299,7 @@ class Emails_model extends CRM_Model
             $this->db->where('slug', $template->slug);
             $tmpTemplate = $this->db->get('tblemailtemplates')->row();
 
-            if ($tmpTemplate) {
+            if (!$tmpTemplate) {
                 logActivity('Failed to send email template [<a href="'.admin_url('emails/email_template/'.$tmpTemplate->emailtemplateid).'">'.$template->name.'</a>] [Reason: Email template is disabled.]');
             }
 
@@ -390,10 +392,7 @@ class Emails_model extends CRM_Model
         $this->email->subject($template->subject);
 
         $this->email->message($template->message);
-
-        if (is_array($cc) || !empty($cc)) {
-            $this->email->cc($cc);
-        }
+        $this->email->to($email);
 
         $bcc = '';
         // Used for action hooks
@@ -433,7 +432,9 @@ class Emails_model extends CRM_Model
             $this->email->set_alt_message(trim($alt_message));
         }
 
-        $this->email->to($email);
+        if (is_array($cc) || !empty($cc)) {
+            $this->email->cc($cc);
+        }
 
         if (count($attachments) > 0) {
             foreach ($attachments as $attach) {

@@ -53,15 +53,15 @@
                         <p class="text-danger mtop15"><?php echo _l('invoice_project_nothing_to_bill'); ?></p>
                         <?php } else { ?>
                         <hr />
+                        <a href="#" onclick="slideToggle('#pre_invoice_project_tasks'); return false;"><b class="label label-info font-medium-xs inline-block"><?php echo _l('invoice_project_see_billed_tasks'); ?></b></a>
 
-                        <a href="#" onclick="slideToggle('#tasks_who_will_be_billed'); return false;"><b class="label label-info font-medium-xs inline-block"><?php echo _l('invoice_project_see_billed_tasks'); ?></b></a>
-
-                        <div style="display:none;" id="tasks_who_will_be_billed">
+                        <div style="display:none;" id="pre_invoice_project_tasks">
                             <div class="checkbox mtop15">
                                 <input type="checkbox" id="project_invoice_select_all_tasks" class="invoice_select_all_tasks">
                                 <label for="project_invoice_select_all_tasks"><?php echo _l('project_invoice_select_all_tasks'); ?></label>
                             </div>
                             <hr />
+                            <div id="tasks_who_will_be_billed">
                             <?php foreach($billable_tasks as $task){
                                 if($task['status'] != 5){ $not_finished_tasks_found = true; } ?>
                                 <div class="checkbox checkbox-primary mbot15">
@@ -69,6 +69,7 @@
                                     <label class="inline-block full-width" for="<?php echo $task['id']; ?>"><?php echo $task['name']; ?> <?php if(total_rows('tbltaskstimers',array('task_id'=>$task['id'])) == 0 && $billing_type != 1){echo '<small class="text-danger">'._l('project_invoice_task_no_timers_found').'</small>';}; ?><small class="pull-right valign"><?php echo format_task_status($task['status']); ?></small></label>
                                 </div>
                                 <?php } ?>
+                                </div>
                                 <?php if(count($not_billable_tasks) > 0){ ?>
                                 <hr />
                                 <p class="text-warning mtop10"><?php echo _l('invoice_project_start_date_tasks_not_passed'); ?></p>
@@ -83,7 +84,7 @@
                             <?php
                             if(count($expenses) > 0){ ?>
                             <hr />
-                            <a href="#" onclick="slideToggle('#expenses_who_will_be_billed'); return false;"><span class="label label-info font-medium-xs inline-block">
+                            <a href="#" onclick="slideToggle('# '); return false;"><span class="label label-info font-medium-xs inline-block">
                              <?php echo _l('invoice_project_see_billed_expenses'); ?>
                          </span></a>
                          <div style="display:none;" id="expenses_who_will_be_billed">

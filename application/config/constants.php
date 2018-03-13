@@ -95,6 +95,11 @@ define('UPDATE_URL','https://www.perfexcrm.com/perfex_updates/index.php');
 // Get latest version info
 define('UPDATE_INFO_URL','https://www.perfexcrm.com/perfex_updates/update_info.php');
 
+// Do not send sms to data eq. invoices, estimates older then X days.
+if(!defined('DO_NOT_SEND_SMS_ON_DATA_OLDER_THEN')){
+    define('DO_NOT_SEND_SMS_ON_DATA_OLDER_THEN',45);
+}
+
 // Defined folders
 // CRM temporary path
 define('TEMP_FOLDER',FCPATH .'temp' . '/');

@@ -353,10 +353,12 @@ function get_company_logo($uri = '', $href_class = '')
         $logoURL = site_url($uri);
     }
 
+    $logoURL = do_action('logo_href', $logoURL);
+
     if ($company_logo != '') {
         echo '<a href="' . $logoURL . '" class="' . $href_class . ' logo img-responsive"><img src="' . base_url('uploads/company/' . $company_logo) . '" class="img-responsive" alt="' . $company_name . '"></a>';
     } elseif ($company_name != '') {
-        echo '<a href="' . $logoURL . '" class="' . $href_class . ' logo">' . $company_name . '</a>';
+        echo '<a href="' . $logoURL . '" class="' . $href_class . ' logo logo-text">' . $company_name . '</a>';
     } else {
         echo '';
     }

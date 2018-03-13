@@ -14,7 +14,9 @@
 						<?php if(has_permission('surveys','','create')){ ?>
 						<a href="<?php echo admin_url('surveys/mail_list'); ?>" class="btn btn-success pull-left mbot20 display-block"><?php echo _l('new_mail_list'); ?></a>
 						<?php } ?>
+						<a href="<?php echo admin_url('surveys/mail_lists'); ?>" class="btn btn-default mleft5 pull-left mbot20 display-block"><?php echo _l('mail_lists'); ?></a>
 						<div class="clearfix"></div>
+						<hr />
 						<?php } ?>
 						<?php echo form_open($this->uri->uri_string()); ?>
 

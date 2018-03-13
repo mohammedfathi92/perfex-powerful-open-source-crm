@@ -15,7 +15,7 @@ class Taxes extends Admin_controller
     public function index()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('taxes');
+            $this->app->get_table_data('taxes');
         }
         $data['title'] = _l('taxes');
         $this->load->view('admin/taxes/manage', $data);

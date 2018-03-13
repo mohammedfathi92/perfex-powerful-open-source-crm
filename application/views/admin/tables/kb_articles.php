@@ -19,10 +19,10 @@ $join             = array(
 
 $where = array();
 $filter = array();
-$groups = $this->_instance->knowledge_base_model->get_kbg();
+$groups = $this->ci->knowledge_base_model->get_kbg();
 $_groups = array();
 foreach($groups as $group){
-    if($this->_instance->input->post('kb_group_'.$group['groupid'])){
+    if($this->ci->input->post('kb_group_'.$group['groupid'])){
         array_push($_groups,$group['groupid']);
     }
 }

@@ -41,7 +41,7 @@
                   </div>
                   <?php } else { ?>
                   <?php $this->load->view('admin/tasks/_summary',array('table'=>'.table-tasks')); ?>
-                  <a href="#" data-toggle="modal" data-target="#tasks_bulk_actions" class="hide bulk-actions-btn" data-table=".table-tasks"><?php echo _l('bulk_actions'); ?></a>
+                  <a href="#" data-toggle="modal" data-target="#tasks_bulk_actions" class="hide bulk-actions-btn table-btn" data-table=".table-tasks"><?php echo _l('bulk_actions'); ?></a>
                   <?php $this->load->view('admin/tasks/_table',array('bulk_actions'=>true)); ?>
                </div>
                <?php $this->load->view('admin/tasks/_bulk_actions'); ?>

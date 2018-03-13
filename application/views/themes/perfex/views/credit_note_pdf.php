@@ -62,9 +62,16 @@ $pdf->writeHTMLCell(($dimensions['wk'] / 2) - $dimensions['rm'], '', '', ($swap 
 
 // The Table
 $pdf->Ln(6);
+
 $item_width = 38;
 // If show item taxes is disabled in PDF we should increase the item width table heading
 $item_width = get_option('show_tax_per_item') == 0 ? $item_width+15 : $item_width;
+
+$custom_fields_items = get_items_custom_fields_for_table_html($credit_note->id,'credit_note');
+// Calculate headings width, in case there are custom fields for items
+$total_headings = get_option('show_tax_per_item') == 1 ? 4 : 3;
+$total_headings += count($custom_fields_items);
+$headings_width = (100-($item_width+6)) / $total_headings;
 
 // Header
 $qty_heading = _l('credit_note_table_quantity_heading');
@@ -74,20 +81,26 @@ if ($credit_note->show_quantity_as == 2) {
     $qty_heading = _l('credit_note_table_quantity_heading') . '/' . _l('credit_note_table_hours_heading');
 }
 
-$tblhtml = '
-<table width="100%" bgcolor="#fff" cellspacing="0" cellpadding="8">
-    <tr height="30" bgcolor="' . get_option('pdf_table_heading_color') . '" style="color:' . get_option('pdf_table_heading_text_color') . ';">
-        <th width="5%;" align="center">#</th>
-        <th width="' . $item_width . '%" align="left">' . _l('credit_note_table_item_heading') . '</th>
-        <th width="12%" align="right">' . $qty_heading . '</th>
-        <th width="15%" align="right">' . _l('credit_note_table_rate_heading') . '</th>';
+$tblhtml = '<table width="100%" bgcolor="#fff" cellspacing="0" cellpadding="8">';
 
-if (get_option('show_tax_per_item') == 1) {
-    $tblhtml .= '<th width="15%" align="right">' . _l('credit_note_table_tax_heading') . '</th>';
+$tblhtml .= '<tr height="30" bgcolor="' . get_option('pdf_table_heading_color') . '" style="color:' . get_option('pdf_table_heading_text_color') . ';">';
+
+$tblhtml .= '<th width="5%;" align="center">#</th>';
+$tblhtml .= '<th width="'.$item_width.'%" align="left">' . _l('credit_note_table_item_heading') . '</th>';
+
+foreach ($custom_fields_items as $cf) {
+    $tblhtml .= '<th width="'.$headings_width.'%" align="left">' . $cf['name'] . '</th>';
 }
 
-$tblhtml .= '<th width="15%" align="right">' . _l('credit_note_table_amount_heading') . '</th>
-</tr>';
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . $qty_heading . '</th>';
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('credit_note_table_rate_heading') . '</th>';
+
+if (get_option('show_tax_per_item') == 1) {
+    $tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('credit_note_table_tax_heading') . '</th>';
+}
+
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('credit_note_table_amount_heading') . '</th>';
+$tblhtml .= '</tr>';
 
 // Items
 $tblhtml .= '<tbody>';
@@ -111,25 +124,23 @@ $tbltotal .= '
     <td align="right" width="15%">' . format_money($credit_note->subtotal, $credit_note->symbol) . '</td>
 </tr>';
 
-if ($credit_note->discount_percent != 0) {
+if(is_sale_discount_applied($credit_note)){
     $tbltotal .= '
     <tr>
-        <td align="right" width="85%"><strong>' . _l('credit_note_discount') . '(' . _format_number($credit_note->discount_percent, true) . '%)' . '</strong></td>
-        <td align="right" width="15%">-' . format_money($credit_note->discount_total, $credit_note->symbol) . '</td>
+        <td align="right" width="85%"><strong>' . _l('credit_note_discount');
+        if(is_sale_discount($credit_note,'percent')){
+            $tbltotal .= '(' . _format_number($credit_note->discount_percent, true) . '%)';
+        }
+        $tbltotal .= '</strong>';
+        $tbltotal .= '</td>';
+        $tbltotal .= '<td align="right" width="15%">-' . format_money($credit_note->discount_total, $credit_note->symbol) . '</td>
     </tr>';
 }
 
 foreach ($taxes as $tax) {
-    $total = array_sum($tax['total']);
-    if ($credit_note->discount_percent != 0 && $credit_note->discount_type == 'before_tax') {
-        $total_tax_calculated = ($total * $credit_note->discount_percent) / 100;
-        $total                = ($total - $total_tax_calculated);
-    }
-    // The tax is in format TAXNAME|20
-    $_tax_name = explode('|', $tax['tax_name']);
     $tbltotal .= '<tr>
-    <td align="right" width="85%"><strong>' . $_tax_name[0] . ' (' . _format_number($tax['taxrate']) . '%)' . '</strong></td>
-    <td align="right" width="15%">' . format_money($total, $credit_note->symbol) . '</td>
+    <td align="right" width="85%"><strong>' . $tax['taxname'] . ' (' . _format_number($tax['taxrate']) . '%)' . '</strong></td>
+    <td align="right" width="15%">' . format_money($tax['total_tax'], $credit_note->symbol) . '</td>
 </tr>';
 }
 

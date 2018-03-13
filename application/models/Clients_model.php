@@ -3,11 +3,14 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 class Clients_model extends CRM_Model
 {
-    private $contact_data = array('firstname', 'lastname', 'email', 'phonenumber', 'title', 'password', 'send_set_password_email', 'donotsendwelcomeemail', 'permissions', 'direction', 'invoice_emails', 'estimate_emails', 'credit_note_emails', 'contract_emails', 'task_emails', 'project_emails', 'is_primary');
+    private $contact_columns;
 
     public function __construct()
     {
         parent::__construct();
+
+        $this->contact_columns = do_action('contact_columns', array('firstname', 'lastname', 'email', 'phonenumber', 'title', 'password', 'send_set_password_email', 'donotsendwelcomeemail', 'permissions', 'direction', 'invoice_emails', 'estimate_emails', 'credit_note_emails', 'contract_emails', 'task_emails', 'project_emails', 'is_primary'));
+
         $this->load->model(array('client_vault_entries_model', 'client_groups_model', 'statement_model'));
     }
 
@@ -17,7 +20,7 @@ class Clients_model extends CRM_Model
      * @param  array  $where
      * @return mixed
      */
-    public function get($id = '', $where = array('tblclients.active' => 1))
+    public function get($id = '', $where = array())
     {
         $this->db->select(implode(',', prefixed_table_fields_array('tblclients')) . ','.get_sql_select_client_company());
 
@@ -79,7 +82,7 @@ class Clients_model extends CRM_Model
     public function add($data, $client_or_lead_convert_request = false)
     {
         $contact_data = array();
-        foreach ($this->contact_data as $field) {
+        foreach ($this->contact_columns as $field) {
             if (isset($data[$field])) {
                 $contact_data[$field] = $data[$field];
                 // Phonenumber is also used for the company profile
@@ -481,7 +484,7 @@ class Clients_model extends CRM_Model
                 $permissions = array();
             } elseif ($not_manual_request == true) {
                 $permissions         = array();
-                $_permissions        = $this->perfex_base->get_contact_permissions();
+                $_permissions        = get_contact_permissions();
                 $default_permissions = @unserialize(get_option('default_contact_permissions'));
                 if (is_array($default_permissions)) {
                     foreach ($_permissions as $permission) {
@@ -505,7 +508,6 @@ class Clients_model extends CRM_Model
                 ));
             }
             foreach ($permissions as $permission) {
-
                 $this->db->insert('tblcontactpermissions', array(
                     'userid' => $contact_id,
                     'permission_id' => $permission,
@@ -607,6 +609,9 @@ class Clients_model extends CRM_Model
         $this->db->where('userid', $id);
         $this->db->update('tblclients', $data);
         if ($this->db->affected_rows() > 0) {
+            $affectedRows++;
+        }
+        if ($affectedRows > 0) {
             do_action('customer_updated_company_info', $id);
             logActivity('Customer Info Updated From Clients Area [' . $data['company'] . ']');
 
@@ -714,7 +719,6 @@ class Clients_model extends CRM_Model
         $this->db->where('userid', $id);
         $this->db->delete('tblclients');
         if ($this->db->affected_rows() > 0) {
-
             $affectedRows++;
 
             // Delete all tickets start here
@@ -1170,6 +1174,11 @@ class Clients_model extends CRM_Model
     public function send_statement_to_email($customer_id, $send_to, $from, $to, $cc = '')
     {
         return $this->statement_model->send_statement_to_email($customer_id, $send_to, $from, $to, $cc);
+    }
+
+    public function get_clients_distinct_countries()
+    {
+        return $this->db->query('SELECT DISTINCT(country_id), short_name FROM tblclients JOIN tblcountries ON tblcountries.country_id=tblclients.country')->result_array();
     }
 
     private function check_zero_columns($data)

@@ -26,12 +26,11 @@ foreach ($custom_fields as $key => $field) {
     array_push($join, 'LEFT JOIN tblcustomfieldsvalues as ctable_'.$key . ' ON tblcontacts.id = ctable_'.$key . '.relid AND ctable_'.$key . '.fieldto="'.$field['fieldto'].'" AND ctable_'.$key . '.fieldid='.$field['id']);
 }
 
-$where = array();
-$where = array('WHERE userid='.$client_id);
+$where = array('AND userid='.$client_id);
 
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
 
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array('tblcontacts.id as id', 'userid', 'is_primary'));

@@ -62,14 +62,10 @@ class Settings extends Admin_controller
             }
         }
 
-         // If pusher notifications are on disable the manually auto check
-        if(get_option('pusher_realtime_notifications') == 1){
-            update_option('auto_check_for_new_notifications','0');
-        }
-
         $this->load->model('taxes_model');
         $this->load->model('tickets_model');
         $this->load->model('leads_model');
+        $this->load->model('currencies_model');
         $data['taxes']                                   = $this->taxes_model->get();
         $data['ticket_priorities']                       = $this->tickets_model->get_priority();
         $data['ticket_priorities']['callback_translate'] = 'ticket_priority_translate';
@@ -91,7 +87,7 @@ class Settings extends Admin_controller
                 $data['latest_version']  = 0;
                 $data['update_info']     = json_decode("");
             } else {
-                $data['update_info'] = $this->misc_model->get_update_info();
+                $data['update_info'] = $this->app->get_update_info();
                 if (strpos($data['update_info'], 'Curl Error -') !== false) {
                     $data['update_errors'][] = $data['update_info'];
                     $data['latest_version']  = 0;
@@ -107,10 +103,10 @@ class Settings extends Admin_controller
                 $data['update_errors'][] = 'ZIP Extension not enabled';
             }
 
-            $data['current_version'] = $this->misc_model->get_current_db_version();
+            $data['current_version'] = $this->app->get_current_db_version();
         }
 
-        $data['contacts_permissions'] = $this->perfex_base->get_contact_permissions();
+        $data['contacts_permissions'] = get_contact_permissions();
         $this->load->library('pdf');
         $data['payment_gateways'] = $this->payment_modes_model->get_online_payment_modes(true);
         $data['view_name']            = $view;

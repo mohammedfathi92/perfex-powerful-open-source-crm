@@ -7,11 +7,11 @@
                <div class="panel-body">
                   <div class="_buttons">
                   <a href="#" onclick="init_lead(); return false;" class="btn mright5 btn-info pull-left display-block">
-                  <?php echo _l('new_lead'); ?>
+                      <?php echo _l('new_lead'); ?>
                   </a>
-                  <?php if(is_admin() || do_action('staff_can_import_leads',false)){ ?>
+                  <?php if(is_admin() || get_option('allow_non_admin_members_to_import_leads') == '1'){ ?>
                   <a href="<?php echo admin_url('leads/import'); ?>" class="btn btn-info pull-left display-block hidden-xs">
-                  <?php echo _l('import_leads'); ?>
+                     <?php echo _l('import_leads'); ?>
                   </a>
                   <?php } ?>
                   <div class="row">
@@ -39,15 +39,15 @@
                         <h4 class="no-margin"><?php echo _l('leads_summary'); ?></h4>
                      </div>
                      <?php
-                        $where_not_admin = '(addedfrom = '.get_staff_user_id().' OR assigned='.get_staff_user_id().' OR is_public = 1)';
+                        $whereNoViewPermission = '(addedfrom = '.get_staff_user_id().' OR assigned='.get_staff_user_id().' OR is_public = 1)';
                         $numStatuses = count($statuses);
-                        $is_admin = is_admin();
+                        $has_permission_view = has_permission('leads','','view');
                         foreach($statuses as $status){ ?>
                      <div class="col-md-2 col-xs-6 border-right">
                         <?php
                            $this->db->where('status',$status['id']);
-                           if(!$is_admin){
-                            $this->db->where($where_not_admin);
+                          if(!$has_permission_view){
+                              $this->db->where($whereNoViewPermission);
                            }
                            $total = $this->db->count_all_results('tblleads');
                            ?>
@@ -56,16 +56,16 @@
                      </div>
                      <?php } ?>
                      <?php
-                        if(!$is_admin){
-                         $this->db->where($where_not_admin);
+                        if(!$has_permission_view){
+                          $this->db->where($whereNoViewPermission);
                         }
                         $total_leads = $this->db->count_all_results('tblleads');
                         ?>
                      <div class="col-md-2 col-xs-6">
                         <?php
                            $this->db->where('lost',1);
-                           if(!$is_admin){
-                            $this->db->where($where_not_admin);
+                           if(!$has_permission_view){
+                            $this->db->where($whereNoViewPermission);
                            }
                            $total_lost = $this->db->count_all_results('tblleads');
                            $percent_lost = ($total_leads > 0 ? number_format(($total_lost * 100) / $total_leads,2) : 0);
@@ -76,8 +76,8 @@
                      <div class="col-md-2 col-xs-6">
                         <?php
                            $this->db->where('junk',1);
-                           if(!$is_admin){
-                            $this->db->where($where_not_admin);
+                           if(!$has_permission_view){
+                            $this->db->where($whereNoViewPermission);
                            }
                            $total_junk = $this->db->count_all_results('tblleads');
                            $percent_junk = ($total_leads > 0 ? number_format(($total_junk * 100) / $total_leads,2) : 0);
@@ -119,7 +119,7 @@
                               <div class="col-md-12">
                                  <p class="bold"><?php echo _l('filter_by'); ?></p>
                               </div>
-                              <?php if(is_admin()){ ?>
+                              <?php if(has_permission('leads','','view')){ ?>
                               <div class="col-md-3 leads-filter-column">
                                  <?php echo render_select('view_assigned',$staff,array('staffid',array('firstname','lastname')),'','',array('data-width'=>'100%','data-none-selected-text'=>_l('leads_dt_assigned')),array(),'no-mbot'); ?>
                               </div>
@@ -139,7 +139,7 @@
                                   }
                                  }
                                  echo '<div id="leads-filter-status">';
-                                    echo render_select('view_status[]',$statuses,array('id','name'),'',$selected,array('data-width'=>'100%','data-none-selected-text'=>_l('leads_all'),'multiple'=>true),array(),'no-mbot','',false);
+                                    echo render_select('view_status[]',$statuses,array('id','name'),'',$selected,array('data-width'=>'100%','data-none-selected-text'=>_l('leads_all'),'multiple'=>true,'data-actions-box'=>true),array(),'no-mbot','',false);
                                     echo '</div>';
                                     ?>
                               </div>
@@ -149,6 +149,7 @@
                                     ?>
                               </div>
                               <div class="col-md-3 leads-filter-column">
+                                <div class="select-placeholder">
                                  <select name="custom_view" title="<?php echo _l('additional_filters'); ?>" id="custom_view" class="selectpicker" data-width="100%">
                                     <option value=""></option>
                                     <option value="lost"><?php echo _l('lead_lost'); ?></option>
@@ -156,17 +157,18 @@
                                     <option value="public"><?php echo _l('lead_public'); ?></option>
                                     <option value="contacted_today"><?php echo _l('lead_add_edit_contacted_today'); ?></option>
                                     <option value="created_today"><?php echo _l('created_today'); ?></option>
-                                    <?php if(is_admin()){ ?>
+                                    <?php if(has_permission('leads','','edit')){ ?>
                                     <option value="not_assigned"><?php echo _l('leads_not_assigned'); ?></option>
                                     <?php } ?>
                                  </select>
+                               </div>
                               </div>
                            </div>
                         </div>
                         <div class="clearfix"></div>
                         <hr class="hr-panel-heading" />
                         <div class="col-md-12">
-                           <a href="#" data-toggle="modal" data-table=".table-leads" data-target="#leads_bulk_actions" class="hide bulk-actions-btn"><?php echo _l('bulk_actions'); ?></a>
+                           <a href="#" data-toggle="modal" data-table=".table-leads" data-target="#leads_bulk_actions" class="hide bulk-actions-btn table-btn"><?php echo _l('bulk_actions'); ?></a>
                            <div class="modal fade bulk_actions" id="leads_bulk_actions" tabindex="-1" role="dialog">
                               <div class="modal-dialog" role="document">
                                  <div class="modal-content">
@@ -175,7 +177,7 @@
                                        <h4 class="modal-title"><?php echo _l('bulk_actions'); ?></h4>
                                     </div>
                                     <div class="modal-body">
-                                       <?php if(is_admin()){ ?>
+                                       <?php if(has_permission('leads','','delete')){ ?>
                                        <div class="checkbox checkbox-danger">
                                           <input type="checkbox" name="mass_delete" id="mass_delete">
                                           <label for="mass_delete"><?php echo _l('mass_delete'); ?></label>
@@ -184,16 +186,14 @@
                                        <?php } ?>
                                        <div id="bulk_change">
                                           <?php echo render_select('move_to_status_leads_bulk',$statuses,array('id','name'),'ticket_single_change_status'); ?>
-                                          <?php echo render_select('move_to_source_leads_bulk',$sources,array('id','name'),'lead_source'); ?>
                                           <?php
-                                          echo render_datetime_input('leads_bulk_last_contact','leads_dt_last_contact');
-                                           ?>
-
-                                          <?php if(is_admin()){
-                                             echo render_select('assign_to_leads_bulk',$staff,array('staffid',array('firstname','lastname')),'leads_dt_assigned');
-                                             }
+                                              echo render_select('move_to_source_leads_bulk',$sources,array('id','name'),'lead_source');
+                                              echo render_datetime_input('leads_bulk_last_contact','leads_dt_last_contact');
+                                              if(has_permission('leads','','edit')){
+                                                echo render_select('assign_to_leads_bulk',$staff,array('staffid',array('firstname','lastname')),'leads_dt_assigned');
+                                              }
                                              ?>
-                                                  <div class="form-group">
+                                          <div class="form-group">
                                           <?php echo '<p><b><i class="fa fa-tag" aria-hidden="true"></i> ' . _l('tags') . ':</b></p>'; ?>
                                           <input type="text" class="tagsinput" id="tags_bulk" name="tags_bulk" value="" data-role="tagsinput">
                                        </div>

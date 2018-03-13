@@ -16,16 +16,16 @@
                      <hr class="hr-panel-heading-dashboard">
                   </div>
                   <?php if (is_using_multiple_currencies()) { ?>
-                  <select class="selectpicker pull-left mbot15" name="currency" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
-                     <?php foreach($currencies as $currency){
-                        $selected = '';
-                        if($currency['isdefault'] == 1){
-                         $selected = 'selected';
-                      }
-                      ?>
-                      <option value="<?php echo $currency['id']; ?>" <?php echo $selected; ?> data-subtext="<?php echo $currency['name']; ?>"><?php echo $currency['symbol']; ?></option>
-                      <?php } ?>
-                   </select>
+                    <select class="selectpicker pull-left mbot15" name="currency" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
+                       <?php foreach($currencies as $currency){
+                          $selected = '';
+                          if($currency['isdefault'] == 1){
+                           $selected = 'selected';
+                        }
+                        ?>
+                        <option value="<?php echo $currency['id']; ?>" <?php echo $selected; ?> data-subtext="<?php echo $currency['name']; ?>"><?php echo $currency['symbol']; ?></option>
+                        <?php } ?>
+                     </select>
                    <?php } ?>
                    <canvas height="130" id="weekly-payment-statistics"></canvas>
                    <div class="clearfix"></div>

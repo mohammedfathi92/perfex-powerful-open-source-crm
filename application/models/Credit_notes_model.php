@@ -83,7 +83,7 @@ class Credit_notes_model extends CRM_Model
         $template = 'credit-note-send-to-client';
         $number = format_credit_note_number($credit_note->id);
 
-        $send                = false;
+        $sent                = false;
         $sent_to             = $this->input->post('sent_to');
         if ($manually === true) {
             $sent_to  = array();
@@ -132,7 +132,7 @@ class Credit_notes_model extends CRM_Model
                         $cc = '';
                     }
                     if ($this->emails_model->send_email_template($template, $contact->email, $merge_fields, '', $cc)) {
-                        $send = true;
+                        $sent = true;
                     }
                 }
                 $i++;
@@ -141,7 +141,7 @@ class Credit_notes_model extends CRM_Model
             return false;
         }
 
-        if ($send) {
+        if ($sent) {
             do_action('credit_note_sent', $id);
 
             return true;
@@ -188,6 +188,7 @@ class Credit_notes_model extends CRM_Model
         $save_and_send = isset($data['save_and_send']);
 
         $data['prefix']        = get_option('credit_note_prefix');
+        $data['number_format'] = get_option('credit_note_number_format');
         $data['datecreated'] = date('Y-m-d H:i:s');
         $data['addedfrom'] = get_staff_user_id();
 
@@ -311,6 +312,12 @@ class Credit_notes_model extends CRM_Model
                 $affectedRows++;
             }
 
+            if(isset($item['custom_fields'])) {
+                if(handle_custom_fields_post($item['itemid'], $item['custom_fields'])) {
+                    $affectedRows++;
+                }
+            }
+
             if (!isset($item['taxname']) || (isset($item['taxname']) && count($item['taxname']) == 0)) {
                 if (delete_taxes_from_item($item['itemid'], 'credit_note')) {
                     $affectedRows++;
@@ -427,6 +434,10 @@ class Credit_notes_model extends CRM_Model
             }
 
             // Delete the custom field values
+            $this->db->where('relid IN (SELECT id from tblitems_in WHERE rel_type="credit_note" AND rel_id="'.$id.'")');
+            $this->db->where('fieldto','items');
+            $this->db->delete('tblcustomfieldsvalues');
+
             $this->db->where('relid', $id);
             $this->db->where('fieldto', 'credit_note');
             $this->db->delete('tblcustomfieldsvalues');
@@ -561,7 +572,7 @@ class Credit_notes_model extends CRM_Model
         $new_credit_note_data['shipping_state']    = $_invoice->shipping_state;
         $new_credit_note_data['shipping_zip']      = $_invoice->shipping_zip;
         $new_credit_note_data['shipping_country']  = $_invoice->shipping_country;
-        $new_credit_note_data['reference_no']  = '';
+        $new_credit_note_data['reference_no']  = format_invoice_number($_invoice->id);
         if ($_invoice->include_shipping == 1) {
             $new_credit_note_data['include_shipping'] = $_invoice->include_shipping;
         }
@@ -570,6 +581,8 @@ class Credit_notes_model extends CRM_Model
         $new_credit_note_data['terms']             = get_option('predefined_terms_credit_note');
         $new_credit_note_data['adminnote']                = '';
         $new_credit_note_data['newitems']                 = array();
+
+        $custom_fields_items = get_custom_fields('items');
         $key                                          = 1;
         foreach ($_invoice->items as $item) {
             $new_credit_note_data['newitems'][$key]['description']      = $item['description'];
@@ -584,6 +597,15 @@ class Credit_notes_model extends CRM_Model
             }
             $new_credit_note_data['newitems'][$key]['rate']  = $item['rate'];
             $new_credit_note_data['newitems'][$key]['order'] = $item['item_order'];
+            foreach($custom_fields_items as $cf) {
+
+            $new_credit_note_data['newitems'][$key]['custom_fields']['items'][$cf['id']] = get_custom_field_value($item['id'],$cf['id'],'items',false);
+
+                if(!defined('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST')) {
+                    define('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST',true);
+                }
+
+            }
             $key++;
         }
         $id = $this->add($new_credit_note_data);

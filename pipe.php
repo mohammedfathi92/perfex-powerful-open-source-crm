@@ -22,6 +22,29 @@ define('ENVIRONMENT', $environment ? $environment : 'development');
 
 require(BASEPATH .'core/Common.php');
 
+if ($composer_autoload = config_item('composer_autoload'))
+{
+    if ($composer_autoload === TRUE)
+    {
+        file_exists(APPPATH.'vendor/autoload.php')
+        ? require_once(APPPATH.'vendor/autoload.php')
+        : log_message('error', '$config[\'composer_autoload\'] is set to TRUE but '.APPPATH.'vendor/autoload.php was not found.');
+    }
+    elseif (file_exists($composer_autoload))
+    {
+        require_once($composer_autoload);
+    }
+    else
+    {
+        log_message('error', 'Could not find the specified $config[\'composer_autoload\'] path: '.$composer_autoload);
+    }
+} else {
+    // Fix for user who don't replace all the files during update
+    if(file_exists(APPPATH.'vendor/autoload.php')){
+        require_once(APPPATH.'vendor/autoload.php');
+    }
+}
+
 if (file_exists(APPPATH.'config/'.ENVIRONMENT.'/constants.php')) {
     require(APPPATH.'config/'.ENVIRONMENT.'/constants.php');
 } else {
@@ -131,7 +154,8 @@ $instance->load->model('tickets_model');
 $pattern = '#\bhttps?://drive.google.com[^,\s()<>]+(?:\([\w\d]+\)|([^,[:punct:]\s]|/))#';
 
 preg_match_all($pattern, $body, $matchGoogleDriveLinks);
-    if(isset($matchGoogleDriveLinks[0]) && is_array($matchGoogleDriveLinks[0])){
+
+if(isset($matchGoogleDriveLinks[0]) && is_array($matchGoogleDriveLinks[0])){
     foreach($matchGoogleDriveLinks[0] as $driveLink){
         $link = '<a href="'.$driveLink.'">'.$driveLink.'</a>';
         $body = str_replace($driveLink, $link,$body);
@@ -146,7 +170,7 @@ $instance->tickets_model->insert_piped_ticket(array(
     'subject'=>$subject,
     'body'=>$body,
     'attachments'=>$email_output["attachments"],
-    ));
+));
 
 function interpret_structure($structure)
 {
@@ -216,5 +240,5 @@ function handle_attachment($structure)
         "size" => strlen($structure->body),
         "filename" => $filename,
         "contenttype" => $ctype
-        );
+    );
 }

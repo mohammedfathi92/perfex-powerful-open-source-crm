@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Mollie extends CI_Controller
+class Mollie extends CRM_Controller
 {
     public function __construct()
     {

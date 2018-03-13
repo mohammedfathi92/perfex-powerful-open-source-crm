@@ -325,7 +325,7 @@ class Utilities_model extends CRM_Model
         }
 
         if (!$client_data) {
-            $available_reminders = $this->perfex_base->get_available_reminders_keys();
+            $available_reminders = $this->app->get_available_reminders_keys();
             $hideNotifiedReminders = get_option('hide_notified_reminders_from_calendar');
             foreach ($available_reminders as $key) {
                 if (get_option('show_' . $key . '_reminders_on_calendar') == 1  && !$ff || $ff && array_key_exists($key.'_reminders', $filters)) {

@@ -17,6 +17,9 @@
 					</div>
 				</div>
 				<?php if(count($related_articles) > 0){ ?>
+				<div class="visible-xs visible-sm">
+					<br />
+				</div>
 				<div class="col-md-4">
 					<h4 class="bold no-mtop h3 kb-related-heading"><?php echo _l('related_knowledgebase_articles'); ?></h4>
 					<hr class="no-mtop" />

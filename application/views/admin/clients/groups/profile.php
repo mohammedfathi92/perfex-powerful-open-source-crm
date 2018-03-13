@@ -9,6 +9,17 @@
                <?php echo _l( 'customer_profile_details'); ?>
             </a>
          </li>
+         <?php
+         $customer_custom_fields = false;
+         if(total_rows('tblcustomfields',array('fieldto'=>'customers','active'=>1)) > 0 ){
+              $customer_custom_fields = true;
+          ?>
+          <li role="presentation" class="<?php if($this->input->get('tab') == 'custom_fields'){echo 'active';}; ?>">
+            <a href="#custom_fields" aria-controls="custom_fields" role="tab" data-toggle="tab">
+               <?php echo do_action('customer_profile_tab_custom_fields_text',_l( 'custom_fields')); ?>
+            </a>
+         </li>
+         <?php } ?>
          <li role="presentation">
             <a href="#billing_and_shipping" aria-controls="billing_and_shipping" role="tab" data-toggle="tab">
                <?php echo _l( 'billing_shipping'); ?>
@@ -18,7 +29,12 @@
          <?php if(isset($client)){ ?>
          <li role="presentation<?php if($this->input->get('tab') && $this->input->get('tab') == 'contacts'){echo ' active';}; ?>">
             <a href="#contacts" aria-controls="contacts" role="tab" data-toggle="tab">
-               <?php echo _l( 'customer_contacts'); ?>
+                <?php if(is_empty_customer_company($client->userid)) {
+                  echo _l('contact');
+                } else {
+                  echo _l( 'customer_contacts');
+                }
+                ?>
             </a>
          </li>
          <li role="presentation">
@@ -31,6 +47,12 @@
       </ul>
       <div class="tab-content">
          <?php do_action('after_custom_profile_tab_content',isset($client) ? $client : false); ?>
+         <?php if($customer_custom_fields) { ?>
+         <div role="tabpanel" class="tab-pane <?php if($this->input->get('tab') == 'custom_fields'){echo ' active';}; ?>" id="custom_fields">
+               <?php $rel_id=( isset($client) ? $client->userid : false); ?>
+               <?php echo render_custom_fields( 'customers',$rel_id); ?>
+         </div>
+         <?php } ?>
          <div role="tabpanel" class="tab-pane<?php if(!$this->input->get('tab')){echo ' active';}; ?>" id="contact_info">
             <div class="row">
                <div class="col-md-12<?php if(isset($client) && (!is_empty_customer_company($client->userid) && total_rows('tblcontacts',array('userid'=>$client->userid,'is_primary'=>1)) > 0)) { echo ''; } else {echo ' hide';} ?>" id="client-show-primary-contact-wrapper">
@@ -70,9 +92,9 @@
                  }
               }
               if(is_admin() || get_option('staff_members_create_inline_customer_groups') == '1'){
-                echo render_select_with_input_group('groups_in[]',$groups,array('id','name'),'customer_groups',$selected,'<a href="#" data-toggle="modal" data-target="#customer_group_modal"><i class="fa fa-plus"></i></a>',array('multiple'=>true),array(),'','',false);
+                echo render_select_with_input_group('groups_in[]',$groups,array('id','name'),'customer_groups',$selected,'<a href="#" data-toggle="modal" data-target="#customer_group_modal"><i class="fa fa-plus"></i></a>',array('multiple'=>true,'data-actions-box'=>true),array(),'','',false);
                 } else {
-                  echo render_select('groups_in[]',$groups,array('id','name'),'customer_groups',$selected,array('multiple'=>true),array(),'','',false);
+                  echo render_select('groups_in[]',$groups,array('id','name'),'customer_groups',$selected,array('multiple'=>true,'data-actions-box'=>true),array(),'','',false);
                 }
               ?>
               <?php if(!isset($client)){ ?>
@@ -93,7 +115,7 @@
                      // Do not remove the currency field from the customer profile!
             echo render_select('default_currency',$currencies,array('id','name','symbol'),'invoice_add_edit_currency',$selected,$s_attrs); ?>
             <?php if(get_option('disable_language') == 0){ ?>
-            <div class="form-group">
+            <div class="form-group select-placeholder">
                <label for="default_language" class="control-label"><?php echo _l('localization_default_language'); ?>
                </label>
                <select name="default_language" id="default_language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
@@ -128,10 +150,6 @@
                echo render_select( 'country',$countries,array( 'country_id',array( 'short_name')), 'clients_country',$selected,array('data-none-selected-text'=>_l('dropdown_non_selected_tex')));
                ?>
             </div>
-            <div class="col-md-12">
-               <?php $rel_id=( isset($client) ? $client->userid : false); ?>
-               <?php echo render_custom_fields( 'customers',$rel_id); ?>
-            </div>
          </div>
       </div>
       <?php if(isset($client)){ ?>
@@ -142,8 +160,8 @@
                $disable_new_contacts = true;
             }
             ?>
-            <div class="inline-block"<?php if($disable_new_contacts){ ?> data-toggle="tooltip" data-title="<?php echo _l('customer_contact_person_only_one_allowed'); ?>"<?php } ?>>
-               <a href="#" onclick="contact(<?php echo $client->userid; ?>); return false;" class="btn btn-info mbot25<?php if($disable_new_contacts){echo ' disabled';} ?>"><?php echo _l('new_contact'); ?></a>
+            <div class="inline-block new-contact-wrapper" data-title="<?php echo _l('customer_contact_person_only_one_allowed'); ?>"<?php if($disable_new_contacts){ ?> data-toggle="tooltip"<?php } ?>>
+               <a href="#" onclick="contact(<?php echo $client->userid; ?>); return false;" class="btn btn-info new-contact mbot25<?php if($disable_new_contacts){echo ' disabled';} ?>"><?php echo _l('new_contact'); ?></a>
             </div>
             <?php } ?>
             <?php

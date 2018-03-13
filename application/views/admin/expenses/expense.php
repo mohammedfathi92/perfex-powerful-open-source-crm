@@ -11,6 +11,12 @@
          <div class="col-md-6">
             <div class="panel_s">
                <div class="panel-body">
+                  <?php
+                    if(isset($expense) && $expense->recurring_from != NULL){
+                      $recurring_expense = $this->expenses_model->get($expense->recurring_from);
+                      echo '<div class="alert alert-info">'._l('expense_recurring_from','<a href="'.admin_url('expenses/list_expenses/'.$expense->recurring_from).'" target="_blank">'.$recurring_expense->category_name.(!empty($recurring_expense->expense_name) ? ' ('.$recurring_expense->expense_name.')' : '').'</a></div>');
+                    }
+                  ?>
                   <h4 class="no-margin"><?php echo $title; ?></h4>
                   <hr class="hr-panel-heading" />
                   <?php if(isset($expense) && $expense->attachment !== ''){ ?>
@@ -53,23 +59,20 @@
                     }
                    ?>
                   <?php echo render_date_input('date','expense_add_edit_date',$value,$date_attrs);
-                     $value = (isset($expense) ? $expense->amount : ''); ?>
+                  $value = (isset($expense) ? $expense->amount : ''); ?>
                   <?php echo render_input('amount','expense_add_edit_amount',$value,'number');
-                     $_hide = 'hide';
-                     if(!isset($expense) && !isset($customer_id)){
-                       $_hide = 'hide';
-                     } else {
-                       if((isset($expense)&&($expense->billable == 1 || $expense->clientid != 0)) || isset($customer_id)){
-                         $_hide = '';
-                       }
+                     $hide_billable_options = 'hide';
+
+                     if((isset($expense) && ($expense->billable == 1 || $expense->clientid != 0)) || isset($customer_id)){
+                          $hide_billable_options = '';
                      }
                      ?>
-                  <div class="checkbox checkbox-primary billable <?php echo $_hide; ?>">
+                  <div class="checkbox checkbox-primary billable <?php echo $hide_billable_options; ?>">
                      <input type="checkbox" id="billable" <?php if(isset($expense) && $expense->invoiceid !== NULL){echo 'disabled'; } ?> name="billable" <?php if(isset($expense)){if($expense->billable == 1){echo 'checked';}}; ?>>
                      <label for="billable" <?php if(isset($expense) && $expense->invoiceid !== NULL){echo 'data-toggle="tooltip" title="'._l('expense_already_invoiced').'"'; } ?>><?php echo _l('expense_add_edit_billable'); ?></label>
                   </div>
-                  <div class="form-group">
-                     <label for="clientid"><?php echo _l('expense_add_edit_customer'); ?></label>
+                  <div class="form-group select-placeholder">
+                     <label for="clientid" class="control-label"><?php echo _l('expense_add_edit_customer'); ?></label>
                      <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                      <?php $selected = (isset($expense) ? $expense->clientid : '');
                         if($selected == ''){
@@ -149,7 +152,7 @@
                   </div>
                   <div class="row">
                     <div class="col-md-6">
-                        <div class="form-group">
+                        <div class="form-group select-placeholder">
                            <label class="control-label" for="tax"><?php echo _l('tax_1'); ?></label>
                            <select class="selectpicker display-block" data-width="100%" name="tax" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                               <option value=""><?php echo _l('no_tax'); ?></option>
@@ -166,7 +169,7 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                          <div class="form-group">
+                          <div class="form-group select-placeholder">
                            <label class="control-label" for="tax2"><?php echo _l('tax_2'); ?></label>
                            <select class="selectpicker display-block" data-width="100%" name="tax2" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>" <?php if(!isset($expense) || isset($expense) && $expense->tax == 0){echo 'disabled';} ?>>
                               <option value=""><?php echo _l('no_tax'); ?></option>
@@ -194,7 +197,7 @@
                     <?php echo render_input('reference_no','expense_add_edit_reference_no',$value); ?>
                      </div>
                   </div>
-                  <div class="form-group">
+                  <div class="form-group select-placeholder">
                      <label for="repeat_every" class="control-label"><?php echo _l('expense_repeat_every'); ?></label>
                      <select name="repeat_every" id="repeat_every" class="selectpicker" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                         <option value=""></option>
@@ -229,12 +232,18 @@
                      <?php echo render_date_input('recurring_ends_on','recurring_ends_on',$value); ?>
                   </div>
                   <div>
-                     <div class="checkbox checkbox-primary billable_recurring_options <?php echo $_hide; ?>">
+                    <?php
+                      $hide_invoice_recurring_options = 'hide';
+                      if(isset($expense) && $expense->billable == 1) {
+                        $hide_invoice_recurring_options = '';
+                      }
+                    ?>
+                     <div class="checkbox checkbox-primary billable_recurring_options <?php echo $hide_invoice_recurring_options; ?>">
                         <input type="checkbox" id="create_invoice_billable" name="create_invoice_billable" <?php if(isset($expense)){if($expense->create_invoice_billable == 1){echo 'checked';}}; ?>>
                         <label for="create_invoice_billable"><i class="fa fa-question-circle" data-toggle="tooltip" title="<?php echo _l('expense_recurring_autocreate_invoice_tooltip'); ?>"></i> <?php echo _l('expense_recurring_auto_create_invoice'); ?></label>
                      </div>
                   </div>
-                  <div class="checkbox checkbox-primary billable_recurring_options <?php echo $_hide; ?>">
+                  <div class="checkbox checkbox-primary billable_recurring_options <?php echo $hide_invoice_recurring_options; ?>">
                      <input type="checkbox" name="send_invoice_to_customer" id="send_invoice_to_customer" <?php if(isset($expense)){if($expense->send_invoice_to_customer == 1){echo 'checked';}}; ?>>
                      <label for="send_invoice_to_customer"><?php echo _l('expense_recurring_send_custom_on_renew'); ?></label>
                   </div>
@@ -280,6 +289,17 @@
      $('input[name="billable"]').on('change',function(){
        do_billable_checkbox();
      });
+
+      $('#repeat_every').on('change',function(){
+         if($(this).selectpicker('val') != '' && $('input[name="billable"]').prop('checked') == true){
+            $('.billable_recurring_options').removeClass('hide');
+          } else {
+            $('.billable_recurring_options').addClass('hide');
+          }
+     });
+
+     // hide invoice recurring options on page load
+     $('#repeat_every').trigger('change');
 
       $('select[name="clientid"]').on('change',function(){
        customer_init();
@@ -348,7 +368,11 @@
       if(val != ''){
         $('.billable').removeClass('hide');
         if ($('input[name="billable"]').prop('checked') == true) {
-          $('.billable_recurring_options').removeClass('hide');
+          if($('#repeat_every').selectpicker('val') != ''){
+            $('.billable_recurring_options').removeClass('hide');
+          } else {
+            $('.billable_recurring_options').addClass('hide');
+          }
           if(customer_currency != ''){
             selectCurrency.val(customer_currency);
             selectCurrency.selectpicker('refresh');

@@ -31,12 +31,15 @@ foreach($payment_gateways as $gateway){
     if($option['type'] == 'yes_no'){
       render_yes_no_option($option['name'], $option['label']);
     } else if($option['type'] == 'input') {
-      echo render_input('settings['.$option['name'].']', $option['label'],$value);
+      echo render_input('settings['.$option['name'].']', $option['label'],$value,(isset($option['input_type']) ? $option['input_type'] : 'text'),(isset($option['field_attributes']) ? $option['field_attributes'] : array()));
     } else if($option['type'] == 'textarea') {
       echo render_textarea('settings['.$option['name'].']', $option['label'],$value);
     } else {
       echo '<p>Input Type For This Option Not Specific</p>';
     }
+     if(isset($option['after'])) {
+        echo $option['after'];
+      }
   }
   ?>
 </div>

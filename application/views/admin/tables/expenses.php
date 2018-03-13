@@ -47,6 +47,11 @@ $sTable       = 'tblexpenses';
 
 $aColumns = do_action('expenses_table_sql_columns', $aColumns);
 
+// Fix for big queries. Some hosting have max_join_limit
+if (count($custom_fields) > 4) {
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
+}
+
 $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'category',
     'billable',
@@ -59,7 +64,7 @@ $result       = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $wher
 $output       = $result['output'];
 $rResult      = $result['rResult'];
 
-$this->_instance->load->model('payment_modes_model');
+$this->ci->load->model('payment_modes_model');
 
 foreach ($rResult as $aRow) {
     $row = array();
@@ -131,7 +136,7 @@ foreach ($rResult as $aRow) {
 
     $paymentModeOutput = '';
     if ($aRow['paymentmode'] != '0' && !empty($aRow['paymentmode'])) {
-        $payment_mode = $this->_instance->payment_modes_model->get($aRow['paymentmode'], array(), false, true);
+        $payment_mode = $this->ci->payment_modes_model->get($aRow['paymentmode'], array(), false, true);
         if ($payment_mode) {
             $paymentModeOutput = $payment_mode->name;
         }

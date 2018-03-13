@@ -37,14 +37,14 @@ if ($clientid != '') {
     array_push($where, ' AND clientid=' . $clientid);
 }
 
-if (!has_permission('projects', '', 'view') || $this->_instance->input->post('my_projects')) {
+if (!has_permission('projects', '', 'view') || $this->ci->input->post('my_projects')) {
     array_push($where, ' AND tblprojects.id IN (SELECT project_id FROM tblprojectmembers WHERE staff_id=' . get_staff_user_id() . ')');
 }
 
 $statusIds = array();
 
-foreach ($this->_instance->projects_model->get_project_statuses() as $status) {
-    if ($this->_instance->input->post('project_status_' . $status['id'])) {
+foreach ($this->ci->projects_model->get_project_statuses() as $status) {
+    if ($this->ci->input->post('project_status_' . $status['id'])) {
         array_push($statusIds, $status['id']);
     }
 }
@@ -66,12 +66,12 @@ foreach ($custom_fields as $key => $field) {
     array_push($join, 'LEFT JOIN tblcustomfieldsvalues as ctable_' . $key . ' ON tblprojects.id = ctable_' . $key . '.relid AND ctable_' . $key . '.fieldto="' . $field['fieldto'] . '" AND ctable_' . $key . '.fieldid=' . $field['id']);
 }
 
+$aColumns = do_action('projects_table_sql_columns', $aColumns);
+
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
-
-$aColumns = do_action('projects_table_sql_columns', $aColumns);
 
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'clientid',
@@ -148,7 +148,7 @@ foreach ($rResult as $aRow) {
     $options = '';
 
     if($hasPermissionCreate) {
-        $options .= icon_btn('#', 'clone','btn-default',array('onclick'=>'copy_project('.$aRow['id'].');return false'));
+        $options .= icon_btn('#', 'clone','btn-default',array('onclick'=>'copy_project('.$aRow['id'].');return false','data-toggle'=>'tooltip','title'=>_l('copy_project')));
     }
 
     if ($hasPermissionEdit) {

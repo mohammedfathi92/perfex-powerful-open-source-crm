@@ -187,8 +187,9 @@ function get_project_status_by_id($id)
 function get_user_pinned_projects()
 {
     $CI = &get_instance();
-    $CI->db->select('tblprojects.id, tblprojects.name, tblprojects.clientid');
+    $CI->db->select('tblprojects.id, tblprojects.name, tblprojects.clientid, ' . get_sql_select_client_company());
     $CI->db->join('tblprojects', 'tblprojects.id=tblpinnedprojects.project_id');
+    $CI->db->join('tblclients', 'tblclients.userid=tblprojects.clientid');
     $CI->db->where('tblpinnedprojects.staff_id', get_staff_user_id());
     $projects = $CI->db->get('tblpinnedprojects')->result_array();
     $CI->load->model('projects_model');

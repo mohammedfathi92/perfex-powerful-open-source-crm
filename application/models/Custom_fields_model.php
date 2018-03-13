@@ -2,7 +2,7 @@
 defined('BASEPATH') or exit('No direct script access allowed');
 class Custom_fields_model extends CRM_Model
 {
-    private $pdf_fields = array('estimate', 'invoice', 'credit_note');
+    private $pdf_fields = array('estimate', 'invoice', 'credit_note', 'items');
 
     private $client_portal_fields = array('customers', 'estimate', 'invoice', 'proposal', 'contracts', 'tasks', 'projects', 'contacts', 'tickets', 'company', 'credit_note');
 
@@ -101,11 +101,18 @@ class Custom_fields_model extends CRM_Model
             $data['show_on_table']          = 1;
             $data['only_admin']             = 0;
             $data['disalow_client_to_edit'] = 0;
+        } else if($data['fieldto'] == 'items') {
+            $data['show_on_pdf']            = 1;
+            $data['show_on_client_portal']  = 1;
+            $data['show_on_table']          = 1;
+            $data['only_admin']             = 0;
+            $data['disalow_client_to_edit'] = 0;
         }
 
         $this->db->insert('tblcustomfields', $data);
         $insert_id = $this->db->insert_id();
         if ($insert_id) {
+
             logActivity('New Custom Field Added [' . $data['name'] . ']');
 
             return $insert_id;
@@ -182,6 +189,12 @@ class Custom_fields_model extends CRM_Model
         }
 
         if ($data['fieldto'] == 'company') {
+            $data['show_on_pdf']            = 1;
+            $data['show_on_client_portal']  = 1;
+            $data['show_on_table']          = 1;
+            $data['only_admin']             = 0;
+            $data['disalow_client_to_edit'] = 0;
+        } else if($data['fieldto'] == 'items') {
             $data['show_on_pdf']            = 1;
             $data['show_on_client_portal']  = 1;
             $data['show_on_table']          = 1;

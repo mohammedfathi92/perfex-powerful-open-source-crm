@@ -38,13 +38,20 @@ class Numberword
                 }
             }
         }
+
         $language = $l;
         if ($language == '') {
             $language = get_option('active_language');
         }
-        $this->ci->lang->load($language . '_num_words_lang', $language);
 
+        $this->ci->lang->load($language . '_num_words_lang', $language);
         if (file_exists(APPPATH . 'language/' . $language . '/custom_lang.php')) {
+
+            // Unset the previous custom_lang in case is already loaded before num_words_lang
+            if(isset($this->ci->lang->is_loaded['custom_lang.php'])){
+                unset($this->ci->lang->is_loaded['custom_lang.php']);
+            }
+
             $this->ci->lang->load('custom_lang', $language);
         }
 

@@ -12,7 +12,7 @@ if (get_option('show_status_on_pdf_ei') == 1) {
 }
 
 if ($status != 2 && $status != 5 && get_option('show_pay_link_to_invoice_pdf') == 1
-    && found_invoice_mode($payment_modes,$invoice->id,false)) {
+    && found_invoice_mode($payment_modes, $invoice->id, false)) {
     $info_right_column .= ' - <a style="color:#84c529;text-decoration:none;text-transform:uppercase;" href="' . site_url('viewinvoice/' . $invoice->id . '/' . $invoice->hash) . '"><1b>' . _l('view_invoice_pdf_link_pay') . '</1b></a>';
 }
 
@@ -63,7 +63,9 @@ if ($invoice->project_id != 0 && get_option('show_project_on_invoice') == 1) {
 
 foreach ($pdf_custom_fields as $field) {
     $value = get_custom_field_value($invoice->id, $field['id'], 'invoice');
-    if ($value == '') { continue; }
+    if ($value == '') {
+        continue;
+    }
     $invoice_info .= $field['name'] . ': ' . $value.'<br />';
 }
 
@@ -72,8 +74,15 @@ $pdf->writeHTMLCell(($dimensions['wk'] / 2) - $dimensions['rm'], '', '', ($swap 
 // The Table
 $pdf->Ln(6);
 $item_width = 38;
+
 // If show item taxes is disabled in PDF we should increase the item width table heading
 $item_width = get_option('show_tax_per_item') == 0 ? $item_width+15 : $item_width;
+
+$custom_fields_items = get_items_custom_fields_for_table_html($invoice->id,'invoice');
+// Calculate headings width, in case there are custom fields for items
+$total_headings = get_option('show_tax_per_item') == 1 ? 4 : 3;
+$total_headings += count($custom_fields_items);
+$headings_width = (100-($item_width+6)) / $total_headings;
 
 // Header
 $qty_heading = _l('invoice_table_quantity_heading');
@@ -83,20 +92,26 @@ if ($invoice->show_quantity_as == 2) {
     $qty_heading = _l('invoice_table_quantity_heading') . '/' . _l('invoice_table_hours_heading');
 }
 
-$tblhtml = '
-<table width="100%" bgcolor="#fff" cellspacing="0" cellpadding="8">
-    <tr height="30" bgcolor="' . get_option('pdf_table_heading_color') . '" style="color:' . get_option('pdf_table_heading_text_color') . ';">
-        <th width="5%;" align="center">#</th>
-        <th width="' . $item_width . '%" align="left">' . _l('invoice_table_item_heading') . '</th>
-        <th width="12%" align="right">' . $qty_heading . '</th>
-        <th width="15%" align="right">' . _l('invoice_table_rate_heading') . '</th>';
+$tblhtml = '<table width="100%" bgcolor="#fff" cellspacing="0" cellpadding="8">';
 
-if (get_option('show_tax_per_item') == 1) {
-    $tblhtml .= '<th width="15%" align="right">' . _l('invoice_table_tax_heading') . '</th>';
+$tblhtml .= '<tr height="30" bgcolor="' . get_option('pdf_table_heading_color') . '" style="color:' . get_option('pdf_table_heading_text_color') . ';">';
+
+$tblhtml .= '<th width="5%;" align="center">#</th>';
+$tblhtml .= '<th width="'.$item_width.'%" align="left">' . _l('invoice_table_item_heading') . '</th>';
+
+foreach ($custom_fields_items as $cf) {
+    $tblhtml .= '<th width="'.$headings_width.'%" align="left">' . $cf['name'] . '</th>';
 }
 
-$tblhtml .= '<th width="15%" align="right">' . _l('invoice_table_amount_heading') . '</th>
-</tr>';
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . $qty_heading . '</th>';
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('invoice_table_rate_heading') . '</th>';
+
+if (get_option('show_tax_per_item') == 1) {
+    $tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('invoice_table_tax_heading') . '</th>';
+}
+
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('invoice_table_amount_heading') . '</th>';
+$tblhtml .= '</tr>';
 
 // Items
 $tblhtml .= '<tbody>';
@@ -111,8 +126,8 @@ $tblhtml .= '</table>';
 $pdf->writeHTML($tblhtml, true, false, false, false, '');
 
 $pdf->Ln(8);
-$tbltotal = '';
 
+$tbltotal = '';
 $tbltotal .= '<table cellpadding="6" style="font-size:'.($font_size+4).'px">';
 $tbltotal .= '
 <tr>
@@ -120,25 +135,23 @@ $tbltotal .= '
     <td align="right" width="15%">' . format_money($invoice->subtotal, $invoice->symbol) . '</td>
 </tr>';
 
-if ($invoice->discount_percent != 0) {
+if(is_sale_discount_applied($invoice)){
     $tbltotal .= '
     <tr>
-        <td align="right" width="85%"><strong>' . _l('invoice_discount') . '(' . _format_number($invoice->discount_percent, true) . '%)' . '</strong></td>
-        <td align="right" width="15%">-' . format_money($invoice->discount_total, $invoice->symbol) . '</td>
+        <td align="right" width="85%"><strong>' . _l('invoice_discount');
+        if(is_sale_discount($invoice,'percent')){
+            $tbltotal .= '(' . _format_number($invoice->discount_percent, true) . '%)';
+        }
+        $tbltotal .= '</strong>';
+        $tbltotal .= '</td>';
+        $tbltotal .= '<td align="right" width="15%">-' . format_money($invoice->discount_total, $invoice->symbol) . '</td>
     </tr>';
 }
 
 foreach ($taxes as $tax) {
-    $total = array_sum($tax['total']);
-    if ($invoice->discount_percent != 0 && $invoice->discount_type == 'before_tax') {
-        $total_tax_calculated = ($total * $invoice->discount_percent) / 100;
-        $total                = ($total - $total_tax_calculated);
-    }
-    // The tax is in format TAXNAME|20
-    $_tax_name = explode('|', $tax['tax_name']);
     $tbltotal .= '<tr>
-    <td align="right" width="85%"><strong>' . $_tax_name[0] . ' (' . _format_number($tax['taxrate']) . '%)' . '</strong></td>
-    <td align="right" width="15%">' . format_money($total, $invoice->symbol) . '</td>
+    <td align="right" width="85%"><strong>' . $tax['taxname'] . ' (' . _format_number($tax['taxrate']) . '%)' . '</strong></td>
+    <td align="right" width="15%">' . format_money($tax['total_tax'], $invoice->symbol) . '</td>
 </tr>';
 }
 
@@ -183,9 +196,7 @@ if (get_option('show_amount_due_on_invoice') == 1 && $invoice->status != 5) {
    </tr>';
 }
 
-
 $tbltotal .= '</table>';
-
 $pdf->writeHTML($tbltotal, true, false, false, false, '');
 
 if (get_option('total_to_words_enabled') == 1) {
@@ -236,6 +247,7 @@ if (found_invoice_mode($payment_modes, $invoice->id, true, true)) {
     $pdf->SetFont($font_name, 'B', 10);
     $pdf->Cell(0, 0, _l('invoice_html_offline_payment'), 0, 1, 'L', 0, '', 0);
     $pdf->SetFont($font_name, '', 10);
+
     foreach ($payment_modes as $mode) {
         if (is_numeric($mode['id'])) {
             if (!is_payment_mode_allowed_for_invoice($mode['id'], $invoice->id)) {

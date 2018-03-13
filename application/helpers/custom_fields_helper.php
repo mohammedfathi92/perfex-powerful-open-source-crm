@@ -1,27 +1,47 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 /**
- * Render custom fields for particular area
- * @param  string  $belongs_to
- * @param  int $rel_id
- * @param  array   $where
- * @return string
+ * Render custom fields inputs
+ * @param  string  $belongs_to             where this custom field belongs eq invoice, customers
+ * @param  mixed   $rel_id                 relation id to set values
+ * @param  array   $where                  where in sql - additional
+ * @param  array $items_cf_params          used only for custom fields for items operations
+ * @return mixed
  */
-function render_custom_fields($belongs_to, $rel_id = false, $where = array())
+function render_custom_fields($belongs_to, $rel_id = false, $where = array(), $items_cf_params = array())
 {
+    // Is custom fields for items and in add/edit
+    $items_add_edit_preview = isset($items_cf_params['add_edit_preview']) && $items_cf_params['add_edit_preview'] ? true : false;
+
+     // Is custom fields for items and in add/edit area for this already added
+    $items_applied = isset($items_cf_params['items_applied']) && $items_cf_params['items_applied'] ? true : false;
+
+    // Used for items custom fields to add additional name on input
+    $part_item_name = isset($items_cf_params['part_item_name']) ? $items_cf_params['part_item_name'] : '';
+
+    // Is this custom fields for predefined items Sales->Items
+    $items_pr = isset($items_cf_params['items_pr']) && $items_cf_params['items_pr'] ? true : false;
+
+    $is_admin = is_admin();
+
     $CI =& get_instance();
     $CI->db->where('active', 1);
     $CI->db->where('fieldto', $belongs_to);
+
     if (is_array($where) && count($where) > 0 || is_string($where) && $where != '') {
         $CI->db->where($where);
     }
+
     $CI->db->order_by('field_order', 'asc');
     $fields      = $CI->db->get('tblcustomfields')->result_array();
+
     $fields_html = '';
 
-    $is_admin = is_admin();
     if (count($fields)) {
-        $fields_html .= '<div class="row">';
+        if (!$items_add_edit_preview && !$items_applied) {
+            $fields_html .= '<div class="row">';
+        }
+
         foreach ($fields as $field) {
             if ($field['only_admin'] == 1 && !$is_admin) {
                 continue;
@@ -34,15 +54,24 @@ function render_custom_fields($belongs_to, $rel_id = false, $where = array())
                 $field['bs_column'] = 12;
             }
 
-            $fields_html .= '<div class="col-md-' . $field['bs_column'] . '">';
-            if ($is_admin) {
-                $fields_html .= '<a href="' . admin_url('custom_fields/field/' . $field['id']) . '" target="_blank" class="custom-field-inline-edit-link"><i class="fa fa-pencil-square-o"></i></a>';
+            if (!$items_add_edit_preview && !$items_applied) {
+                $fields_html .= '<div class="col-md-' . $field['bs_column'] . '">';
+            } elseif ($items_add_edit_preview) {
+                $fields_html .= '<td class="custom_field" data-id="'.$field['id'].'">';
+            } elseif ($items_applied) {
+                $fields_html .= '<td class="custom_field">';
             }
+
+            if ($is_admin && $items_add_edit_preview == false && $items_applied == false) {
+                $fields_html .= '<a href="' . admin_url('custom_fields/field/' . $field['id']) . '" tabindex="-1" target="_blank" class="custom-field-inline-edit-link"><i class="fa fa-pencil-square-o"></i></a>';
+            }
+
             if ($rel_id !== false) {
-                $value = get_custom_field_value($rel_id, $field['id'], $belongs_to, false);
+                $value = get_custom_field_value($rel_id, $field['id'], ($items_pr ? 'items_pr' : $belongs_to), false);
             }
 
             $_input_attrs = array();
+
             if ($field['required'] == 1) {
                 $_input_attrs['data-custom-field-required'] = true;
             }
@@ -50,74 +79,99 @@ function render_custom_fields($belongs_to, $rel_id = false, $where = array())
             if ($field['disalow_client_to_edit'] == 1 && is_client_logged_in()) {
                 $_input_attrs['disabled'] = true;
             }
+
             $_input_attrs['data-fieldto'] = $field['fieldto'];
             $_input_attrs['data-fieldid'] = $field['id'];
 
-            $field_name = ucfirst($field['name']);
+            $cf_name = 'custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']';
+
+            if ($part_item_name != '') {
+                $cf_name = $part_item_name. '[custom_fields][items]['.$field['id'].']';
+            }
+
+            if ($items_add_edit_preview) {
+                $cf_name = '';
+            }
+
+            $field_name = $field['name'];
+
             if ($field['type'] == 'input' || $field['type'] == 'number') {
                 $t = $field['type'] == 'input' ? 'text' : 'number';
-                $fields_html .= render_input('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']', $field_name, $value, $t, $_input_attrs);
+                $fields_html .= render_input($cf_name, $field_name, $value, $t, $_input_attrs);
             } elseif ($field['type'] == 'date_picker') {
-                $fields_html .= render_date_input('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']', $field_name, _d($value), $_input_attrs);
-            } elseif($field['type'] == 'date_picker_time'){
-                $fields_html .= render_datetime_input('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']', $field_name, _dt($value), $_input_attrs);
+                $fields_html .= render_date_input($cf_name, $field_name, _d($value), $_input_attrs);
+            } elseif ($field['type'] == 'date_picker_time') {
+                $fields_html .= render_datetime_input($cf_name, $field_name, _dt($value), $_input_attrs);
             } elseif ($field['type'] == 'textarea') {
-                $fields_html .= render_textarea('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']', $field_name, $value, $_input_attrs);
+                $fields_html .= render_textarea($cf_name, $field_name, $value, $_input_attrs);
             } elseif ($field['type'] == 'colorpicker') {
-                $fields_html .= render_color_picker('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']', $field_name, $value, $_input_attrs);
+                $fields_html .= render_color_picker($cf_name, $field_name, $value, $_input_attrs);
             } elseif ($field['type'] == 'select' || $field['type'] == 'multiselect') {
                 $_select_attrs = array();
                 $select_attrs  = '';
-                $select_name = 'custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']';
+                $select_name = $cf_name;
+
                 if ($field['required'] == 1) {
                     $_select_attrs['data-custom-field-required'] = true;
                 }
+
                 if ($field['disalow_client_to_edit'] == 1 && is_client_logged_in()) {
                     $_select_attrs['disabled'] = true;
                 }
+
                 $_select_attrs['data-fieldto'] = $field['fieldto'];
                 $_select_attrs['data-fieldid'] = $field['id'];
-                if($field['type'] == 'multiselect'){
+
+                if ($field['type'] == 'multiselect') {
                     $_select_attrs['multiple'] = true;
                     $select_name .= '[]';
                 }
+
                 foreach ($_select_attrs as $key => $val) {
                     $select_attrs .= $key . '=' . '"' . $val . '" ';
                 }
 
                 $fields_html .= '<div class="form-group">';
-                $fields_html .= '<label for="custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']">' . $field_name . '</label>';
-                $fields_html .= '<select ' . $select_attrs . ' name="'.$select_name.'" class="selectpicker form-control" data-width="100%" data-none-selected-text="' . _l('dropdown_non_selected_tex') . '"  data-live-search="true">';
+                $fields_html .= '<label for="'.$cf_name.'">' . $field_name . '</label>';
+                $fields_html .= '<select ' . $select_attrs . ' name="'.$select_name.'" class="'.($items_add_edit_preview == false ? 'select-placeholder ': '').'selectpicker form-control'.($field['type'] == 'multiselect' ? ' custom-field-multi-select' : '').'" data-width="100%" data-none-selected-text="' . _l('dropdown_non_selected_tex') . '"  data-live-search="true">';
                 $fields_html .= '<option value=""></option>';
+
                 $options = explode(',', $field['options']);
-                if($field['type'] == 'multiselect'){
+
+                if ($field['type'] == 'multiselect') {
                     $value   = explode(',', $value);
                 }
+
                 foreach ($options as $option) {
                     $option   = trim($option);
-                    if($option != ''){
+                    if ($option != '') {
                         $selected = '';
-                        if($field['type'] == 'select'){
+                        if ($field['type'] == 'select') {
                             if ($option == $value) {
                                 $selected = ' selected';
                             }
                         } else {
-                           foreach ($value as $v) {
-                            $v = trim($v);
-                            if ($v == $option) {
-                                $selected = ' selected';
+                            foreach ($value as $v) {
+                                $v = trim($v);
+                                if ($v == $option) {
+                                    $selected = ' selected';
+                                }
                             }
                         }
-                    }
-                    $fields_html .= '<option value="' . $option . '"' . $selected . '' . set_select('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']', $option) . '>' . $option . '</option>';
+
+                        $fields_html .= '<option value="' . $option . '"' . $selected . '' . set_select($cf_name, $option) . '>' . $option . '</option>';
                     }
                 }
                 $fields_html .= '</select>';
                 $fields_html .= '</div>';
             } elseif ($field['type'] == 'checkbox') {
+
                 $fields_html .= '<div class="form-group chk">';
-                $fields_html .= '<br /><label class="control-label" for="custom_fields[' . $field['fieldto'] . '][' . $field['id'] . '][]">' . $field_name . '</label>' . ($field['display_inline'] == 1 ? ' <br />': '');
+
+                $fields_html .= '<br /><label class="control-label'.($field['display_inline'] == 0 ? ' no-mbot': '').'" for="'.$cf_name.'[]">' . $field_name . '</label>' . ($field['display_inline'] == 1 ? ' <br />': '');
+
                 $options = explode(',', $field['options']);
+
                 $value   = explode(',', $value);
 
                 foreach ($options as $option) {
@@ -148,11 +202,13 @@ function render_custom_fields($belongs_to, $rel_id = false, $where = array())
                         $chk_attrs .= $key . '=' . '"' . $val . '" ';
                     }
 
-                    $fields_html .= '<div class="checkbox'.($field['display_inline'] == 1 ? ' checkbox-inline': '').'">';
-                    $fields_html .= '<input class="custom_field_checkbox" ' . $chk_attrs . ' ' . set_checkbox('custom_fields[' . $field['fieldto'] . '][' . $field['id'] . '][]', $option) . ' ' . $checked . ' value="' . $option . '" id="cfc_' . $field['id'] . '_' . slug_it($option) . '" type="checkbox" name="custom_fields[' . $field['fieldto'] . '][' . $field['id'] . '][]">';
+                    $input_id = 'cfc_' . $field['id'] . '_' . slug_it($option) . '_' . app_generate_hash();
 
-                    $fields_html .= '<label for="cfc_' . $field['id'] . '_' . slug_it($option) . '">' . $option . '</label>';
-                    $fields_html .= '<input type="hidden" name="custom_fields[' . $field['fieldto'] . '][' . $field['id'] . '][]" value="cfk_hidden">';
+                    $fields_html .= '<div class="checkbox'.($field['display_inline'] == 1 ? ' checkbox-inline': '').'">';
+                    $fields_html .= '<input class="custom_field_checkbox" ' . $chk_attrs . ' ' . set_checkbox($cf_name.'[]', $option) . ' ' . $checked . ' value="' . $option . '" id="'.$input_id.'" type="checkbox" name="'.$cf_name.'[]">';
+
+                    $fields_html .= '<label for="'.$input_id.'" class="cf-chk-label">' . $option . '</label>';
+                    $fields_html .= '<input type="hidden" name="'.$cf_name.'[]" value="cfk_hidden">';
                     $fields_html .= '</div>';
                 }
                 $fields_html .= '</div>';
@@ -193,17 +249,26 @@ function render_custom_fields($belongs_to, $rel_id = false, $where = array())
                 $fields_html .= '</div>';
             }
 
-            $name = 'custom_fields[' . $field['fieldto'] . '][' . $field['id'] . ']';
+            $name = $cf_name;
+
             if ($field['type'] == 'checkbox' || $field['type'] == 'multiselect') {
                 $name .= '[]';
             }
 
             $fields_html .= form_error($name);
-            // Close column
+            if (!$items_add_edit_preview && !$items_applied) {
+                $fields_html .= '</div>';
+            } elseif ($items_add_edit_preview) {
+                $fields_html .= '</td>';
+            } elseif ($items_applied) {
+                $fields_html .= '</td>';
+            }
+        }
+
+        // close row
+        if (!$items_add_edit_preview && !$items_applied) {
             $fields_html .= '</div>';
         }
-        // close row
-        $fields_html .= '</div>';
     }
 
     return $fields_html;
@@ -221,7 +286,7 @@ function get_custom_fields($field_to, $where = array(), $exclude_only_admin = fa
     $is_admin = is_admin();
     $CI =& get_instance();
     $CI->db->where('fieldto', $field_to);
-    if (count($where) > 0) {
+    if ((is_array($where) && count($where) > 0) || (!is_array($where) && $where != '')) {
         $CI->db->where($where);
     }
     if (!$is_admin || $exclude_only_admin == true) {
@@ -243,8 +308,9 @@ function get_custom_fields($field_to, $where = array(), $exclude_only_admin = fa
  * @param  string $field_to field relation
  * @return array
  */
-function get_table_custom_fields($field_to){
-    return get_custom_fields($field_to,array('show_on_table'=>1));
+function get_table_custom_fields($field_to)
+{
+    return get_custom_fields($field_to, array('show_on_table'=>1));
 }
 /**
  * Get custom field value
@@ -257,19 +323,22 @@ function get_table_custom_fields($field_to){
 function get_custom_field_value($rel_id, $field_id, $field_to, $format = true)
 {
     $CI =& get_instance();
-    $CI->db->where('relid', $rel_id);
-    $CI->db->where('fieldid', $field_id);
-    $CI->db->where('fieldto', $field_to);
+
+    $CI->db->select('tblcustomfieldsvalues.value,tblcustomfields.type');
+    $CI->db->join('tblcustomfields','tblcustomfields.id=tblcustomfieldsvalues.fieldid');
+    $CI->db->where('tblcustomfieldsvalues.relid', $rel_id);
+    $CI->db->where('tblcustomfieldsvalues.fieldid', $field_id);
+    $CI->db->where('tblcustomfieldsvalues.fieldto', $field_to);
+
     $row    = $CI->db->get('tblcustomfieldsvalues')->row();
+
     $result = '';
     if ($row) {
         $result = $row->value;
         if ($format == true) {
-            $CI->db->where('id', $field_id);
-            $_row = $CI->db->get('tblcustomfields')->row();
-            if ($_row->type == 'date_picker') {
+            if ($row->type == 'date_picker') {
                 $result = _d($result);
-            } elseif ($_row->type == 'date_picker_time') {
+            } elseif ($row->type == 'date_picker_time') {
                 $result = _dt($result);
             }
         }
@@ -283,48 +352,50 @@ function get_custom_field_value($rel_id, $field_id, $field_to, $format = true)
  * @param  array $custom_fields all custom fields with id and values
  * @return boolean
  */
-function handle_custom_fields_post($rel_id, $custom_fields)
+function handle_custom_fields_post($rel_id, $custom_fields, $is_cf_items = false)
 {
     $affectedRows = 0;
     $CI =& get_instance();
 
     foreach ($custom_fields as $key => $fields) {
-
         foreach ($fields as $field_id => $field_value) {
-
             $CI->db->where('relid', $rel_id);
             $CI->db->where('fieldid', $field_id);
-            $CI->db->where('fieldto', $key);
+            $CI->db->where('fieldto', ($is_cf_items ? 'items_pr' : $key));
             $row = $CI->db->get('tblcustomfieldsvalues')->row();
-
+            if(!is_array($field_value)) {
+                $field_value = trim($field_value);
+            }
             // Make necessary checkings for fields
-            $CI->db->where('id', $field_id);
-            $field_checker = $CI->db->get('tblcustomfields')->row();
-            if ($field_checker->type == 'date_picker') {
-                $field_value = to_sql_date($field_value);
-            } elseif($field_checker->type == 'date_picker_time'){
-                $field_value = to_sql_date($field_value,true);
-            } elseif ($field_checker->type == 'textarea') {
-                $field_value = nl2br($field_value);
-            } elseif ($field_checker->type == 'checkbox' || $field_checker->type == 'multiselect') {
-                if ($field_checker->disalow_client_to_edit == 1 && is_client_logged_in()) {
-                    continue;
-                }
-                if (is_array($field_value)) {
-                    $v = 0;
-                    foreach ($field_value as $chk) {
-                        if ($chk == 'cfk_hidden') {
-                            unset($field_value[$v]);
-                        }
-                        $v++;
+            if (!defined('COPY_CUSTOM_FIELDS_LIKE_HANDLE_POST')) {
+                $CI->db->where('id', $field_id);
+                $field_checker = $CI->db->get('tblcustomfields')->row();
+                if ($field_checker->type == 'date_picker') {
+                    $field_value = to_sql_date($field_value);
+                } elseif ($field_checker->type == 'date_picker_time') {
+                    $field_value = to_sql_date($field_value, true);
+                } elseif ($field_checker->type == 'textarea') {
+                    $field_value = nl2br($field_value);
+                } elseif ($field_checker->type == 'checkbox' || $field_checker->type == 'multiselect') {
+                    if ($field_checker->disalow_client_to_edit == 1 && is_client_logged_in()) {
+                        continue;
                     }
-                    $field_value = implode(', ', $field_value);
+                    if (is_array($field_value)) {
+                        $v = 0;
+                        foreach ($field_value as $chk) {
+                            if ($chk == 'cfk_hidden') {
+                                unset($field_value[$v]);
+                            }
+                            $v++;
+                        }
+                        $field_value = implode(', ', $field_value);
+                    }
                 }
             }
             if ($row) {
                 $CI->db->where('id', $row->id);
                 $CI->db->update('tblcustomfieldsvalues', array(
-                    'value' => $field_value
+                    'value' => $field_value,
                 ));
                 if ($CI->db->affected_rows() > 0) {
                     $affectedRows++;
@@ -334,8 +405,8 @@ function handle_custom_fields_post($rel_id, $custom_fields)
                     $CI->db->insert('tblcustomfieldsvalues', array(
                         'relid' => $rel_id,
                         'fieldid' => $field_id,
-                        'fieldto' => $key,
-                        'value' => $field_value
+                        'fieldto' => $is_cf_items ? 'items_pr' : $key,
+                        'value' => $field_value,
                     ));
                     $insert_id = $CI->db->insert_id();
                     if ($insert_id) {
@@ -351,6 +422,56 @@ function handle_custom_fields_post($rel_id, $custom_fields)
 
     return false;
 }
+
+/**
+ * Return items custom fields array for table html eq invoice html invoice pdf based on usage
+ * @param  mixed $rel_id   rel id eq invoice id
+ * @param  string $rel_type relation type eq invoice
+ * @return array
+ */
+function get_items_custom_fields_for_table_html($rel_id, $rel_type)
+{
+    $whereSQL = 'id IN (SELECT fieldid FROM tblcustomfieldsvalues WHERE value != "" AND value IS NOT NULL AND fieldto="items" AND relid IN (SELECT id FROM tblitems_in WHERE rel_type="'.$rel_type.'" AND rel_id="'.$rel_id.'") GROUP BY id HAVING COUNT(id) > 0)';
+
+    $whereSQL = do_action('items_custom_fields_for_table_sql', $whereSQL);
+
+    return get_custom_fields('items', $whereSQL);
+}
+/**
+ * Render custom fields for table add/edit preview area
+ * @return string
+ */
+function render_custom_fields_items_table_add_edit_preview()
+{
+    $where = do_action('custom_fields_where_items_table_add_edit_preview',array());
+    return render_custom_fields('items', false, $where, array(
+        'add_edit_preview'=>true
+    ));
+}
+/**
+ * Render custom fields for items for table which are already applied to eq. Invoice
+ * @param  array $item      the $item variable from the foreach loop
+ * @param  mixed $part_item_name the input name for items eq. newitems or items for existing items
+ * @return string
+ */
+function render_custom_fields_items_table_in($item, $part_item_name)
+{
+    $item_id = false;
+
+    // When converting eq proposal to estimate,invoice etc to get tha previous item values for auto populate
+    if(isset($item['parent_item_id'])) {
+        $item_id = $item['parent_item_id'];
+    } else if(isset($item['id']) && $item['id'] != 0) {
+        $item_id = $item['id'];
+    }
+
+    return render_custom_fields('items', $item_id, array(), array(
+        'items_applied'=>true,
+        'part_item_name'=>$part_item_name,
+    ));
+
+}
+
 /**
  * Get manually added company custom fields
  * @since Version 1.0.4
@@ -373,12 +494,33 @@ function get_company_custom_fields()
  * @param  array  $field the custom field in loop
  * @return boolean
  */
-function is_cf_date($field){
-    if($field['type'] == 'date_picker' || $field['type'] == 'date_picker_time'){
+function is_cf_date($field)
+{
+    if ($field['type'] == 'date_picker' || $field['type'] == 'date_picker_time') {
         return true;
     }
 
     return false;
+}
+/**
+* Custom fields only where show on client portal is checked if:
+* Is client logged in
+* None is logged in
+* The format is for email sending, means that the client will get the format
+* The request is coming from clients area
+* The request is from cron job
+*/
+function is_custom_fields_for_customers_portal()
+{
+    if (is_client_logged_in()
+        || (!is_staff_logged_in() && !is_client_logged_in())
+        || defined('EMAIL_TEMPLATE_SEND')
+        || defined('CLIENTS_AREA')
+        || DEFINED('CRON')) {
+        return true;
+}
+
+return false;
 }
 /**
  * Function used for JS to render custom field hyperlink

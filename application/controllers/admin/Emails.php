@@ -23,7 +23,7 @@ class Emails extends Admin_controller
 
         $this->db->where('language', 'english');
         $email_templates_english = $this->db->get('tblemailtemplates')->result_array();
-        foreach ($this->perfex_base->get_available_languages() as $avLanguage) {
+        foreach ($this->app->get_available_languages() as $avLanguage) {
             if ($avLanguage != 'english') {
                 foreach ($email_templates_english as $template) {
 
@@ -59,7 +59,7 @@ class Emails extends Admin_controller
             }
         }
 
-        update_option('email_templates_language_checks',serialize($langCheckings));
+       // update_option('email_templates_language_checks',serialize($langCheckings));
 
         $data['staff']     = $this->emails_model->get(array(
             'type' => 'staff',
@@ -152,7 +152,7 @@ class Emails extends Admin_controller
         }
 
         // English is not included here
-        $data['available_languages'] = $this->perfex_base->get_available_languages();
+        $data['available_languages'] = $this->app->get_available_languages();
 
         if (($key = array_search('english', $data['available_languages'])) !== false) {
             unset($data['available_languages'][$key]);

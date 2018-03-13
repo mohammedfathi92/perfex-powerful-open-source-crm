@@ -1,8 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-$is_admin = is_admin();
-
+$has_permission_delete = has_permission('leads','','delete');
 $custom_fields = get_table_custom_fields('leads');
 
 $aColumns     = array(
@@ -39,8 +38,8 @@ foreach ($custom_fields as $key => $field) {
 $where = array();
 $filter = false;
 
-if ($this->_instance->input->post('custom_view')) {
-    $filter = $this->_instance->input->post('custom_view');
+if ($this->ci->input->post('custom_view')) {
+    $filter = $this->ci->input->post('custom_view');
     if ($filter == 'lost') {
         array_push($where, 'AND lost = 1');
     } elseif ($filter == 'junk') {
@@ -60,31 +59,30 @@ if (!$filter || ($filter && $filter != 'lost' && $filter != 'junk')) {
     array_push($where, 'AND lost = 0 AND junk = 0');
 }
 
-if ($is_admin) {
-    if ($this->_instance->input->post('assigned')) {
-        array_push($where, 'AND assigned =' . $this->_instance->input->post('assigned'));
-    }
+if (has_permission('leads','','view') && $this->ci->input->post('assigned')) {
+    array_push($where, 'AND assigned =' . $this->ci->input->post('assigned'));
 }
 
-if ($this->_instance->input->post('status') && count($this->_instance->input->post('status')) > 0 && ($filter != 'lost' && $filter != 'junk')) {
-    array_push($where, 'AND status IN ('.implode(',',$this->_instance->input->post('status')).')');
+if ($this->ci->input->post('status')
+    && count($this->ci->input->post('status')) > 0
+    && ($filter != 'lost' && $filter != 'junk')) {
+    array_push($where, 'AND status IN ('.implode(',',$this->ci->input->post('status')).')');
 }
 
-if ($this->_instance->input->post('source')) {
-    array_push($where, 'AND source =' . $this->_instance->input->post('source'));
+if ($this->ci->input->post('source')) {
+    array_push($where, 'AND source =' . $this->ci->input->post('source'));
 }
 
-if (!$is_admin) {
+if (!has_permission('leads','','view')) {
     array_push($where, 'AND (assigned =' . get_staff_user_id() . ' OR addedfrom = ' . get_staff_user_id() . ' OR is_public = 1)');
 }
 
+$aColumns = do_action('leads_table_sql_columns', $aColumns);
+
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
-
-
-$aColumns = do_action('leads_table_sql_columns', $aColumns);
 
 $result  = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array(
     'junk',
@@ -137,7 +135,7 @@ foreach ($rResult as $aRow) {
             $statusOutput = '<span class="label label-warning inline-block">' . _l('lead_junk') . '</span>';
         }
     } else {
-        $statusOutput = '<span class="inline-block label'.(!$this->_instance->input->post('status') ? ' pointer lead-status' : '').' label-' . (empty($aRow['color']) ? 'default': '') . '" style="color:' . $aRow['color'] . ';border:1px solid ' . $aRow['color'] . '">' . $aRow['status_name'] . '</span>';
+        $statusOutput = '<span class="inline-block label'.(!$this->ci->input->post('status') ? ' pointer lead-status' : '').' label-' . (empty($aRow['color']) ? 'default': '') . '" style="color:' . $aRow['color'] . ';border:1px solid ' . $aRow['color'] . '">' . $aRow['status_name'] . '</span>';
     }
 
     $row[] = $statusOutput;
@@ -162,7 +160,7 @@ foreach ($rResult as $aRow) {
 
     $options = '';
 
-    if ($aRow['addedfrom'] == get_staff_user_id() || $is_admin) {
+    if ($aRow['addedfrom'] == get_staff_user_id() || $has_permission_delete) {
         $options .= icon_btn('leads/delete/' . $aRow['id'], 'remove', 'btn-danger _delete');
     }
 

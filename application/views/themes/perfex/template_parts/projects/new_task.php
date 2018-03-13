@@ -48,7 +48,7 @@
     <label for="assignees"><?php echo _l('task_single_assignees_select_title'); ?></label>
     <select class="selectpicker" multiple="true" name="assignees[]" id="assignees" data-width="100%" data-live-search="true">
       <?php foreach($members as $member){ ?>
-      <option value="<?php echo $member['staff_id']; ?>"><?php echo get_staff_full_name($member['staff_id']); ?></option>
+      <option value="<?php echo $member['staff_id']; ?>"<?php if(count($members) == 1){echo ' selected';} ?>><?php echo get_staff_full_name($member['staff_id']); ?></option>
       <?php } ?>
     </select>
   </div>

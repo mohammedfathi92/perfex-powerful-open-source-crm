@@ -220,7 +220,9 @@ function validate_contact_form() {
             }
         },
         email: {
+            <?php if(do_action('contact_email_required',"true") === "true"){ ?>
             required: true,
+            <?php } ?>
             email: true,
             // Use this hook only if the contacts are not logging into the customers area and you are not using support tickets piping.
             <?php if(do_action('contact_email_unique',"true") === "true"){ ?>
@@ -257,6 +259,12 @@ function contactFormHandler(form) {
              response = JSON.parse(response);
             if (response.success) {
                 alert_float('success', response.message);
+                if(typeof(response.is_individual) != 'undefined' && response.is_individual) {
+                    $('.new-contact').addClass('disabled');
+                    if(!$('.new-contact-wrapper')[0].hasAttribute('data-toggle')) {
+                        $('.new-contact-wrapper').attr('data-toggle','tooltip');
+                    }
+                }
             }
             if ($.fn.DataTable.isDataTable('.table-contacts')) {
                 $('.table-contacts').DataTable().ajax.reload(null,false);

@@ -62,7 +62,7 @@
         <hr class="hr-panel-heading" />
         <?php do_action('before_render_tickets_list_table'); ?>
         <?php $this->load->view('admin/tickets/summary'); ?>
-        <a href="#" data-toggle="modal" data-target="#tickets_bulk_actions" class="bulk-actions-btn hide" data-table=".table-tickets"><?php echo _l('bulk_actions'); ?></a>
+        <a href="#" data-toggle="modal" data-target="#tickets_bulk_actions" class="bulk-actions-btn table-btn hide" data-table=".table-tickets"><?php echo _l('bulk_actions'); ?></a>
         <div class="clearfix"></div>
         <?php echo AdminTicketsTableStructure('',true); ?>
       </div>

@@ -31,7 +31,7 @@ class Payments extends Admin_controller
             ajax_access_denied();
         }
 
-        $this->perfex_base->get_table_data('payments', array(
+        $this->app->get_table_data('payments', array(
             'clientid' => $clientid
         ));
     }

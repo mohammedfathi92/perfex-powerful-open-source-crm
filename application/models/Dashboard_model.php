@@ -94,8 +94,8 @@ class Dashboard_model extends CRM_Model
                         0,
                         0,
                         0,
-                        0
-                    )
+                        0,
+                    ),
                 ),
                 array(
                     'label' => _l('last_week_payments'),
@@ -110,10 +110,10 @@ class Dashboard_model extends CRM_Model
                         0,
                         0,
                         0,
-                        0
-                    )
-                )
-            )
+                        0,
+                    ),
+                ),
+            ),
         );
 
 
@@ -141,7 +141,7 @@ class Dashboard_model extends CRM_Model
 
         $chart = array(
             'labels' => array(),
-            'datasets' => array()
+            'datasets' => array(),
         );
 
         $_data                         = array();
@@ -150,22 +150,35 @@ class Dashboard_model extends CRM_Model
         $_data['hoverBackgroundColor'] = array();
         $_data['statusLink'] = array();
 
-        $i              = 0;
-        $has_permission = has_permission('projects', '', 'view');
-        foreach ($statuses as $status) {
-            $this->db->where('status', $status['id']);
-            if (!$has_permission) {
-                $this->db->where('id IN (SELECT project_id FROM tblprojectmembers WHERE staff_id=' . get_staff_user_id() . ')');
-            }
 
+        $has_permission = has_permission('projects', '', 'view');
+        $sql = '';
+        foreach ($statuses as $status) {
+            $sql .= ' SELECT COUNT(*) as total';
+            $sql .= ' FROM tblprojects';
+            $sql .= ' WHERE status='.$status['id'];
+            if (!$has_permission) {
+                $sql .= ' AND id IN (SELECT project_id FROM tblprojectmembers WHERE staff_id=' . get_staff_user_id() . ')';
+            }
+            $sql .= ' UNION ALL ';
+            $sql = trim($sql);
+        }
+
+        $result = array();
+        if ($sql != '') {
+            // Remove the last UNION ALL
+            $sql = substr($sql, 0, -10);
+            $result = $this->db->query($sql)->result();
+        }
+
+        foreach ($statuses as $key => $status) {
             array_push($_data['statusLink'], admin_url('projects?status='.$status['id']));
             array_push($chart['labels'], $status['name']);
             array_push($_data['backgroundColor'], $status['color']);
             array_push($_data['hoverBackgroundColor'], adjust_color_brightness($status['color'], -20));
-            array_push($_data['data'], $this->db->count_all_results('tblprojects'));
-
-            $i++;
+            array_push($_data['data'], $result[$key]->total);
         }
+
         $chart['datasets'][]           = $_data;
         $chart['datasets'][0]['label'] = _l('home_stats_by_project_status');
 
@@ -175,11 +188,13 @@ class Dashboard_model extends CRM_Model
     public function leads_status_stats()
     {
         $this->load->model('leads_model');
+
         $statuses = $this->leads_model->get_status();
         $colors   = get_system_favourite_colors();
+
         $chart    = array(
             'labels' => array(),
-            'datasets' => array()
+            'datasets' => array(),
         );
 
         $_data                         = array();
@@ -188,19 +203,37 @@ class Dashboard_model extends CRM_Model
         $_data['hoverBackgroundColor'] = array();
         $_data['statusLink'] = array();
 
+        $has_permission_view = has_permission('leads', '', 'view');
+        $sql = '';
+
         foreach ($statuses as $status) {
-            $this->db->where('status', $status['id']);
-            if (!$this->is_admin) {
-                $this->db->where('(addedfrom = ' . get_staff_user_id() . ' OR is_public = 1 OR assigned = ' . get_staff_user_id() . ')');
+            $sql .= ' SELECT COUNT(*) as total';
+            $sql .= ' FROM tblleads';
+            $sql .= ' WHERE status='.$status['id'];
+            if (!$has_permission_view) {
+                $sql .= ' AND (addedfrom = ' . get_staff_user_id() . ' OR is_public = 1 OR assigned = ' . get_staff_user_id() . ')';
             }
+            $sql .= ' UNION ALL ';
+            $sql = trim($sql);
+        }
+
+        $result = array();
+        if ($sql != '') {
+            // Remove the last UNION ALL
+            $sql = substr($sql, 0, -10);
+            $result = $this->db->query($sql)->result();
+        }
+
+        foreach ($statuses as $key => $status) {
             if ($status['color'] == '') {
                 $status['color'] = '#737373';
             }
+
             array_push($chart['labels'], $status['name']);
             array_push($_data['backgroundColor'], $status['color']);
             array_push($_data['statusLink'], admin_url('leads?status='.$status['id']));
             array_push($_data['hoverBackgroundColor'], adjust_color_brightness($status['color'], -20));
-            array_push($_data['data'], $this->db->count_all_results('tblleads'));
+            array_push($_data['data'], $result[$key]->total);
         }
 
         $chart['datasets'][] = $_data;
@@ -219,7 +252,7 @@ class Dashboard_model extends CRM_Model
         $colors      = get_system_favourite_colors();
         $chart       = array(
             'labels' => array(),
-            'datasets' => array()
+            'datasets' => array(),
         );
 
         $_data                         = array();
@@ -249,7 +282,7 @@ class Dashboard_model extends CRM_Model
             $this->db->where_in('status', array(
                 1,
                 2,
-                4
+                4,
             ));
 
             $this->db->where('department', $department['departmentid']);
@@ -284,12 +317,12 @@ class Dashboard_model extends CRM_Model
         $_statuses_with_reply = array(
             1,
             2,
-            4
+            4,
         );
 
         $chart = array(
             'labels' => array(),
-            'datasets' => array()
+            'datasets' => array(),
         );
 
         $_data                         = array();

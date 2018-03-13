@@ -22,10 +22,25 @@
                             <?php } ?>
                         </select>
                     </div>
-                    <?php if(total_rows('tblemailtemplates',array('slug'=>'invoice-payment-recorded','active'=>0)) == 0){ ?>
+                    <?php
+                    $pr_template = total_rows('tblemailtemplates',array('slug'=>'invoice-payment-recorded','active'=>0)) == 0;
+                    $sms_trigger = is_sms_trigger_active(SMS_TRIGGER_PAYMENT_RECORDED);
+                    if($pr_template || $sms_trigger){ ?>
                     <div class="checkbox checkbox-primary mtop15 inline-block">
                         <input type="checkbox" name="do_not_send_email_template" id="do_not_send_email_template">
-                        <label for="do_not_send_email_template"><?php echo _l('do_not_send_invoice_payment_email_template_contact'); ?></label>
+                        <label for="do_not_send_email_template">
+                            <?php
+                            if($pr_template){
+                                echo _l('do_not_send_invoice_payment_email_template_contact');
+                                if($sms_trigger) {
+                                    echo '/';
+                                }
+                            }
+                            if($sms_trigger) {
+                                echo 'SMS' . ' ' . _l('invoice_payment_recorded');
+                            }
+                            ?>
+                            </label>
                     </div>
                     <?php } ?>
                     <div class="checkbox checkbox-primary mtop15 do_not_redirect hide inline-block">
@@ -63,6 +78,7 @@
      var total_available_payment_modes = $sMode.find('option').length - 1;
      if(total_available_payment_modes == 1) {
         $sMode.selectpicker('val',$sMode.find('option').eq(1).attr('value'));
+        $sMode.trigger('change');
      }
  });
 </script>

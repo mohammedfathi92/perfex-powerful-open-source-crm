@@ -658,6 +658,7 @@ class Tickets_model extends CRM_Model
             $data['admin'] = $admin;
             unset($data['ticket_client_search']);
         }
+
         if (isset($data['assigned']) && $data['assigned'] == '') {
             $data['assigned'] = 0;
         }
@@ -665,6 +666,7 @@ class Tickets_model extends CRM_Model
         if (isset($data['project_id']) && $data['project_id'] == '') {
             $data['project_id'] = 0;
         }
+
         if ($admin == null) {
             if (isset($data['email'])) {
                 $data['userid']    = 0;
@@ -678,7 +680,6 @@ class Tickets_model extends CRM_Model
             }
             $data['status'] = 1;
         }
-
 
         if (isset($data['custom_fields'])) {
             $custom_fields = $data['custom_fields'];
@@ -982,6 +983,11 @@ class Tickets_model extends CRM_Model
 
         if (isset($data['project_id']) && $data['project_id'] == '') {
             $data['project_id'] = 0;
+        }
+
+        if (isset($data['contactid']) && $data['contactid'] != '') {
+            $data['name'] = null;
+            $data['email'] = null;
         }
 
         $this->db->where('ticketid', $data['ticketid']);
@@ -1398,8 +1404,6 @@ class Tickets_model extends CRM_Model
                 }
             }
         }
-
-
 
         $chart   = array(
             'labels' => get_weekdays(),

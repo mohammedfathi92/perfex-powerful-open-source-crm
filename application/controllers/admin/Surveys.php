@@ -16,7 +16,7 @@ class Surveys extends Admin_controller
             access_denied('surveys');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('surveys');
+            $this->app->get_table_data('surveys');
         }
         $data['title'] = _l('surveys');
         $this->load->view('admin/surveys/all', $data);
@@ -373,7 +373,7 @@ class Surveys extends Admin_controller
             access_denied('surveys');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('mail_lists');
+            $this->app->get_table_data('mail_lists');
         }
         $data['title'] = _l('mail_lists');
         $this->load->view('admin/surveys/mail_lists/manage', $data);
@@ -430,7 +430,7 @@ class Surveys extends Admin_controller
             $data['custom_fields'] = $this->surveys_model->get_list_custom_fields($id);
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_Data('mail_list_view', array(
+            $this->app->get_table_Data('mail_list_view', array(
                 'id' => $id,
                 'data' => $data
             ));
@@ -540,8 +540,11 @@ class Surveys extends Admin_controller
         if (!has_permission('surveys', '', 'create')) {
             access_denied('surveys');
         }
-        require_once(APPPATH . 'third_party/Excel_reader/php-excel-reader/excel_reader2.php');
-        require_once(APPPATH . 'third_party/Excel_reader/SpreadsheetReader.php');
+
+        // Using composer
+        // require_once(APPPATH . 'third_party/Excel_reader/php-excel-reader/excel_reader2.php');
+        // require_once(APPPATH . 'third_party/Excel_reader/SpreadsheetReader.php');
+
         $filename = uniqid() . '_' . $_FILES["file_xls"]["name"];
         $temp_url = TEMP_FOLDER . $filename;
         if (move_uploaded_file($_FILES["file_xls"]["tmp_name"], $temp_url)) {

@@ -72,6 +72,12 @@ $pdf->Ln(6);
 $item_width = 38;
 // If show item taxes is disabled in PDF we should increase the item width table heading
 $item_width = get_option('show_tax_per_item') == 0 ? $item_width+15 : $item_width;
+$custom_fields_items = get_items_custom_fields_for_table_html($estimate->id,'estimate');
+
+// Calculate headings width, in case there are custom fields for items
+$total_headings = get_option('show_tax_per_item') == 1 ? 4 : 3;
+$total_headings += count($custom_fields_items);
+$headings_width = (100-($item_width+6)) / $total_headings;
 
 $qty_heading = _l('estimate_table_quantity_heading');
 if($estimate->show_quantity_as == 2){
@@ -81,18 +87,26 @@ if($estimate->show_quantity_as == 2){
 }
 
 // Header
-$tblhtml = '<table width="100%" bgcolor="#fff" cellspacing="0" cellpadding="8" border="0">
-<tr height="30" bgcolor="'.get_option('pdf_table_heading_color').'" style="color:'.get_option('pdf_table_heading_text_color').';">
-    <th width="5%;" align="center">#</th>
-    <th width="'.$item_width.'%" align="left">'._l('estimate_table_item_heading').'</th>
-    <th width="12%" align="right">'.$qty_heading.'</th>
-    <th width="15%" align="right">'._l('estimate_table_rate_heading').'</th>';
-    if(get_option('show_tax_per_item') == 1){
-        $tblhtml .= '<th width="15%" align="right">'._l('estimate_table_tax_heading').'</th>';
-    }
-    $tblhtml .='<th width="15%" align="right">'._l('estimate_table_amount_heading').'</th>
-</tr>';
-// Items
+$tblhtml = '<table width="100%" bgcolor="#fff" cellspacing="0" cellpadding="8">';
+
+$tblhtml .= '<tr height="30" bgcolor="' . get_option('pdf_table_heading_color') . '" style="color:' . get_option('pdf_table_heading_text_color') . ';">';
+
+$tblhtml .= '<th width="5%;" align="center">#</th>';
+$tblhtml .= '<th width="'.$item_width.'%" align="left">' . _l('estimate_table_item_heading') . '</th>';
+
+foreach ($custom_fields_items as $cf) {
+    $tblhtml .= '<th width="'.$headings_width.'%" align="left">' . $cf['name'] . '</th>';
+}
+
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . $qty_heading . '</th>';
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('estimate_table_rate_heading') . '</th>';
+
+if (get_option('show_tax_per_item') == 1) {
+    $tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('estimate_table_tax_heading') . '</th>';
+}
+
+$tblhtml .= '<th width="'.$headings_width.'%" align="right">' . _l('estimate_table_amount_heading') . '</th>';
+$tblhtml .= '</tr>';
 
 $tblhtml .= '<tbody>';
 
@@ -115,27 +129,26 @@ $tbltotal .= '
     <td align="right" width="15%">' . format_money($estimate->subtotal,$estimate->symbol) . '</td>
 </tr>';
 
-if($estimate->discount_percent != 0){
+if(is_sale_discount_applied($estimate)){
     $tbltotal .= '
     <tr>
-        <td align="right" width="85%"><strong>'.  _l('estimate_discount') . '('. _format_number($estimate->discount_percent,true) .'%)'.'</strong></td>
-        <td align="right" width="15%">-' . format_money($estimate->discount_total,$estimate->symbol) . '</td>
+        <td align="right" width="85%"><strong>' . _l('estimate_discount');
+        if(is_sale_discount($estimate,'percent')){
+            $tbltotal .= '(' . _format_number($estimate->discount_percent, true) . '%)';
+        }
+        $tbltotal .= '</strong>';
+        $tbltotal .= '</td>';
+        $tbltotal .= '<td align="right" width="15%">-' . format_money($estimate->discount_total, $estimate->symbol) . '</td>
     </tr>';
 }
 
-foreach($taxes as $tax){
-    $total = array_sum($tax['total']);
-    if($estimate->discount_percent != 0 && $estimate->discount_type == 'before_tax'){
-        $total_tax_calculated = ($total * $estimate->discount_percent) / 100;
-        $total = ($total - $total_tax_calculated);
-    }
-    // The tax is in format TAXNAME|20
-    $_tax_name = explode('|',$tax['tax_name']);
+foreach ($taxes as $tax) {
     $tbltotal .= '<tr>
-    <td align="right" width="85%"><strong>' . $_tax_name[0] . ' (' . _format_number($tax['taxrate']) . '%)' . '</strong></td>
-    <td align="right" width="15%">' . format_money($total,$estimate->symbol) . '</td>
+    <td align="right" width="85%"><strong>' . $tax['taxname'] . ' (' . _format_number($tax['taxrate']) . '%)' . '</strong></td>
+    <td align="right" width="15%">' . format_money($tax['total_tax'], $estimate->symbol) . '</td>
 </tr>';
 }
+
 if ((int)$estimate->adjustment != 0) {
     $tbltotal .= '<tr>
     <td align="right" width="85%"><strong>'._l('estimate_adjustment').'</strong></td>

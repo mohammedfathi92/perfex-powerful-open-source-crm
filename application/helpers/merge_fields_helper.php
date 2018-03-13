@@ -284,7 +284,12 @@ function get_client_contact_merge_fields($client_id, $contact_id = '', $password
 
     $CI =& get_instance();
 
-    $client = $CI->clients_model->get($client_id, array());
+    if($client_id == ''){
+        return $fields;
+    }
+
+    $client = $CI->clients_model->get($client_id);
+
     if (!$client) {
         return $fields;
     }

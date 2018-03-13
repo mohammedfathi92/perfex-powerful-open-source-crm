@@ -35,7 +35,7 @@ class Expenses extends Admin_controller
              ajax_access_denied();
         }
 
-        $this->perfex_base->get_table_data('expenses', array(
+        $this->app->get_table_data('expenses', array(
             'clientid' => $clientid
         ));
     }
@@ -118,12 +118,18 @@ class Expenses extends Admin_controller
     {
         if ($this->input->post()) {
             $data['totals'] = $this->expenses_model->get_expenses_total($this->input->post());
+
             if ($data['totals']['currency_switcher'] == true) {
                 $this->load->model('currencies_model');
                 $data['currencies'] = $this->currencies_model->get();
             }
 
             $data['expenses_years']      = $this->expenses_model->get_expenses_years();
+
+            if(count($data['expenses_years']) >= 1 && $data['expenses_years'][0]['year'] != date('Y')) {
+                 array_unshift($data['expenses_years'], array('year'=>date('Y')));
+            }
+
             $data['_currency'] = $data['totals']['currencyid'];
             $this->load->view('admin/expenses/expenses_total_template', $data);
         }
@@ -237,7 +243,7 @@ class Expenses extends Admin_controller
             access_denied('expenses');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('expenses_categories');
+            $this->app->get_table_data('expenses_categories');
         }
         $data['title'] = _l('expense_categories');
         $this->load->view('admin/expenses/manage_categories', $data);

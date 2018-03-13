@@ -2,31 +2,35 @@
 <table class="table items no-margin">
   <thead>
     <tr>
-      <th>#</th>
-      <th class="description" width="50%"><?php echo _l('estimate_table_item_heading'); ?></th>
+      <th align="center">#</th>
+      <th class="description" width="50%" align="left"><?php echo _l('estimate_table_item_heading'); ?></th>
       <?php
-      $qty_heading = _l('estimate_table_quantity_heading');
-      if($proposal->show_quantity_as == 2){
-        $qty_heading = _l('estimate_table_hours_heading');
-      } else if($proposal->show_quantity_as == 3){
-        $qty_heading = _l('estimate_table_quantity_heading') .'/'._l('estimate_table_hours_heading');
-      }
-      ?>
-      <th><?php echo $qty_heading; ?></th>
-      <th><?php echo _l('estimate_table_rate_heading'); ?></th>
-      <?php if(get_option('show_tax_per_item') == 1){ ?>
-      <th><?php echo _l('estimate_table_tax_heading'); ?></th>
-      <?php } ?>
-      <th><?php echo _l('estimate_table_amount_heading'); ?></th>
-    </tr>
-  </thead>
-  <tbody>
-    <?php
-    $items_data = get_table_items_and_taxes($proposal->items,'proposal');
-    $taxes = $items_data['taxes'];
-    echo $items_data['html'];
+      $custom_fields = get_items_custom_fields_for_table_html($proposal->id,'proposal');
+      foreach($custom_fields as $cf){
+       echo '<th class="custom_field" align="left">' . $cf['name'] . '</th>';
+     }
+     $qty_heading = _l('estimate_table_quantity_heading');
+     if($proposal->show_quantity_as == 2){
+      $qty_heading = _l('estimate_table_hours_heading');
+    } else if($proposal->show_quantity_as == 3){
+      $qty_heading = _l('estimate_table_quantity_heading') .'/'._l('estimate_table_hours_heading');
+    }
     ?>
-  </tbody>
+    <th align="right"><?php echo $qty_heading; ?></th>
+    <th align="right"><?php echo _l('estimate_table_rate_heading'); ?></th>
+    <?php if(get_option('show_tax_per_item') == 1){ ?>
+    <th align="right"><?php echo _l('estimate_table_tax_heading'); ?></th>
+    <?php } ?>
+    <th align="right"><?php echo _l('estimate_table_amount_heading'); ?></th>
+  </tr>
+</thead>
+<tbody>
+  <?php
+  $items_data = get_table_items_and_taxes($proposal->items,'proposal');
+  $taxes = $items_data['taxes'];
+  echo $items_data['html'];
+  ?>
+</tbody>
 </table>
 <div class="row mtop15">
   <div class="col-md-6 col-md-offset-6">
@@ -39,26 +43,23 @@
             <?php echo format_money($proposal->subtotal,$proposal->symbol); ?>
           </td>
         </tr>
-        <?php if($proposal->discount_percent != 0){ ?>
-        <tr>
-          <td>
-            <span class="bold"><?php echo _l('estimate_discount'); ?> (<?php echo _format_number($proposal->discount_percent,true); ?>%)</span>
-          </td>
-          <td class="discount">
+        <?php if(is_sale_discount_applied($proposal)){ ?>
+          <tr>
+           <td>
+            <span class="bold"><?php echo _l('estimate_discount'); ?>
+             <?php if(is_sale_discount($proposal,'percent')){ ?>
+             (<?php echo _format_number($proposal->discount_percent,true); ?>%)
+             <?php } ?></span>
+           </td>
+           <td class="discount">
             <?php echo '-' . format_money($proposal->discount_total,$proposal->symbol); ?>
           </td>
         </tr>
         <?php } ?>
         <?php
-        foreach($taxes as $tax){
-          $total = array_sum($tax['total']);
-          if($proposal->discount_percent != 0 && $proposal->discount_type == 'before_tax'){
-            $total_tax_calculated = ($total * $proposal->discount_percent) / 100;
-            $total = ($total - $total_tax_calculated);
+          foreach($taxes as $tax){
+            echo '<tr class="tax-area"><td class="bold">'.$tax['taxname'].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($tax['total_tax'], $proposal->symbol).'</td></tr>';
           }
-          $_tax_name = explode('|',$tax['tax_name']);
-          echo '<tr class="tax-area"><td class="bold">'.$_tax_name[0].' ('._format_number($tax['taxrate']).'%)</td><td>'.format_money($total,$proposal->symbol).'</td></tr>';
-        }
         ?>
         <?php if((int)$proposal->adjustment != 0){ ?>
         <tr>
@@ -97,21 +98,22 @@ $proposal->content = str_replace('{proposal_items}',$items,$proposal->content);
       <div class="row">
         <?php echo form_hidden('proposal_id',$proposal->id); ?>
         <div class="mtop30">
-          <h1 class="bold"># <?php echo format_proposal_number($proposal->id); ?></h1>
+          <h1 class="bold"># <?php echo format_proposal_number($proposal->id); ?>
+             <?php if(is_staff_logged_in()){ ?>
+          <a href="<?php echo admin_url('proposals/list_proposals/'.$proposal->id); ?>" class="btn btn-info pull-right"><?php echo _l('goto_admin_area'); ?></a>
+          <?php } else if(is_client_logged_in() && has_contact_permission('proposals')){ ?>
+          <a href="<?php echo site_url('clients/proposals/'); ?>" class="btn btn-info pull-right"><?php echo _l('client_go_to_dashboard'); ?></a>
+          <?php } ?>
+          </h1>
           <h3><?php echo $proposal->subject; ?></h3>
           <hr />
           <?php echo $proposal->content; ?>
         </div>
       </div>
     </div>
-    <div class="col-md-3 proposal-right">
+    <div class="col-md-3 col-sm-12 proposal-right">
       <div class="row proposal-right-content">
         <div class="col-md-12 mtop30">
-          <?php if(is_staff_logged_in()){ ?>
-          <a href="<?php echo admin_url('proposals/list_proposals/'.$proposal->id); ?>" class="btn btn-info pull-right"><?php echo _l('goto_admin_area'); ?></a>
-          <?php } else if(is_client_logged_in() && has_contact_permission('proposals')){ ?>
-          <a href="<?php echo site_url('clients/proposals/'); ?>" class="btn btn-info pull-right"><?php echo _l('client_go_to_dashboard'); ?></a>
-          <?php } ?>
           <?php echo '<a href="'.site_url().'"><img src="'.base_url('uploads/company/'.get_option('company_logo')).'"></a>'; ?>
           <div class="row mtop10">
             <div class="col-md-12">
@@ -146,7 +148,7 @@ $proposal->content = str_replace('{proposal_items}',$items,$proposal->content);
             <h4 class="bold"><?php echo _l('proposal_total_info',format_money($proposal->total,$this->currencies_model->get($proposal->currency)->symbol)); ?></h4>
             <?php } ?>
           </div>
-          <div class="col-md-8 mtop15">
+          <div class="col-md-8 col-sm-5 col-xs-12 mtop15">
             <?php if(($proposal->status != 2 && $proposal->status != 3)){
               if(!empty($proposal->open_till) && date('Y-m-d',strtotime($proposal->open_till)) < date('Y-m-d')){
                 echo '<span class="warning-bg proposal-status">'._l('proposal_expired').'</span>';
@@ -219,9 +221,9 @@ $proposal->content = str_replace('{proposal_items}',$items,$proposal->content);
     </div>
   </div>
   <?php
-    if($identity_confirmation_enabled == '1'){
-        get_template_part('identity_confirmation_form',array('formData'=>form_hidden('action','accept_proposal')));
-    }
+  if($identity_confirmation_enabled == '1'){
+    get_template_part('identity_confirmation_form',array('formData'=>form_hidden('action','accept_proposal')));
+  }
   ?>
   <script>
     // Create lightbox for proposal content images

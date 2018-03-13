@@ -73,12 +73,12 @@
         <?php } ?>
       </div>
       <?php } ?>
-      <div class="checkbox checkbox-primary no-mtop checkbox-inline">
+      <div class="checkbox checkbox-primary no-mtop checkbox-inline task-add-edit-public">
         <input type="checkbox" id="task_is_public" name="is_public" <?php if(isset($task)){if($task->is_public == 1){echo 'checked';}}; ?>>
         <label for="task_is_public" data-toggle="tooltip" data-placement="bottom" title="<?php echo _l('task_public_help'); ?>"><?php echo _l('task_public'); ?></label>
       </div>
 
-      <div class="checkbox checkbox-primary checkbox-inline">
+      <div class="checkbox checkbox-primary checkbox-inline task-add-edit-billable">
         <input type="checkbox" id="task_is_billable" name="billable"
         <?php if((isset($task) && $task->billable == 1) || (!isset($task) && get_option('task_biillable_checked_on_creation') == 1)) {echo ' checked'; }?>>
         <label for="task_is_billable"><?php echo _l('task_billable'); ?></label>
@@ -109,7 +109,11 @@
         </div>
       </div>
     </div>
-    <?php } ?>
+    <?php
+      if($this->input->get('ticket_to_task')) {
+        echo form_hidden('ticket_to_task');
+      }
+    } ?>
     <hr />
     <?php $value = (isset($task) ? $task->name : ''); ?>
     <?php echo render_input('name','task_add_edit_subject',$value); ?>
@@ -253,8 +257,7 @@
 ?>
 <div class="form-group checklist-templates-wrapper<?php if(count($checklistTemplates) == 0 || isset($task)){echo ' hide';}  ?>">
  <label for="checklist_items"><?php echo _l('insert_checklist_templates'); ?></label>
- <select id="checklist_items" name="checklist_items[]" class="selectpicker checklist-items-template-select" multiple="1" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex') ?>" data-width="100%" data-live-search="true">
-   <option value=""></option>
+ <select id="checklist_items" name="checklist_items[]" class="selectpicker checklist-items-template-select" multiple="1" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex') ?>" data-width="100%" data-live-search="true" data-actions-box="true">
    <?php foreach($checklistTemplates as $chkTemplate){ ?>
    <option value="<?php echo $chkTemplate['id']; ?>">
     <?php echo $chkTemplate['description']; ?>

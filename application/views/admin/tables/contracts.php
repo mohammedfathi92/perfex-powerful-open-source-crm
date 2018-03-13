@@ -1,8 +1,8 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-$this->_instance->load->model('currencies_model');
-$baseCurrencySymbol = $this->_instance->currencies_model->get_base_currency()->symbol;
+$this->ci->load->model('currencies_model');
+$baseCurrencySymbol = $this->ci->currencies_model->get_base_currency()->symbol;
 
 $aColumns = array(
     'tblcontracts.id as id',
@@ -35,34 +35,34 @@ foreach ($custom_fields as $key => $field) {
 $where = array();
 $filter = array();
 
-if ($this->_instance->input->post('exclude_trashed_contracts')) {
+if ($this->ci->input->post('exclude_trashed_contracts')) {
     array_push($filter, 'AND trash = 0');
 }
-if ($this->_instance->input->post('trash')) {
+if ($this->ci->input->post('trash')) {
     array_push($filter, 'OR trash = 1');
 }
-if ($this->_instance->input->post('expired')) {
+if ($this->ci->input->post('expired')) {
     array_push($filter, 'OR dateend IS NOT NULL AND dateend <"'.date('Y-m-d').'" and trash = 0');
 }
 
-if ($this->_instance->input->post('without_dateend')) {
+if ($this->ci->input->post('without_dateend')) {
     array_push($filter, 'OR dateend IS NULL AND trash = 0');
 }
 
-$types = $this->_instance->contracts_model->get_contract_types();
+$types = $this->ci->contracts_model->get_contract_types();
 $typesIds = array();
 foreach ($types as $type) {
-    if ($this->_instance->input->post('contracts_by_type_'.$type['id'])) {
+    if ($this->ci->input->post('contracts_by_type_'.$type['id'])) {
         array_push($typesIds, $type['id']);
     }
 }
 if (count($typesIds) > 0) {
     array_push($filter, 'AND contract_type IN ('.implode(', ', $typesIds).')');
 }
-$years = $this->_instance->contracts_model->get_contracts_years();
+$years = $this->ci->contracts_model->get_contracts_years();
 $yearsArray = array();
 foreach ($years as $year) {
-    if ($this->_instance->input->post('year_'.$year['year'])) {
+    if ($this->ci->input->post('year_'.$year['year'])) {
         array_push($yearsArray, $year['year']);
     }
 }
@@ -72,7 +72,7 @@ if (count($yearsArray) > 0) {
 
 $monthArray = array();
 for ($m = 1; $m <= 12; $m++) {
-    if ($this->_instance->input->post('contracts_by_month_'.$m)) {
+    if ($this->ci->input->post('contracts_by_month_'.$m)) {
         array_push($monthArray, $m);
     }
 }
@@ -92,12 +92,12 @@ if (!has_permission('contracts', '', 'view')) {
     array_push($where, 'AND tblcontracts.addedfrom='.get_staff_user_id());
 }
 
+$aColumns = do_action('contracts_table_sql_columns',$aColumns);
+
 // Fix for big queries. Some hosting have max_join_limit
 if (count($custom_fields) > 4) {
-    @$this->_instance->db->query('SET SQL_BIG_SELECTS=1');
+    @$this->ci->db->query('SET SQL_BIG_SELECTS=1');
 }
-
-$aColumns = do_action('contracts_table_sql_columns',$aColumns);
 
 $result = data_tables_init($aColumns, $sIndexColumn, $sTable, $join, $where, array('tblcontracts.id', 'trash', 'client'));
 

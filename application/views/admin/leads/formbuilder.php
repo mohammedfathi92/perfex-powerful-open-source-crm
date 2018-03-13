@@ -61,7 +61,7 @@
                                  </div>
                               </div>
                               <?php } ?>
-                              <div class="form-group">
+                              <div class="form-group select-placeholder">
                                  <label for="language" class="control-label"><i class="fa fa-question-circle" data-toggle="tooltip" data-title="<?php echo _l('form_lang_validation_help'); ?>"></i> <?php echo _l('form_lang_validation'); ?></label>
                                  <select name="language" id="language" class="form-control selectpicker" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                                     <option value=""></option>

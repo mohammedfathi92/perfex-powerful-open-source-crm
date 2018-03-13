@@ -114,7 +114,12 @@ label,
 .no-mtop {
     margin-top: 0px !important;
 }
-
+.no-p-left {
+    padding-left:0px !important;
+}
+.no-p-right {
+    padding-right:0px;
+}
 .relative {
     position: relative;
 }
@@ -722,6 +727,7 @@ a:visited {
 
 
 
+
 /* Panels */
 
 .panel_s>.panel-heading {
@@ -759,7 +765,7 @@ a:visited {
 .panel_s>.panel-heading+.panel-body {
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    border-top:0px;
+    border-top: 0px;
 }
 
 .panel_s,
@@ -802,13 +808,29 @@ footer {
     border-top: 1px solid #e4e5e7;
 }
 
-@media (max-width: 767px) {
+.navbar-default .navbar-brand.logo-text {
+    font-size: 24px;
+    margin-top: 13px;
+    display: inline-block;
+    color: #fff;
+}
 
+.logo-text:hover,
+.logo-text:focus,
+.logo-text:active {
+    color:#fff;
+}
+
+@media (max-width: 767px) {
     .navbar-default .navbar-nav .open .dropdown-menu>li>a {
         color: #fff;
     }
     .navbar a.navbar-brand img {
         padding-left: 15px;
+    }
+    .navbar-default .navbar-brand.logo-text {
+        margin-left:15px;
+        margin-top:15px;
     }
 }
 
@@ -1312,53 +1334,9 @@ input[type="radio"] .styled:checked+label::after {
     border: 0px;
 }
 
-.table.items tbody>tr>td:first-child,
-.table.items thead>tr>th:first-child {
-    text-align: center;
-}
-
 .table.items tbody>tr>td:not(:first-child),
 .table.items thead>tr>th:not(:first-child) {
     padding: 8px;
-    text-align: right;
-}
-
-.table.items thead>tr>th:not(:first-child) {
-    padding-left: 0px;
-    text-align: right;
-}
-
-.table.items .description {
-    text-align: left !important;
-}
-
-[dir="rtl"] .table.items .description {
-    text-align: right !important;
-}
-
-[dir="rtl"] .table.items.table-main-invoice-edit tbody>tr td:last-child,
-[dir="rtl"] .table.items.table-main-estimate-edit tbody>tr td:last-child {
-    border-left: 0px;
-    border-right: 1px solid #f0f0f0;
-}
-
-[dir="rtl"] .table.items thead>tr>th:nth-child(2) {
-    text-align: right !important;
-}
-
-[dir="rtl"] .table.items thead>tr>th:not(:first-child) {
-    padding-left: 10px;
-}
-
-[dir="rtl"].table.items tbody>tr>td:not(:first-child),
-[dir="rtl"] .table.items thead>tr>th:not(:first-child),
-[dir="rtl"] .table.items tbody>tr>td:not(:first-child),
-[dir="rtl"] .table.items thead>tr>th:not(:first-child) {
-    text-align: left;
-}
-
-[dir="rtl"] .table.items thead>tr>th:nth-child(3) {
-    text-align: left !important;
 }
 
 .navbar-default .navbar-collapse,
@@ -1449,8 +1427,8 @@ input[type="radio"] .styled:checked+label::after {
     border-right: 1px solid #bfcbd9;
 }
 
-table.dataTable.dtr-inline.collapsed>tbody>tr>td:first-child:before,
-table.dataTable.dtr-inline.collapsed>tbody>tr>th:first-child:before {
+table.dataTable.dtr-inline.collapsed>tbody>tr[role=row]>td:first-child:before,
+table.dataTable.dtr-inline.collapsed>tbody>tr[role=row]>th:first-child:before {
     background-color: #84c529;
     border: 1px solid #84c529;
     height: 17px;
@@ -1496,6 +1474,7 @@ table.dataTable thead tr>th {
     background-position: 0 0;
     padding: 1px 0 4px 26px
 }
+
 
 
 
@@ -1771,7 +1750,6 @@ div.proposal-wrapper table {
 #task .task-info {
     font-size: 10px;
     vertical-align: middle;
-    margin-bottom: 10px;
     padding: 10px;
 }
 
@@ -2053,15 +2031,6 @@ form.dropzone {
     color: #03a9f4;
 }
 
-
-
-
-
-
-
-
-
-
 /* Calendar styles start */
 
 .xdsoft_ {
@@ -2133,14 +2102,10 @@ form.dropzone {
     border-radius: 3px;
 }
 
-
-
-
-
-
-
-
-
+.xdsoft_datetimepicker .xdsoft_label>.xdsoft_select>div>.xdsoft_option:hover {
+    background:#e4e8f1;
+    color:#333;
+}
 
 /* Calendar styles end */
 
@@ -2596,6 +2561,7 @@ div.dataTables_wrapper div.dataTables_filter .glyphicon {
 
 
 
+
 /* The "go to top" and "go to bottom" links. */
 
 #toplink,
@@ -2813,4 +2779,29 @@ div.dataTables_wrapper div.dataTables_filter .glyphicon {
         transform-origin: 0 0;
         -webkit-transform-origin: 0 0;
     }
+}
+
+th[align="left"],
+td[align="left"] {
+    text-align: left;
+}
+
+th[align="right"],
+td[align="right"] {
+    text-align: right;
+}
+
+th[align="center"],
+td[align="center"] {
+    text-align: center !important;
+}
+
+[dir="rtl"] th[align="left"],
+[dir="rtl"] td[align="left"] {
+    text-align: right !important;
+}
+
+[dir="rtl"] th[align="right"],
+[dir="rtl"] td[align="right"] {
+    text-align: left !important;
 }

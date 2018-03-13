@@ -11,7 +11,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
     'end_time - start_time',
     );*/
 
-$v = $this->_instance->db->query('SELECT VERSION() as version')->row();
+$v = $this->ci->db->query('SELECT VERSION() as version')->row();
 // 5.6 mysql version don't have the ANY_VALUE function implemented.
 
   $additionalSelect = array(
@@ -72,7 +72,7 @@ if ($view_all == true) {
 
 }
 
-if ($this->_instance->input->post('group_by_task')) {
+if ($this->ci->input->post('group_by_task')) {
     if ($v && strpos($v->version, '5.7') !== false) {
         $aColumns[$time_h_column] = 'ANY_VALUE((SUM(end_time - start_time))) as time_h';
         $aColumns[$time_d_column] = 'ANY_VALUE((SUM(end_time - start_time))) as time_d';
@@ -93,8 +93,8 @@ $where = array();
 
 $staff_id = false;
 
-if ($this->_instance->input->post('staff_id')) {
-    $staff_id = $this->_instance->input->post('staff_id');
+if ($this->ci->input->post('staff_id')) {
+    $staff_id = $this->ci->input->post('staff_id');
 } elseif ($view_all == false) {
     $staff_id = get_staff_user_id();
 }
@@ -105,13 +105,13 @@ if ($staff_id != false) {
         );
 }
 
-if ($this->_instance->input->post('project_id')) {
-    array_push($where, 'AND task_id IN (SELECT id FROM tblstafftasks WHERE rel_type = "project" AND rel_id = "'.$this->_instance->input->post('project_id').'")');
+if ($this->ci->input->post('project_id')) {
+    array_push($where, 'AND task_id IN (SELECT id FROM tblstafftasks WHERE rel_type = "project" AND rel_id = "'.$this->ci->input->post('project_id').'")');
 }
 
 array_push($where,'AND task_id != 0');
 
-$filter = $this->_instance->input->post('range');
+$filter = $this->ci->input->post('range');
 if ($filter != 'period') {
     if ($filter == 'today') {
         $beginOfDay = strtotime("midnight");
@@ -135,8 +135,8 @@ if ($filter != 'period') {
         array_push($where, ' AND start_time BETWEEN ' . strtotime($beginLastWeek) . ' AND ' . strtotime($endLastWeek));
     }
 } else {
-    $start_date = to_sql_date($this->_instance->input->post('period-from'));
-    $end_date   = to_sql_date($this->_instance->input->post('period-to'));
+    $start_date = to_sql_date($this->ci->input->post('period-from'));
+    $end_date   = to_sql_date($this->ci->input->post('period-to'));
     array_push($where, ' AND start_time BETWEEN ' . strtotime($start_date. ' 00:00:00') . ' AND ' . strtotime($end_date.' 23:59:00'));
 }
 
@@ -147,7 +147,7 @@ $result = data_tables_init(
     $join,
     $where,
     $additionalSelect,
-    ($this->_instance->input->post('group_by_task') ? 'GROUP BY task_id' : '')
+    ($this->ci->input->post('group_by_task') ? 'GROUP BY task_id' : '')
 );
 
 $output                           = $result['output'];
@@ -217,7 +217,7 @@ if ($filter == 'today') {
 $chartWhere = implode(' ', $where);
 $chartWhere = ltrim($chartWhere, 'AND ');
 
-$chartData = $this->_instance->db->query('SELECT end_time - start_time logged_time_h,
+$chartData = $this->ci->db->query('SELECT end_time - start_time logged_time_h,
     end_time - start_time logged_time_d,start_time,end_time FROM tbltaskstimers WHERE '.trim($chartWhere))->result_array();
 
 foreach ($chartData as $timer) {

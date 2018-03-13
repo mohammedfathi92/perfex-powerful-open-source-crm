@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Forms extends CI_Controller
+class Forms extends CRM_Controller
 {
     public function __construct()
     {

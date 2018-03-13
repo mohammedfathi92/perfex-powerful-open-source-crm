@@ -1,7 +1,7 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
 
-class Payu_money extends CI_Controller
+class Payu_money extends CRM_Controller
 {
     public function __construct()
     {
@@ -106,7 +106,7 @@ class Payu_money extends CI_Controller
                             <input type="hidden" name="surl" value="<?php echo site_url('gateways/payu_money/success?invoiceid='.$data['invoice']->id.'&hash='.$data['invoice']->hash); ?>" />
                             <input type="hidden" name="furl" value="<?php echo site_url('gateways/payu_money/failure?invoiceid='.$data['invoice']->id.'&hash='.$data['invoice']->hash); ?>" />
                             <input type="hidden" name="service_provider" value="payu_paisa" size="64" />
-                            <input type="hidden" name="productinfo" value="<?php echo $this->payu_money_gateway->getSetting('description_dashboard') . ' - ' . format_invoice_number($data['invoice']->id); ?>" />
+                            <input type="hidden" name="productinfo" value="<?php echo str_replace('{invoice_number}', format_invoice_number($data['invoice']->id) , $this->payu_money_gateway->getSetting('description_dashboard')); ?>" />
 
                             <div class="form-group">
                                 <label for="first_name"> <?php echo _l('client_firstname'); ?></label>

@@ -3,15 +3,16 @@ header('Content-Type: text/html; charset=utf-8');
 defined('BASEPATH') or exit('No direct script access allowed');
 class Leads extends Admin_controller
 {
-    private $not_importable_leads_fields = array('id', 'source', 'assigned', 'status', 'dateadded', 'last_status_change', 'addedfrom', 'leadorder', 'date_converted', 'lost', 'junk', 'is_imported_from_email_integration', 'email_integration_uid', 'is_public', 'dateassigned', 'client_id', 'lastcontact', 'last_lead_status', 'from_form_id', 'default_language');
+    private $not_importable_leads_fields;
 
     public function __construct()
     {
         parent::__construct();
+        $this->not_importable_leads_fields = do_action('not_importable_leads_fields', array('id', 'source', 'assigned', 'status', 'dateadded', 'last_status_change', 'addedfrom', 'leadorder', 'date_converted', 'lost', 'junk', 'is_imported_from_email_integration', 'email_integration_uid', 'is_public', 'dateassigned', 'client_id', 'lastcontact', 'last_lead_status', 'from_form_id', 'default_language'));
         $this->load->model('leads_model');
     }
 
-    /* List all leads canban and table */
+    /* List all leads */
     public function index($id = '')
     {
         close_setup_menu();
@@ -42,7 +43,7 @@ class Leads extends Admin_controller
         if (!is_staff_member()) {
             ajax_access_denied();
         }
-        $this->perfex_base->get_table_data('leads');
+        $this->app->get_table_data('leads');
     }
 
     public function kanban()
@@ -109,7 +110,7 @@ class Leads extends Admin_controller
         $data['status_id'] = $this->input->get('status_id') ? $this->input->get('status_id') : get_option('leads_default_status');
 
         if (is_numeric($id)) {
-            $leadWhere = (is_admin() ? array() : '(assigned = ' . get_staff_user_id() . ' OR addedfrom=' . get_staff_user_id() . ' OR is_public=1)');
+            $leadWhere = (has_permission('leads', '', 'view') ? array() : '(assigned = ' . get_staff_user_id() . ' OR addedfrom=' . get_staff_user_id() . ' OR is_public=1)');
 
             $lead = $this->leads_model->get($id, $leadWhere);
 
@@ -193,7 +194,7 @@ class Leads extends Admin_controller
             redirect(admin_url('leads'));
         }
 
-        if (!is_lead_creator($id) && !is_admin()) {
+        if (!is_lead_creator($id) && !has_permission('leads', '', 'delete')) {
             access_denied('Delte Lead');
         }
 
@@ -205,7 +206,14 @@ class Leads extends Admin_controller
         } else {
             set_alert('warning', _l('problem_deleting', _l('lead_lowercase')));
         }
-        redirect($_SERVER['HTTP_REFERER']);
+        $ref = $_SERVER['HTTP_REFERER'];
+
+        // if user access leads/inded/ID to prevent redirecting on the same url because will throw 404
+        if(!$ref || strpos($ref,'index/'.$id) !== FALSE) {
+            redirect(admin_url('leads'));
+        }
+
+        redirect($ref);
     }
 
     public function mark_as_lost($id)
@@ -320,7 +328,7 @@ class Leads extends Admin_controller
         if ($this->input->post()) {
             $default_country              = get_option('customer_default_country');
             $data                         = $this->input->post();
-            $data['password'] = $this->input->post('password',false);
+            $data['password'] = $this->input->post('password', false);
 
             $original_lead_email          = $data['original_lead_email'];
             unset($data['original_lead_email']);
@@ -509,7 +517,7 @@ class Leads extends Admin_controller
                 ));
                 set_alert('success', _l('lead_to_client_base_converted_success'));
                 logActivity('Created Lead Client Profile [LeadID: ' . $data['leadid'] . ', ClientID: ' . $id . ']');
-                do_action('lead_converted_to_customer',array('lead_id'=>$data['leadid'],'customer_id'=>$id));
+                do_action('lead_converted_to_customer', array('lead_id'=>$data['leadid'], 'customer_id'=>$id));
                 redirect(admin_url('clients/client/' . $id));
             }
         }
@@ -519,10 +527,8 @@ class Leads extends Admin_controller
     /* Used in kanban when dragging */
     public function update_kan_ban_lead_status()
     {
-        if ($this->input->post()) {
-            if ($this->input->is_ajax_request()) {
-                $this->leads_model->update_lead_status($this->input->post());
-            }
+        if ($this->input->post() && $this->input->is_ajax_request()) {
+            $this->leads_model->update_lead_status($this->input->post());
         }
     }
 
@@ -687,7 +693,7 @@ class Leads extends Admin_controller
             'is_not_staff' => 0,
         ));
 
-        $data['languages']           = $this->perfex_base->get_available_languages();
+        $data['languages']           = $this->app->get_available_languages();
         $data['cfields']             = $cfields;
         $data['form_builder_assets'] = true;
 
@@ -778,7 +784,7 @@ class Leads extends Admin_controller
         }
 
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('web_to_lead');
+            $this->app->get_table_data('web_to_lead');
         }
 
         $data['title'] = _l('web_to_lead');
@@ -949,11 +955,13 @@ class Leads extends Admin_controller
 
             // Causing issues with duplicate ID or if my prefixed file for lead.php is used
             $data['description'] = isset($data['lead_note_description']) ? $data['lead_note_description'] : $data['description'];
+
             if (isset($data['lead_note_description'])) {
                 unset($data['lead_note_description']);
             }
 
             $note_id = $this->misc_model->add_note($data, 'lead', $rel_id);
+
             if ($note_id) {
                 if (isset($contacted_date)) {
                     $this->db->where('id', $rel_id);
@@ -979,6 +987,7 @@ class Leads extends Admin_controller
         }
 
         require_once(APPPATH . 'third_party/php-imap/Imap.php');
+
         $mail = $this->leads_model->get_email_integration();
         $ps   = $mail->password;
         if (false == $this->encryption->decrypt($ps)) {
@@ -991,11 +1000,13 @@ class Leads extends Admin_controller
         $encryption = $mail->encryption;
         // open connection
         $imap       = new Imap($mailbox, $username, $password, $encryption);
+
         if ($imap->isConnected() === false) {
             set_alert('danger', _l('lead_email_connection_not_ok') . '<br /><b>' . $imap->getError() . '</b>');
         } else {
             set_alert('success', _l('lead_email_connection_ok'));
         }
+
         redirect(admin_url('leads/email_integration'));
     }
 
@@ -1028,6 +1039,7 @@ class Leads extends Admin_controller
         $data['members'] = $this->staff_model->get('', 1, array(
             'is_not_staff' => 0,
         ));
+
         $data['title']   = _l('leads_email_integration');
         $data['mail']    = $this->leads_model->get_email_integration();
         $data['bodyclass']    = 'leads-email-integration';
@@ -1043,7 +1055,7 @@ class Leads extends Admin_controller
 
     public function import()
     {
-        if (!is_admin() && !do_action('staff_can_import_leads', false)) {
+        if (!is_admin() && get_option('allow_non_admin_members_to_import_leads') != '1'){
             access_denied('Leads Import');
         }
 
@@ -1117,6 +1129,9 @@ class Leads extends Admin_controller
                                         $row[$i] = 0;
                                     }
                                 }
+                                if($row[$i] === 'NULL' || $row[$i] === 'null') {
+                                    $row[$i] = '';
+                                }
                                 $insert[$db_fields[$i]] = $row[$i];
                             }
 
@@ -1129,7 +1144,7 @@ class Leads extends Admin_controller
                                 $total_imported++;
                                 $insert['dateadded']   = date('Y-m-d H:i:s');
                                 $insert['addedfrom']   = get_staff_user_id();
-                             //   $insert['lastcontact'] = null;
+                                //   $insert['lastcontact'] = null;
                                 $insert['status']      = $this->input->post('status');
                                 $insert['source']      = $this->input->post('source');
                                 if ($this->input->post('responsible')) {
@@ -1164,7 +1179,7 @@ class Leads extends Admin_controller
                                     $insert = array();
                                     foreach ($custom_fields as $field) {
                                         if (!$simulate) {
-                                            if ($row[$i] != '') {
+                                            if ($row[$i] != '' && $row[$i] !== 'NULL' && $row[$i] !== 'null') {
                                                 $this->db->insert('tblcustomfieldsvalues', array(
                                                     'relid' => $leadid,
                                                     'fieldid' => $field['id'],
@@ -1195,9 +1210,11 @@ class Leads extends Admin_controller
         $data['sources']  = $this->leads_model->get_source();
 
         $data['members'] = $this->staff_model->get('', 1);
+
         if (count($simulate_data) > 0) {
             $data['simulate'] = $simulate_data;
         }
+
         if (isset($import_result)) {
             set_alert('success', _l('import_total_imported', $total_imported));
         }
@@ -1248,11 +1265,11 @@ class Leads extends Admin_controller
             $visibility = $this->input->post('visibility');
             $tags = $this->input->post('tags');
             $last_contact = $this->input->post('last_contact');
-            $is_admin = is_admin();
+            $has_permission_delete = has_permission('leads', '', 'delete');
             if (is_array($ids)) {
                 foreach ($ids as $id) {
                     if ($this->input->post('mass_delete')) {
-                        if ($is_admin) {
+                        if ($has_permission_delete) {
                             if ($this->leads_model->delete($id)) {
                                 $total_deleted++;
                             }

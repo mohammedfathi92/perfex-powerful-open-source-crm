@@ -15,6 +15,7 @@ function check_estimate_restrictions($id, $hash)
     }
     if (!is_client_logged_in() && !is_staff_logged_in()) {
         if (get_option('view_estimate_only_logged_in') == 1) {
+            redirect_after_login_to_current_url();
             redirect(site_url('clients/login'));
         }
     }
@@ -30,6 +31,23 @@ function check_estimate_restrictions($id, $hash)
             }
         }
     }
+}
+
+/**
+ * Check if estimate email template for expiry reminders is enabled
+ * @return boolean
+ */
+function is_estimates_email_expiry_reminder_enabled(){
+    return total_rows('tblemailtemplates',array('slug'=>'estimate-expiry-reminder','active'=>1)) > 0;
+}
+
+/**
+ * Check if there are sources for sending estimate expiry reminders
+ * Will be either email or SMS
+ * @return boolean
+ */
+function is_estimates_expiry_reminders_enabled(){
+    return is_estimates_email_expiry_reminder_enabled() || is_sms_trigger_active(SMS_TRIGGER_ESTIMATE_EXP_REMINDER);
 }
 
 /**
@@ -195,12 +213,26 @@ function format_estimate_number($id)
     $date = $estimate->date;
     $prefixPadding = get_option('number_padding_prefixes');
 
-    // Number based
+
     if ($format == 1) {
+        // Number based
         return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
     } elseif ($format == 2) {
+        // Year based
         return $prefix . date('Y', strtotime($date)) . '/' . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
+    } else if($format == 3) {
+        // Number-yy based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '-' . date('y', strtotime($date));
+    } else if($format == 4) {
+        // Number-mm-yyyy based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '/' . date('m', strtotime($date)) . '/' . date('Y', strtotime($date));
     }
+
+    $hook_data['id'] = $id;
+    $hook_data['estimate'] = $estimate;
+    $hook_data['formatted_number'] = $number;
+    $hook_data = do_action('format_estimate_number',$hook_data);
+    $number = $hook_data['formatted_number'];
 
     return $number;
 }

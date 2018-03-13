@@ -27,6 +27,9 @@
                 foreach($customer_admins as $cadmin){
                     echo form_hidden('responsible_admin_'.$cadmin['staff_id']);
                 }
+                foreach($countries as $country){
+                    echo form_hidden('country_'.$country['country_id']);
+                }
                 ?>
             </div>
             <div class="panel_s">
@@ -69,12 +72,24 @@
                                             <div class="clearfix"></div>
                                             <li class="divider"></li>
                                             <?php } ?>
+                                            <?php if(count($countries) > 1){ ?>
+                                            <li class="dropdown-submenu pull-left countries">
+                                                <a href="#" tabindex="-1"><?php echo _l('clients_country'); ?></a>
+                                                <ul class="dropdown-menu dropdown-menu-left">
+                                                    <?php foreach($countries as $country){ ?>
+                                                    <li><a href="#" data-cview="country_<?php echo $country['country_id']; ?>" onclick="dt_custom_view('country_<?php echo $country['country_id']; ?>','.table-clients','country_<?php echo $country['country_id']; ?>'); return false;"><?php echo $country['short_name']; ?></a></li>
+                                                    <?php } ?>
+                                                </ul>
+                                            </li>
+                                            <div class="clearfix"></div>
+                                            <li class="divider"></li>
+                                            <?php } ?>
                                             <li class="dropdown-submenu pull-left invoice">
                                                 <a href="#" tabindex="-1"><?php echo _l('invoices'); ?></a>
                                                 <ul class="dropdown-menu dropdown-menu-left">
                                                     <?php foreach($invoice_statuses as $status){ ?>
                                                     <li>
-                                                        <a href="#" data-cview="invoices_<?php echo $status; ?>" data-cview="1" onclick="dt_custom_view('invoices_<?php echo $status; ?>','.table-clients','invoices_<?php echo $status; ?>'); return false;"><?php echo _l('customer_have_invoices_by',format_invoice_status($status,'',false)); ?></a>
+                                                        <a href="#" data-cview="invoices_<?php echo $status; ?>" onclick="dt_custom_view('invoices_<?php echo $status; ?>','.table-clients','invoices_<?php echo $status; ?>'); return false;"><?php echo _l('customer_have_invoices_by',format_invoice_status($status,'',false)); ?></a>
                                                     </li>
                                                     <?php } ?>
                                                 </ul>
@@ -209,7 +224,7 @@
                                         </div>
                                         <?php } ?>
                                         <hr class="hr-panel-heading" />
-                                        <a href="#" data-toggle="modal" data-target="#customers_bulk_action" class="bulk-actions-btn hide" data-table=".table-clients"><?php echo _l('bulk_actions'); ?></a>
+                                        <a href="#" data-toggle="modal" data-target="#customers_bulk_action" class="bulk-actions-btn table-btn hide" data-table=".table-clients"><?php echo _l('bulk_actions'); ?></a>
                                         <div class="modal fade bulk_actions" id="customers_bulk_action" tabindex="-1" role="dialog">
                                             <div class="modal-dialog" role="document">
                                              <div class="modal-content">

@@ -25,10 +25,10 @@ $html .= '<h3>'.ucwords(_l('project_overview')).'</h3>';
 if(!empty($project->description)){
     // Project description
     $html .= '<p><b style="background-color:#f0f0f0;">' . _l('project_description') . '</b><br /><br /> ' . $project->description . '</p>';
-    $pdf->writeHTML($html, true, false, false, false, '');
-    $pdf->Ln(10);
 }
 
+$pdf->writeHTML($html, true, false, false, false, '');
+$pdf->Ln(10);
 $html = '';
 // Project overview
 // Billing type

@@ -51,6 +51,8 @@ class Settings_model extends CRM_Model
                     $val = trim($val);
                 }
 
+
+
                 array_push($all_settings_looped, $name);
 
                 $hook_data['name']  = $name;
@@ -69,8 +71,7 @@ class Settings_model extends CRM_Model
                 if ($name == 'default_contact_permissions') {
                     $val = serialize($val);
                 } elseif ($name == 'visible_customer_profile_tabs') {
-
-                    if($val == '' || (is_array($val) && count($val) == 1 && $val[0] == 'all')) {
+                    if ($val == '' || (is_array($val) && count($val) == 1 && $val[0] == 'all')) {
                         $val = 'all';
                     } else {
                         $val = serialize($val);
@@ -82,11 +83,9 @@ class Settings_model extends CRM_Model
                         return $value !== '';
                     });
                     $val = serialize($val);
-                } elseif($name == 'company_info_format' || $name == 'customer_info_format' || $name == 'proposal_info_format'){
-
+                } elseif ($name == 'company_info_format' || $name == 'customer_info_format' || $name == 'proposal_info_format' || strpos($name,'sms_trigger_') !== false) {
                     $val = strip_tags($val);
                     $val = nl2br($val);
-
                 } elseif (in_array($name, $this->encrypted_fields)) {
                     // Check if not empty $val password
                     // Get original
@@ -106,7 +105,7 @@ class Settings_model extends CRM_Model
 
                 $this->db->where('name', $name);
                 $this->db->update('tbloptions', array(
-                    'value' => $val
+                    'value' => $val,
                 ));
 
                 if ($this->db->affected_rows() > 0) {
@@ -115,18 +114,20 @@ class Settings_model extends CRM_Model
             }
 
             // Contact permission default none
-            if (!in_array('default_contact_permissions', $all_settings_looped) && in_array('customer_settings', $all_settings_looped)) {
+            if (!in_array('default_contact_permissions', $all_settings_looped)
+                && in_array('customer_settings', $all_settings_looped)) {
                 $this->db->where('name', 'default_contact_permissions');
                 $this->db->update('tbloptions', array(
-                'value' => serialize(array())
+                'value' => serialize(array()),
             ));
                 if ($this->db->affected_rows() > 0) {
                     $affectedRows++;
                 }
-            } elseif (!in_array('visible_customer_profile_tabs', $all_settings_looped) && in_array('customer_settings', $all_settings_looped)) {
+            } elseif (!in_array('visible_customer_profile_tabs', $all_settings_looped)
+                && in_array('customer_settings', $all_settings_looped)) {
                 $this->db->where('name', 'visible_customer_profile_tabs');
                 $this->db->update('tbloptions', array(
-                'value' => 'all'
+                'value' => 'all',
             ));
                 if ($this->db->affected_rows() > 0) {
                     $affectedRows++;

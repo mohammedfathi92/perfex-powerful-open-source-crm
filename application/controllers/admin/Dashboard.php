@@ -47,7 +47,7 @@ class Dashboard extends Admin_controller
         $data['total_undismissed_announcements'] = $this->announcements_model->get_total_undismissed_announcements();
 
         $data['goals'] = array();
-        if(is_staff_member()){
+        if (is_staff_member()) {
             $this->load->model('goals_model');
             $data['goals'] = $this->goals_model->get_staff_goals(get_staff_user_id());
         }

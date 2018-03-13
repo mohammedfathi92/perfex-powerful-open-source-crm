@@ -37,7 +37,7 @@ class Tickets extends Admin_controller
                 }
             }
 
-            $this->perfex_base->get_table_data('tickets', $tableParams);
+            $this->app->get_table_data('tickets', $tableParams);
         }
 
         $data['chosen_ticket_status']              = $status;
@@ -95,13 +95,11 @@ class Tickets extends Admin_controller
                 }
             }
         } elseif ($this->input->get('contact_id') && $this->input->get('contact_id') > 0 && $this->input->get('userid')) {
-            $userid = $this->input->get('userid');
-            // request from customer profile to create new ticket only if there is 1 contact
-            $contact = $this->clients_model->get_contacts($userid);
-            if (total_rows('tblcontacts', array('active'=>1, 'userid'=>$userid)) == 1) {
-                $contact = $this->clients_model->get_contacts($userid);
-                if (isset($contact[0])) {
-                    $data['contact'] = $contact[0];
+            $contact_id = $this->input->get('contact_id');
+            if (total_rows('tblcontacts', array('active'=>1, 'id'=>$contact_id)) == 1) {
+                $contact = $this->clients_model->get_contact($contact_id);
+                if($contact){
+                    $data['contact'] = (array) $contact;
                 }
             }
         }
@@ -115,12 +113,12 @@ class Tickets extends Admin_controller
         }
 
         $response = $this->tickets_model->delete($ticketid);
+
         if ($response == true) {
             set_alert('success', _l('deleted', _l('ticket')));
         } else {
             set_alert('warning', _l('problem_deleting', _l('ticket_lowercase')));
         }
-
 
         if (strpos($_SERVER['HTTP_REFERER'], 'tickets/ticket') !== false) {
             redirect(admin_url('tickets'));

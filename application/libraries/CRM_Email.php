@@ -166,4 +166,19 @@ class CRM_Email extends CI_Email
         $this->CI->db->where('date < ', date('Y-m-d H:i:s', strtotime('-1 week')));
         $this->CI->db->delete($this->email_queue_table);
     }
+   /**
+     * Email Validation
+     *
+     * @param   string
+     * @return  bool
+     */
+ /*   public function valid_email($email)
+    {
+        if (function_exists('idn_to_ascii') && $atpos = strpos($email, '@'))
+        {
+            $variant = defined('INTL_IDNA_VARIANT_UTS46') ? INTL_IDNA_VARIANT_UTS46 : INTL_IDNA_VARIANT_2003;
+            $email = self::substr($email, 0, ++$atpos).idn_to_ascii(self::substr($email, $atpos), 0, $variant);
+        }
+        return (bool) filter_var($email, FILTER_VALIDATE_EMAIL);
+    }*/
 }

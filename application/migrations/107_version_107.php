@@ -93,7 +93,7 @@ class Migration_Version_107 extends CI_Migration
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;");
 
         $customers   = $this->db->get('tblclients')->result_array();
-        $permissions = $this->perfex_base->get_contact_permissions();
+        $permissions = get_contact_permissions();
 
         foreach ($customers as $customer) {
             foreach ($permissions as $permission) {

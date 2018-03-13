@@ -30,6 +30,7 @@
     init_ajax_search('customer','#clientid.ajax-search');
     init_ajax_search('items','#item_select.ajax-search',undefined,admin_url+'items/search');
     custom_fields_hyperlink();
+    init_tags_inputs();
     init_selectpicker();
     init_datepicker();
     init_color_pickers();

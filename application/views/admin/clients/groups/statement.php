@@ -1,7 +1,7 @@
 <h4 class="customer-profile-group-heading"><?php echo _l('customer_statement'); ?></h4>
 <div class="row">
  <div class="col-md-4">
-    <div class="form-group">
+    <div class="form-group select-placeholder">
         <select class="selectpicker" name="range" id="range" data-width="100%" onchange="render_customer_statement();">
             <option value='<?php echo json_encode(
             array(
@@ -30,13 +30,13 @@
             <option value='<?php echo json_encode(
             array(
             _d(date('Y-m-d',strtotime(date('Y-01-01')))),
-            _d(date('Y-m-d',strtotime(date('Y-12-'.date('d',strtotime('last day of this year'))))))
+            _d(date('Y-m-d',strtotime(date('Y-12-31'))))
             )); ?>'><?php echo _l('this_year'); ?>
             </option>
             <option value='<?php echo json_encode(
             array(
             _d(date('Y-m-d',strtotime(date(date('Y',strtotime('last year')).'-01-01')))),
-            _d(date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-'.date('d',strtotime('last day of last year'))))))
+            _d(date('Y-m-d',strtotime(date(date('Y',strtotime('last year')). '-12-31'))))
             )); ?>'><?php echo _l('last_year'); ?>
             </option>
             <option value="period"><?php echo _l('period_datepicker'); ?></option>

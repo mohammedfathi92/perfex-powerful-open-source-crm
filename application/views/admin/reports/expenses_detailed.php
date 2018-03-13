@@ -38,11 +38,12 @@
                         </div>
                         <?php } ?>
                         <div class="clearfix"></div>
-                         <table class="table dt-table-loading table-striped table-expenses">
+                         <table class="table dt-table-loading table-expenses">
                          <thead>
                              <tr>
                                  <th><?php echo _l('expense_dt_table_heading_category'); ?></th>
                                  <th><?php echo _l('expense_dt_table_heading_amount'); ?></th>
+                                 <th><?php echo _l('expense_name'); ?></th>
                                  <th><?php echo _l('tax_1'); ?></th>
                                  <th><?php echo _l('tax_2'); ?></th>
                                  <th><?php echo _l('expenses_report_total_tax'); ?></th>
@@ -60,6 +61,7 @@
                              <tr>
                                  <td></td>
                                  <td class="subtotal"></td>
+                                 <td></td>
                                  <td></td>
                                  <td></td>
                                  <td class="total_tax"></td>
@@ -87,7 +89,7 @@
         Expenses_ServerParams[$(this).attr('name')] = '[name="'+$(this).attr('name')+'"]';
     });
      Expenses_ServerParams['currency'] = '[name="currencies"]';
-     initDataTable('.table-expenses', window.location.href, 'undefined', 'undefined', Expenses_ServerParams, [7, 'DESC']);
+     initDataTable('.table-expenses', window.location.href, 'undefined', 'undefined', Expenses_ServerParams, [8, 'DESC']);
 
      $('.table-expenses').on('draw.dt',function(){
         var expenseReportsTable = $(this).DataTable();

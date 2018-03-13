@@ -1,4 +1,4 @@
-<div class="panel_s<?php if(!isset($invoice) || (isset($invoice) && count($invoices_to_merge) == 0 && (isset($invoice) && !isset($invoice_from_project) && count($expenses_to_bill) == 0))){echo ' hide';} ?>" id="invoice_top_info">
+<div class="panel_s<?php if(!isset($invoice) || (isset($invoice) && count($invoices_to_merge) == 0 && (isset($invoice) && !isset($invoice_from_project) && count($expenses_to_bill) == 0 || $invoice->status == 5))){echo ' hide';} ?>" id="invoice_top_info">
    <div class="panel-body">
       <div class="row">
          <div id="merge" class="col-md-6">
@@ -6,14 +6,13 @@
                $this->load->view('admin/invoices/merge_invoice',array('invoices_to_merge'=>$invoices_to_merge));
                } ?>
          </div>
-         <?php
-            // When invoicing from project area the expenses are not visible here because you can select to bill expenses while trying to invoice project
-            if(!isset($invoice_from_project)){ ?>
-         <div id="expenses_to_bill" class="col-md-6">
-            <?php if(isset($invoice)){
-               $this->load->view('admin/invoices/bill_expenses',array('expenses_to_bill'=>$expenses_to_bill));
-               } ?>
-         </div>
+         <!--  When invoicing from project area the expenses are not visible here because you can select to bill expenses while trying to invoice project -->
+         <?php if(!isset($invoice_from_project)){ ?>
+           <div id="expenses_to_bill" class="col-md-6">
+              <?php if(isset($invoice) && $invoice->status != 5){
+                 $this->load->view('admin/invoices/bill_expenses',array('expenses_to_bill'=>$expenses_to_bill));
+              } ?>
+           </div>
          <?php } ?>
       </div>
    </div>
@@ -31,13 +30,9 @@
       } ?>
       <div class="row">
          <div class="col-md-6">
-            <h4 class="no-margin">
-               <?php echo _l('invoice_estimate_general_options'); ?>
-            </h4>
-            <hr class="hr-panel-heading" />
             <div class="f_client_id">
-              <div class="form-group">
-                <label for="clientid"><?php echo _l('invoice_select_customer'); ?></label>
+              <div class="form-group select-placeholder">
+                <label for="clientid" class="control-label"><?php echo _l('invoice_select_customer'); ?></label>
                 <select id="clientid" name="clientid" data-live-search="true" data-width="100%" class="ajax-search" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                <?php $selected = (isset($invoice) ? $invoice->clientid : '');
                  if($selected == ''){
@@ -53,7 +48,7 @@
             </div>
             <?php
             if(!isset($invoice_from_project)){ ?>
-            <div class="form-group projects-wrapper<?php if((!isset($invoice)) || (isset($invoice) && !customer_has_projects($invoice->clientid))){ echo ' hide';} ?>">
+            <div class="form-group select-placeholder projects-wrapper<?php if((!isset($invoice)) || (isset($invoice) && !customer_has_projects($invoice->clientid))){ echo ' hide';} ?>">
                <label for="project_id"><?php echo _l('project'); ?></label>
               <div id="project_ajax_search_wrapper">
                    <select name="project_id" id="project_id" class="projects ajax-search" data-live-search="true" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
@@ -128,16 +123,20 @@
             <?php
                $next_invoice_number = get_option('next_invoice_number');
                $format = get_option('invoice_number_format');
-               if(isset($invoice)){$format = $invoice->number_format;}
+
+               if(isset($invoice)){
+                  $format = $invoice->number_format;
+               }
+
                $prefix = get_option('invoice_prefix');
+
                if ($format == 1) {
-               // Number based
                  $__number = $next_invoice_number;
                  if(isset($invoice)){
                    $__number = $invoice->number;
                    $prefix = '<span id="prefix">' . $invoice->prefix . '</span>';
                  }
-               } else {
+               } else if($format == 2) {
                  if(isset($invoice)){
                    $__number = $invoice->number;
                    $prefix = $invoice->prefix;
@@ -146,25 +145,57 @@
                   $__number = $next_invoice_number;
                   $prefix = $prefix.'<span id="prefix_year">'.date('Y').'</span>/';
                 }
+               } else if($format == 3) {
+                  if(isset($invoice)){
+                   $yy = date('y',strtotime($invoice->date));
+                   $__number = $invoice->number;
+                   $prefix = '<span id="prefix">'. $invoice->prefix . '</span>';
+                 } else {
+                  $yy = date('y');
+                  $__number = $next_invoice_number;
+                }
+               } else if($format == 4) {
+                  if(isset($invoice)){
+                   $yyyy = date('Y',strtotime($invoice->date));
+                   $mm = date('m',strtotime($invoice->date));
+                   $__number = $invoice->number;
+                   $prefix = '<span id="prefix">'. $invoice->prefix . '</span>';
+                 } else {
+                  $yyyy = date('Y');
+                  $mm = date('m');
+                  $__number = $next_invoice_number;
+                }
                }
+
                $_invoice_number = str_pad($__number, get_option('number_padding_prefixes'), '0', STR_PAD_LEFT);
-               if(isset($invoice)){
-               $isedit = 'true';
-               $data_original_number = $invoice->number;
-               } else {
-               $isedit = 'false';
-               $data_original_number = 'false';
-               }
+               $isedit = isset($invoice) ? 'true' : 'false';
+               $data_original_number = isset($invoice) ? $invoice->number : 'false';
+
                ?>
             <div class="form-group">
                <label for="number"><?php echo _l('invoice_add_edit_number'); ?></label>
                <div class="input-group">
                   <span class="input-group-addon">
                   <?php if(isset($invoice)){ ?>
-                  <a href="#" onclick="return false;" data-toggle="popover" data-container='._transaction_form' data-html="true" data-content="<label class='control-label'><?php echo _l('settings_sales_invoice_prefix'); ?></label><div class='input-group'><input name='s_prefix' type='text' class='form-control' value='<?php echo $invoice->prefix; ?>'></div><button type='button' onclick='save_sales_number_settings(this); return false;' data-url='<?php echo admin_url('invoices/update_number_settings/'.$invoice->id); ?>' class='btn btn-info btn-block mtop15'><?php echo _l('submit'); ?></button>"><i class="fa fa-cog"></i></a>
-                  <?php } ?>
-                  <?php echo $prefix; ?></span>
+                    <a href="#" onclick="return false;" data-toggle="popover" data-container='._transaction_form' data-html="true" data-content="<label class='control-label'><?php echo _l('settings_sales_invoice_prefix'); ?></label><div class='input-group'><input name='s_prefix' type='text' class='form-control' value='<?php echo $invoice->prefix; ?>'></div><button type='button' onclick='save_sales_number_settings(this); return false;' data-url='<?php echo admin_url('invoices/update_number_settings/'.$invoice->id); ?>' class='btn btn-info btn-block mtop15'><?php echo _l('submit'); ?></button>">
+                    <i class="fa fa-cog"></i>
+                    </a>
+                  <?php }
+                    echo $prefix;
+                  ?>
+                  </span>
                   <input type="text" name="number" class="form-control" value="<?php echo $_invoice_number; ?>" data-isedit="<?php echo $isedit; ?>" data-original-number="<?php echo $data_original_number; ?>">
+                  <?php if($format == 3) { ?>
+                  <span class="input-group-addon">
+                     <span id="prefix_year" class="format-n-yy"><?php echo $yy; ?></span>
+                  </span>
+                  <?php } else if($format == 4) { ?>
+                   <span class="input-group-addon">
+                     <span id="prefix_month" class="format-mm-yyyy"><?php echo $mm; ?></span>
+                     /
+                     <span id="prefix_year" class="format-mm-yyyy"><?php echo $yyyy; ?></span>
+                  </span>
+                  <?php } ?>
                </div>
             </div>
             <div class="row">
@@ -191,18 +222,29 @@
                   <?php echo render_date_input('duedate','invoice_add_edit_duedate',$value); ?>
                </div>
             </div>
+                <?php if(is_invoices_overdue_reminders_enabled()){ ?>
+               <div class="form-group">
+                  <div class="checkbox checkbox-danger">
+                     <input type="checkbox" <?php if(isset($invoice) && $invoice->cancel_overdue_reminders == 1){echo 'checked';} ?> id="cancel_overdue_reminders" name="cancel_overdue_reminders">
+                     <label for="cancel_overdue_reminders"><?php echo _l('cancel_overdue_reminders_invoice') ?></label>
+                  </div>
+               </div>
+               <?php } ?>
             <?php $rel_id = (isset($invoice) ? $invoice->id : false); ?>
             <?php echo render_custom_fields('invoice',$rel_id); ?>
          </div>
          <div class="col-md-6">
             <div class="panel_s no-shadow">
-               <h4 class="no-margin"><?php echo _l('invoice_add_edit_advanced_options'); ?></h4>
-               <hr class="hr-panel-heading" />
-               <div class="form-group mbot15">
+
+                   <div class="form-group">
+                  <label for="tags" class="control-label"><i class="fa fa-tag" aria-hidden="true"></i> <?php echo _l('tags'); ?></label>
+                  <input type="text" class="tagsinput" id="tags" name="tags" value="<?php echo (isset($invoice) ? prep_tags_input(get_tags_in($invoice->id,'invoice')) : ''); ?>" data-role="tagsinput">
+               </div>
+               <div class="form-group mbot15 select-placeholder">
                   <label for="allowed_payment_modes" class="control-label"><?php echo _l('invoice_add_edit_allowed_payment_modes'); ?></label>
                   <br />
                   <?php if(count($payment_modes) > 0){ ?>
-                  <select class="selectpicker" name="allowed_payment_modes[]" multiple="true" data-width="100%" data-title="<?php echo _l('dropdown_non_selected_tex'); ?>">
+                  <select class="selectpicker" name="allowed_payment_modes[]" data-actions-box="true" multiple="true" data-width="100%" data-title="<?php echo _l('dropdown_non_selected_tex'); ?>">
                   <?php foreach($payment_modes as $mode){
                      $selected = '';
                      if(isset($invoice)){
@@ -271,7 +313,7 @@
                         ?>
                   </div>
                   <div class="col-md-6">
-                     <div class="form-group">
+                     <div class="form-group select-placeholder">
                         <label for="recurring" class="control-label">
                         <?php echo _l('invoice_add_edit_recurring'); ?>
                         </label>
@@ -301,7 +343,7 @@
                      </div>
                   </div>
                   <div class="col-md-6">
-                     <div class="form-group">
+                     <div class="form-group select-placeholder">
                         <label for="discount_type" class="control-label"><?php echo _l('discount_type'); ?></label>
                         <select name="discount_type" class="selectpicker" data-width="100%" data-none-selected-text="<?php echo _l('dropdown_non_selected_tex'); ?>">
                            <option value="" selected><?php echo _l('no_discount'); ?></option>
@@ -334,14 +376,7 @@
                </div>
                <?php $value = (isset($invoice) ? $invoice->adminnote : ''); ?>
                <?php echo render_textarea('adminnote','invoice_add_edit_admin_note',$value); ?>
-               <?php if(get_option('cron_send_invoice_overdue_reminder') == 1){ ?>
-               <div class="form-group">
-                  <div class="checkbox checkbox-danger">
-                     <input type="checkbox" <?php if(isset($invoice) && $invoice->cancel_overdue_reminders == 1){echo 'checked';} ?> id="cancel_overdue_reminders" name="cancel_overdue_reminders">
-                     <label for="cancel_overdue_reminders"><?php echo _l('cancel_overdue_reminders_invoice') ?></label>
-                  </div>
-               </div>
-               <?php } ?>
+
             </div>
          </div>
       </div>
@@ -349,7 +384,7 @@
    <div class="panel-body mtop10">
       <div class="row">
          <div class="col-md-4">
-            <div class="form-group mbot25 items-wrapper">
+            <div class="form-group mbot25 items-wrapper select-placeholder">
                <select name="item_select" class="selectpicker no-margin<?php if($ajaxItems == true){echo ' ajax-search';} ?>" data-width="100%" id="item_select" data-none-selected-text="<?php echo _l('add_item'); ?>" data-live-search="true">
                   <option value=""></option>
                   <?php foreach($items as $group_id=>$_items){ ?>
@@ -366,19 +401,34 @@
                </select>
             </div>
          </div>
-         <?php if(!isset($invoice_from_project) && isset($billable_tasks)){ ?>
+         <?php if(!isset($invoice_from_project) && isset($billable_tasks)){
+          ?>
          <div class="col-md-3">
-            <div class="form-group" data-toggle="tooltip" data-title="<?php echo _l('invoice_task_item_project_tasks_not_included'); ?>">
-               <select name="task_select" data-live-search="true" id="task_select" class="selectpicker no-margin" data-width="100%" data-none-selected-text="<?php echo _l('bill_tasks'); ?>">
+            <div class="form-group select-placeholder input-group-select form-group-select-task_select popover-250">
+              <div class="input-group input-group-select">
+               <select name="task_select" data-live-search="true" id="task_select" class="selectpicker no-margin _select_input_group" data-width="100%" data-none-selected-text="<?php echo _l('bill_tasks'); ?>">
                   <option value=""></option>
                   <?php foreach($billable_tasks as $task_billable){ ?>
-                  <option  value="<?php echo $task_billable['id']; ?>"<?php if($this->tasks_model->is_timer_started_for_task($task_billable['id'])){ ?>disabled class="text-danger important" data-subtext="<?php echo _l('invoice_task_billable_timers_found'); ?>" <?php } else {
+                  <option value="<?php echo $task_billable['id']; ?>"<?php if($task_billable['started_timers'] == true){ ?>disabled class="text-danger important" data-subtext="<?php echo _l('invoice_task_billable_timers_found'); ?>" <?php } else {
                      $task_rel_data = get_relation_data($task_billable['rel_type'],$task_billable['rel_id']);
                      $task_rel_value = get_relation_values($task_rel_data,$task_billable['rel_type']);
                      ?>
-                     data-subtext="<?php echo $task_rel_value['name']; ?>" <?php } ?>><?php echo $task_billable['name']; ?></option>
+                     data-subtext="<?php echo $task_billable['rel_type'] == 'project' ? '' : $task_rel_value['name']; ?>" <?php } ?>><?php echo $task_billable['name']; ?></option>
                   <?php } ?>
                </select>
+                <div class="input-group-addon input-group-addon-bill-tasks-help">
+                  <?php
+                    if(isset($invoice) && !empty($invoice->project_id)) {
+                       $help_text = _l('showing_billable_tasks_from_project') . ' ' . get_project_name_by_id($invoice->project_id);
+                    } else {
+                       $help_text = _l('invoice_task_item_project_tasks_not_included');
+                    }
+                    echo '<span class="pointer popover-invoker" data-container=".form-group-select-task_select"
+                      data-trigger="click" data-placement="top" data-toggle="popover" data-content="'.$help_text.'">
+                      <i class="fa fa-question-circle"></i></span>';
+                  ?>
+                </div>
+               </div>
             </div>
          </div>
          <?php } ?>
@@ -406,9 +456,13 @@
             <thead>
                <tr>
                   <th></th>
-                  <th width="20%" class="text-left"><i class="fa fa-exclamation-circle" aria-hidden="true" data-toggle="tooltip" data-title="<?php echo _l('item_description_new_lines_notice'); ?>"></i> <?php echo _l('invoice_table_item_heading'); ?></th>
-                  <th width="25%" class="text-left"><?php echo _l('invoice_table_item_description'); ?></th>
+                  <th width="20%" align="left"><i class="fa fa-exclamation-circle" aria-hidden="true" data-toggle="tooltip" data-title="<?php echo _l('item_description_new_lines_notice'); ?>"></i> <?php echo _l('invoice_table_item_heading'); ?></th>
+                  <th width="25%" align="left"><?php echo _l('invoice_table_item_description'); ?></th>
                   <?php
+                  $custom_fields = get_custom_fields('items');
+                  foreach($custom_fields as $cf){
+                    echo '<th width="15%" align="left" class="custom_field">' . $cf['name'] . '</th>';
+                  }
                      $qty_heading = _l('invoice_table_quantity_heading');
                      if(isset($invoice) && $invoice->show_quantity_as == 2 || isset($hours_quantity)){
                       $qty_heading = _l('invoice_table_hours_heading');
@@ -416,10 +470,10 @@
                       $qty_heading = _l('invoice_table_quantity_heading') .'/'._l('invoice_table_hours_heading');
                      }
                      ?>
-                  <th width="10%" class="text-left qty"><?php echo $qty_heading; ?></th>
-                  <th width="15%" class="text-left"><?php echo _l('invoice_table_rate_heading'); ?></th>
-                  <th width="20%" class="text-left"><?php echo _l('invoice_table_tax_heading'); ?></th>
-                  <th width="10%" class="text-left"><?php echo _l('invoice_table_amount_heading'); ?></th>
+                  <th width="10%" align="right" class="qty"><?php echo $qty_heading; ?></th>
+                  <th width="15%" align="right"><?php echo _l('invoice_table_rate_heading'); ?></th>
+                  <th width="20%" align="right"><?php echo _l('invoice_table_tax_heading'); ?></th>
+                  <th width="10%" align="right"><?php echo _l('invoice_table_amount_heading'); ?></th>
                   <th align="center"><i class="fa fa-cog"></i></th>
                </tr>
             </thead>
@@ -432,6 +486,7 @@
                   <td>
                      <textarea name="long_description" rows="4" class="form-control" placeholder="<?php echo _l('item_long_description_placeholder'); ?>"></textarea>
                   </td>
+                  <?php echo render_custom_fields_items_table_add_edit_preview(); ?>
                   <td>
                      <input type="number" name="quantity" min="0" value="1" class="form-control" placeholder="<?php echo _l('item_quantity_placeholder'); ?>">
                      <input type="text" placeholder="<?php echo _l('unit'); ?>" name="unit" class="form-control input-transparent text-right">
@@ -476,6 +531,7 @@
                     $items_indicator = 'items';
                   }
                   foreach ($add_items as $item) {
+
                     $manual    = false;
                     $table_row = '<tr class="sortable item">';
                     $table_row .= '<td class="dragger">';
@@ -496,17 +552,23 @@
                     $table_row .= '</td>';
                     $table_row .= '<td class="bold description"><textarea name="' . $items_indicator . '[' . $i . '][description]" class="form-control" rows="5">' . clear_textarea_breaks($item['description']) . '</textarea></td>';
                     $table_row .= '<td><textarea name="' . $items_indicator . '[' . $i . '][long_description]" class="form-control" rows="5">' . clear_textarea_breaks($item['long_description']) . '</textarea></td>';
+
+                    $table_row .= render_custom_fields_items_table_in($item,$items_indicator.'['.$i.']');
+
                     $table_row .= '<td><input type="number" min="0" onblur="calculate_total();" onchange="calculate_total();" data-quantity name="' . $items_indicator . '[' . $i . '][qty]" value="' . $item['qty'] . '" class="form-control">';
+
                     $unit_placeholder = '';
                     if(!$item['unit']){
                       $unit_placeholder = _l('unit');
                       $item['unit'] = '';
                     }
+
                     $table_row .= '<input type="text" placeholder="'.$unit_placeholder.'" name="'.$items_indicator.'['.$i.'][unit]" class="form-control input-transparent text-right" value="'.$item['unit'].'">';
+
                     $table_row .= '</td>';
                     $table_row .= '<td class="rate"><input type="number" data-toggle="tooltip" title="' . _l('numbers_not_formatted_while_editing') . '" onblur="calculate_total();" onchange="calculate_total();" name="' . $items_indicator . '[' . $i . '][rate]" value="' . $item['rate'] . '" class="form-control"></td>';
                     $table_row .= '<td class="taxrate">' . $this->misc_model->get_taxes_dropdown_template('' . $items_indicator . '[' . $i . '][taxname][]', $invoice_item_taxes, 'invoice', $item['id'], true, $manual) . '</td>';
-                    $table_row .= '<td class="amount">' . $amount . '</td>';
+                    $table_row .= '<td class="amount" align="right">' . $amount . '</td>';
                     $table_row .= '<td><a href="#" class="btn btn-danger pull-left" onclick="delete_item(this,' . $item['id'] . '); return false;"><i class="fa fa-times"></i></a></td>';
                     if (isset($item['task_id'])) {
                       if (!is_array($item['task_id'])) {
@@ -537,26 +599,50 @@
                   <td class="subtotal">
                   </td>
                </tr>
-               <tr id="discount_percent">
+               <tr id="discount_area">
                   <td>
                      <div class="row">
                         <div class="col-md-7">
-                           <span class="bold"><?php echo _l('invoice_discount'); ?> (%)</span>
+                           <span class="bold">
+                            <?php echo _l('invoice_discount'); ?>
+                         </span>
                         </div>
                         <div class="col-md-5">
-                           <?php
-                              $discount_percent = 0;
-                              if(isset($invoice)){
-                               if($invoice->discount_percent != 0){
-                                 $discount_percent =  $invoice->discount_percent;
-                               }
-                              }
-                              ?>
-                           <input type="number" value="<?php echo $discount_percent; ?>" class="form-control pull-left" min="0" max="100" name="discount_percent">
+                            <div class="input-group" id="discount-total">
+
+                                <input type="number" value="<?php echo (isset($invoice) ? $invoice->discount_percent : 0); ?>" class="form-control pull-left input-discount-percent<?php if(isset($invoice) && !is_sale_discount($invoice,'percent') && is_sale_discount_applied($invoice)){echo ' hide';} ?>" min="0" max="100" name="discount_percent">
+
+                                <input type="number" data-toggle="tooltip" data-title="<?php echo _l('numbers_not_formatted_while_editing'); ?>" value="<?php echo (isset($invoice) ? $invoice->discount_total : 0); ?>" class="form-control pull-left input-discount-fixed<?php if(!isset($invoice) || (isset($invoice) && !is_sale_discount($invoice,'fixed'))){echo ' hide';} ?>" min="0" name="discount_total">
+
+                                <div class="input-group-addon">
+                                  <div class="dropdown">
+                                    <a class="dropdown-toggle" href="#" id="dropdown_menu_tax_total_type" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                                      <span class="discount-total-type-selected">
+                                        <?php if(!isset($invoice) || isset($invoice) && (is_sale_discount($invoice,'percent') || !is_sale_discount_applied($invoice))) {
+                                          echo '%';
+                                        } else {
+                                          echo _l('discount_fixed_amount');
+                                        }
+                                        ?>
+                                      </span>
+                                      <span class="caret"></span>
+                                    </a>
+                                    <ul class="dropdown-menu" id="discount-total-type-dropdown" aria-labelledby="dropdown_menu_tax_total_type">
+                                      <li>
+                                        <a href="#" class="discount-total-type discount-type-percent<?php if(!isset($invoice) || (isset($invoice) && is_sale_discount($invoice,'percent')) || (isset($invoice) && !is_sale_discount_applied($invoice))){echo ' selected';} ?>">%</a>
+                                      </li>
+                                      <li><a href="#" class="discount-total-type discount-type-fixed<?php if(isset($invoice) && is_sale_discount($invoice,'fixed')){echo ' selected';} ?>">
+                                          <?php echo _l('discount_fixed_amount'); ?>
+                                        </a>
+                                      </li>
+                                    </ul>
+                                  </div>
+                                </div>
+                            </div>
                         </div>
                      </div>
                   </td>
-                  <td class="discount_percent"></td>
+                  <td class="discount-total"></td>
                </tr>
                <tr>
                   <td>

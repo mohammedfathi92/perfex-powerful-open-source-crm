@@ -11,8 +11,8 @@ $join = array(
 
 $where = array();
 $staff_id = get_staff_user_id();
-if ($this->_instance->input->post('staff_id')) {
-    $staff_id = $this->_instance->input->post('staff_id');
+if ($this->ci->input->post('staff_id')) {
+    $staff_id = $this->ci->input->post('staff_id');
 } else {
     // Request from home and finished not need to be shown
   array_push($where, ' AND status != 4');

@@ -3,7 +3,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 use Omnipay\Omnipay;
 
-require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
+// require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
 
 class Stripe_gateway extends App_gateway
 {
@@ -25,7 +25,7 @@ class Stripe_gateway extends App_gateway
          * REQUIRED
          * Gateway name
          */
-        $this->setName('Stripe');
+        $this->setName('Stripe Checkout');
 
         /**
          * Add gateway settings
@@ -44,12 +44,18 @@ class Stripe_gateway extends App_gateway
                 'name' => 'description_dashboard',
                 'label' => 'settings_paymentmethod_description',
                 'type'=>'textarea',
-                'default_value'=>'Payment for Invoice'
+                'default_value'=>'Payment for Invoice {invoice_number}',
             ),
             array(
                 'name' => 'currencies',
                 'label' => 'settings_paymentmethod_currencies',
                 'default_value' => 'USD,CAD'
+            ),
+            array(
+                'name' => 'bitcoin_enabled',
+                'type' => 'yes_no',
+                'default_value' => 0,
+                'label' => 'Bitcoin'
             ),
             array(
                 'name' => 'test_mode_enabled',

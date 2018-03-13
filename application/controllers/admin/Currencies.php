@@ -15,7 +15,7 @@ class Currencies extends Admin_controller
     public function index()
     {
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('currencies');
+            $this->app->get_table_data('currencies');
         }
         $data['title'] = _l('currencies');
         $this->load->view('admin/currencies/manage', $data);

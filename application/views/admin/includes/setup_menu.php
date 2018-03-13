@@ -93,4 +93,4 @@
         <?php } ?>
     </ul>
 </div>
-<?php $this->perfex_base->set_setup_menu_visibility($total_setup_items); ?>
+<?php $this->app->set_setup_menu_visibility($total_setup_items); ?>

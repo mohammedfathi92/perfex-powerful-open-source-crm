@@ -167,10 +167,11 @@ function invoice_pdf($invoice, $tag = '')
     $CI->load->model('payment_modes_model');
     $payment_modes = $CI->payment_modes_model->get();
 
-    // In case user want to include {invoice_number} in PDF offline mode description
+    // In case user want to include {invoice_number} or {client_id} in PDF offline mode description
     foreach ($payment_modes as $key => $mode) {
         if (isset($mode['description'])) {
             $payment_modes[$key]['description'] = str_replace('{invoice_number}', $invoice_number, $mode['description']);
+            $payment_modes[$key]['description'] = str_replace('{client_id}', $invoice->clientid, $mode['description']);
         }
     }
 

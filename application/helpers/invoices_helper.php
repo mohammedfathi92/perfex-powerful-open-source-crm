@@ -51,6 +51,23 @@ function get_invoice_total_left_to_pay($id, $invoice_total = null)
 }
 
 /**
+ * Check if invoice email template for overdue notices is enabled
+ * @return boolean
+ */
+function is_invoices_email_overdue_notice_enabled(){
+    return total_rows('tblemailtemplates',array('slug'=>'invoice-overdue-notice','active'=>1)) > 0;
+}
+
+/**
+ * Check if there are sources for sending invoice overdue notices
+ * Will be either email or SMS
+ * @return boolean
+ */
+function is_invoices_overdue_reminders_enabled(){
+    return is_invoices_email_overdue_notice_enabled() || is_sms_trigger_active(SMS_TRIGGER_INVOICE_OVERDUE);
+}
+
+/**
  * Check invoice restrictions - hash, clientid
  * @since  Version 1.0.1
  * @param  mixed $id   invoice id
@@ -65,6 +82,7 @@ function check_invoice_restrictions($id, $hash)
     }
     if (!is_client_logged_in() && !is_staff_logged_in()) {
         if (get_option('view_invoice_only_logged_in') == 1) {
+            redirect_after_login_to_current_url();
             redirect(site_url('clients/login'));
         }
     }
@@ -324,9 +342,21 @@ function format_invoice_number($id)
         // Number based
         return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
     } elseif ($format == 2) {
+        // Year based
         return $prefix . date('Y', strtotime($date)) . '/' . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT);
+    } else if($format == 3) {
+        // Number-yy based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '-' . date('y', strtotime($date));
+    } else if($format == 4) {
+        // Number-mm-yyyy based
+        return $prefix . str_pad($number, $prefixPadding, '0', STR_PAD_LEFT)  . '/' . date('m', strtotime($date)) . '/' . date('Y', strtotime($date));
     }
 
+    $hook_data['id'] = $id;
+    $hook_data['invoice'] = $invoice;
+    $hook_data['formatted_number'] = $number;
+    $hook_data = do_action('format_invoice_number',$hook_data);
+    $number = $hook_data['formatted_number'];
     return $number;
 }
 
@@ -510,6 +540,10 @@ function load_invoices_total_template()
         $data['invoices_total_currencies'] = $CI->currencies_model->get();
     }
     $data['invoices_years']       = $CI->invoices_model->get_invoices_years();
+
+    if(count($data['invoices_years']) >= 1 && $data['invoices_years'][0]['year'] != date('Y')) {
+        array_unshift($data['invoices_years'], array('year'=>date('Y')));
+    }
     $data['total_result'] = $CI->invoices_model->get_invoices_total($_data);
     $data['_currency']    = $data['total_result']['currencyid'];
     $CI->load->view('admin/invoices/invoices_total_template', $data);

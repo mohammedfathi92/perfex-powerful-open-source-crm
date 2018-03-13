@@ -1,6 +1,6 @@
 <?php
    $total_qa_removed = 0;
-   $quickActions = $this->perfex_base->get_quick_actions_links();
+   $quickActions = $this->app->get_quick_actions_links();
    foreach($quickActions as $key => $item){
      if(isset($item['permission'])){
       if(!has_permission($item['permission'],'','create')){
@@ -183,7 +183,7 @@
          $m++;
          do_action('after_render_single_aside_menu',$m); ?>
       <?php } ?>
-      <?php if((is_staff_member() || is_admin()) && $this->perfex_base->show_setup_menu() == true){ ?>
+      <?php if((is_staff_member() || is_admin()) && $this->app->show_setup_menu() == true){ ?>
       <li<?php if(get_option('show_setup_menu_item_only_on_hover') == 1) { echo ' style="display:none;"'; } ?> id="setup-menu-item">
          <a href="#" class="open-customizer"><i class="fa fa-cog menu-icon"></i>
          <?php echo _l('setting_bar_heading'); ?></a>
@@ -191,12 +191,12 @@
       </li>
       <?php do_action('after_render_aside_menu'); ?>
       <?php
-         $pinnedProjects = get_user_pinned_projects();
-         if(count($pinnedProjects) > 0){ ?>
+      $pinnedProjects = get_user_pinned_projects();
+      if(count($pinnedProjects) > 0){ ?>
       <li class="pinned-separator"></li>
       <?php foreach($pinnedProjects as $pinnedProject){ ?>
       <li class="pinned_project">
-         <a href="<?php echo admin_url('projects/view/'.$pinnedProject['id']); ?>" data-toggle="tooltip" data-title="<?php echo _l('pinned_project'); ?>"><?php echo $pinnedProject['name']; ?><br><small><?php echo get_company_name($pinnedProject["clientid"]); ?></small></a></a>
+         <a href="<?php echo admin_url('projects/view/'.$pinnedProject['id']); ?>" data-toggle="tooltip" data-title="<?php echo _l('pinned_project'); ?>"><?php echo $pinnedProject['name']; ?><br><small><?php echo $pinnedProject["company"]; ?></small></a></a>
          <div class="col-md-12">
             <div class="progress progress-bar-mini">
                <div class="progress-bar no-percent-text not-dynamic" role="progressbar" data-percent="<?php echo $pinnedProject['progress']; ?>" style="width: <?php echo $pinnedProject['progress']; ?>%;">

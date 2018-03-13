@@ -166,6 +166,7 @@
     <?php } ?>
   </div>
 </div>
+<?php if($project->settings->available_features['project_expenses'] == 1){ ?>
 <div class="row">
  <div class="col-md-3">
   <p class="text-uppercase text-muted"><?php echo _l('project_overview_expenses'); ?></span></p>
@@ -184,6 +185,7 @@
   <p class="bold font-medium"><?php echo format_money(sum_from_table('tblexpenses',array('where'=>array('project_id'=>$project->id,'invoiceid IS NULL','billable'=>1),'field'=>'amount')),$currency->symbol); ?></p>
 </div>
 </div>
+<?php } ?>
 </div>
 <?php } ?>
 <div class="col-md-12">

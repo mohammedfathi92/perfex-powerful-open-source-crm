@@ -15,7 +15,7 @@ class Knowledge_base extends Admin_controller
             access_denied('knowledge_base');
         }
         if ($this->input->is_ajax_request()) {
-            $this->perfex_base->get_table_data('kb_articles');
+            $this->app->get_table_data('kb_articles');
         }
         $data['groups']    = $this->knowledge_base_model->get_kbg();
         $data['bodyclass'] = 'top-tabs kan-ban-body';

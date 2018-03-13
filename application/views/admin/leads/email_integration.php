@@ -63,7 +63,7 @@
                     </div>
                     <?php echo render_input('folder','leads_email_integration_folder',$mail->folder); ?>
 
-                    <?php echo render_input('check_every','leads_email_integration_check_every',$mail->check_every,'number',array('min'=>10,'data-ays-ignore'=>true)); ?>
+                    <?php echo render_input('check_every','leads_email_integration_check_every',$mail->check_every,'number',array('min'=>do_action('leads_email_integration_check_every',10),'data-ays-ignore'=>true)); ?>
 
                     <div class="checkbox checkbox-primary">
                         <input type="checkbox" name="only_loop_on_unseen_emails" class="ays-ignore" id="only_loop_on_unseen_emails" <?php if($mail->only_loop_on_unseen_emails == 1){echo 'checked';} ?>>

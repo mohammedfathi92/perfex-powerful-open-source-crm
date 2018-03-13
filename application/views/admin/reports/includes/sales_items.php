@@ -20,7 +20,7 @@
   </div>
 </div>
 <?php } ?>
-  <table class="table table-striped table-items-report scroll-responsive">
+  <table class="table table-items-report scroll-responsive">
     <thead>
       <tr>
         <th><?php echo _l('reports_item'); ?></th>

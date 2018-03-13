@@ -3,7 +3,7 @@ defined('BASEPATH') or exit('No direct script access allowed');
 
 use Omnipay\Omnipay;
 
-require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
+// require_once(APPPATH . 'third_party/omnipay/vendor/autoload.php');
 
 class Authorize_aim_gateway extends App_gateway
 {
@@ -44,7 +44,7 @@ class Authorize_aim_gateway extends App_gateway
                 'name' => 'description_dashboard',
                 'label' => 'settings_paymentmethod_description',
                 'type'=>'textarea',
-                'default_value'=>'Payment for Invoice'
+                'default_value'=>'Payment for Invoice {invoice_number}',
             ),
             array(
                 'name' => 'currencies',
@@ -110,7 +110,7 @@ class Authorize_aim_gateway extends App_gateway
         $requestData = array(
             'amount' => number_format($data['amount'], 2, '.', ''),
             'currency' => $data['invoice']->currency_name,
-            'description' => $this->getSetting('description_dashboard') . ' - ' . format_invoice_number($data['invoice']->id),
+            'description' => str_replace('{invoice_number}', format_invoice_number($data['invoice']->id) , $this->getSetting('description_dashboard')),
             'transactionId' => $data['invoice']->id,
             'invoiceNumber'=>format_invoice_number($data['invoice']->id),
             'card' => $billing_data

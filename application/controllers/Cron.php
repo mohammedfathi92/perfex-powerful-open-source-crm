@@ -1,12 +1,12 @@
 <?php
 defined('BASEPATH') or exit('No direct script access allowed');
+
 class Cron extends CRM_Controller
 {
     public function __construct()
     {
         parent::__construct();
         update_option('cron_has_run_from_cli', 1);
-
     }
 
     public function index($key = "")

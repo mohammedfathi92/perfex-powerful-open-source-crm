@@ -365,7 +365,7 @@ function get_contact_full_name($contact_id = '')
 
     $contact = $CI->object_cache->get('contact-full-name-data-'.$contact_id);
 
-    if(!$contact){
+    if (!$contact) {
         $CI->db->where('id', $contact_id);
         $contact = $CI->db->select('firstname,lastname')->from('tblcontacts')->get()->row();
         $CI->object_cache->add('contact-full-name-data-'.$contact_id, $contact);
@@ -487,10 +487,10 @@ function have_assigned_customers($staff_id = '')
 function has_contact_permission($permission, $contact_id = '')
 {
     $CI =& get_instance();
-    if (!class_exists('perfex_base')) {
-        $CI->load->library('perfex_base');
+    if (!class_exists('app')) {
+        $CI->load->library('app');
     }
-    $permissions = $CI->perfex_base->get_contact_permissions();
+    $permissions = get_contact_permissions();
     // Contact id passed form function
     if ($contact_id != '') {
         $_contact_id = $contact_id;
@@ -500,12 +500,10 @@ function has_contact_permission($permission, $contact_id = '')
     }
     foreach ($permissions as $_permission) {
         if ($_permission['short_name'] == $permission) {
-            if (total_rows('tblcontactpermissions', array(
+           return total_rows('tblcontactpermissions', array(
                 'permission_id' => $_permission['id'],
                 'userid' => $_contact_id,
-            )) > 0) {
-                return true;
-            }
+            )) > 0;
         }
     }
 
@@ -574,6 +572,49 @@ function client_have_transactions($id)
     }
 
     return false;
+}
+
+
+/**
+* Predefined contact permission
+* @return array
+*/
+function get_contact_permissions()
+{
+    $permissions = array(
+            array(
+                'id' => 1,
+                'name' => _l('customer_permission_invoice'),
+                'short_name' => 'invoices',
+            ),
+            array(
+                'id' => 2,
+                'name' => _l('customer_permission_estimate'),
+                'short_name' => 'estimates',
+            ),
+            array(
+                'id' => 3,
+                'name' => _l('customer_permission_contract'),
+                'short_name' => 'contracts',
+            ),
+            array(
+                'id' => 4,
+                'name' => _l('customer_permission_proposal'),
+                'short_name' => 'proposals',
+            ),
+            array(
+                'id' => 5,
+                'name' => _l('customer_permission_support'),
+                'short_name' => 'support',
+            ),
+            array(
+                'id' => 6,
+                'name' => _l('customer_permission_projects'),
+                'short_name' => 'projects',
+            ),
+        );
+
+    return do_action('get_contact_permissions', $permissions);
 }
 
 /**

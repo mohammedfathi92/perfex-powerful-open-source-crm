@@ -19,7 +19,7 @@
       <?php } ?>
     </select>
     <?php } ?>
-      <?php if(count($estimates_years) > 1){ ?>
+      <?php if(count($estimates_years > 1)){ ?>
       <select data-none-selected-text="<?php echo date('Y'); ?>" data-width="auto" class="selectpicker" multiple name="estimates_total_years" onchange="init_estimates_total();">
          <?php foreach($estimates_years as $year){ ?>
          <option value="<?php echo $year['year']; ?>"<?php if($this->input->post('years') && in_array($year['year'], $this->input->post('years')) || !$this->input->post('years') && date('Y') == $year['year']){echo ' selected'; } ?>><?php echo $year['year']; ?></option>
